@@ -2,11 +2,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { execFileSync, execFile } from 'node:child_process'; // Añadido execFile
-import { promisify } from 'node:util'; // Añadido promisify
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
-const execFileAsync = promisify(execFile); // Inicializamos la versión asíncrona
+const execFileAsync = promisify(execFile);
 
 const libDir = path.dirname(fileURLToPath(import.meta.url));
 export const appRoot = path.resolve(libDir, '..', '..');
@@ -132,11 +132,7 @@ export function projectId(projectPath) {
 let scanCache = { rootPath: '', at: 0, projects: [] };
 let projectIndex = new Map();
 
-export function invalidateProjectScan() {
-  scanCache.at = 0;
-}
-
-async function gitBranchInfo(projectPath) {
+export async function gitBranchInfo(projectPath) {
   try {
     const gitOptions = { encoding: 'utf8', windowsHide: true };
     // Lanzamos ambos comandos de Git al mismo tiempo para máxima velocidad
