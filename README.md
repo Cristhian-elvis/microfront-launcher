@@ -14,6 +14,11 @@ npm run start
 La interfaz se abre en `http://127.0.0.1:3187`. No requiere `npm install` para
 el uso diario y no utiliza Electron ni servicios de Windows.
 
+En el primer inicio, el launcher abre la ruta `/init` para solicitar la raíz
+local de las shells, la ruta del repositorio MOVA UI Components y el puerto.
+La configuración se guarda en `data\config.json`, que es local y no se
+versiona.
+
 ## Flujo de inicio
 
 1. Reutiliza o compila la versión MOVA seleccionada y la asocia a la carpeta
@@ -28,10 +33,11 @@ que Chrome se abra posteriormente.
 
 ## Versiones de MOVA UI Components
 
-Los tags se leen desde:
+Los tags se leen desde una copia local del repositorio MOVA UI Components. La
+ruta se define individualmente en `/init` durante el primer inicio:
 
 ```text
-C:\gitlab\mova\mova3\mova3_lib_ui_components
+<ruta-local>\mova3_lib_ui_components
 ```
 
 El repositorio fuente nunca cambia de rama o tag. Para compilar una versión se
@@ -45,8 +51,8 @@ storage\mova-components\versions\<tag>\
 └── www\
 ```
 
-La versión `release-1.5.2` se incluye como build inicial importado. Las
-preferencias se almacenan en `storage\preferences.json`.
+Los builds, el catálogo de tags y las preferencias se almacenan localmente en
+`storage\`; esa carpeta se regenera en cada equipo y no se versiona.
 
 ## Seguridad de puertos
 

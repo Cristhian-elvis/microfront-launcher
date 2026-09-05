@@ -1,0 +1,21 @@
+node_modules/
+.npm-cache/
+data/
+storage/
+dist/
+
+# Variables de entorno y credenciales locales
+.env
+.env.*
+!.env.example
+
+# Preferencias locales de editores
+.vscode/
+.idea/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# graphify-axet
+.graphify/
