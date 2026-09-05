@@ -1,7 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn, execFile, spawnSync } from 'node:child_process';
+import { spawn, execFile } from 'node:child_process';
 import {
   appRoot, distRoot, configPath, preferencesPath, versionsRoot, workRoot,
   readConfig, readPreferences, writePreferences, writeJson, getProjects,
@@ -368,8 +368,8 @@ function buildMicrofrontend(project, microfrontend) {
   return record;
 }
 
-function selectedMicrofrontends(projectId, microfrontendIds) {
-  const project = getProjects().find((item) => item.id === projectId);
+async function selectedMicrofrontends(projectId, microfrontendIds) {
+  const project = (await getProjects()).find((item) => item.id === projectId);
   if (!project) throw new Error('No se encontró la shell solicitada.');
   const requested = new Set(Array.isArray(microfrontendIds) ? microfrontendIds : []);
   const microfrontends = (project.microfrontends || []).filter((item) => requested.has(item.id));
@@ -378,10 +378,13 @@ function selectedMicrofrontends(projectId, microfrontendIds) {
   return { project, microfrontends };
 }
 
-function startMicrofrontendBuildBatch(projectId, microfrontendIds) {
+async function startMicrofrontendBuildBatch(projectId, microfrontendIds) {
   if (branchOperation || state.microfrontendBuild.status === 'running')
     throw new Error('Ya hay una operación de microfrontend en curso.');
-  const { project, microfrontends } = selectedMicrofrontends(projectId, microfrontendIds);
+  
+  // AÑADIDO: await
+  const { project, microfrontends } = await selectedMicrofrontends(projectId, microfrontendIds);
+  
   if (microfrontends.some((item) => !item.buildAvailable))
     throw new Error('La selección contiene microfronts sin el script npm run build.');
   const startedAt = new Date().toISOString();
@@ -404,10 +407,13 @@ function startMicrofrontendBuildBatch(projectId, microfrontendIds) {
   }).finally(() => { microfrontendBatchOperation = null; });
 }
 
-function startMicrofrontendBranchBatch(projectId, microfrontendIds, branch) {
+async function startMicrofrontendBranchBatch(projectId, microfrontendIds, branch) {
   if (branchOperation || state.microfrontendBuild.status === 'running')
     throw new Error('Ya hay una operación de microfrontend en curso.');
-  const { microfrontends } = selectedMicrofrontends(projectId, microfrontendIds);
+    
+  // AÑADIDO: await
+  const { microfrontends } = await selectedMicrofrontends(projectId, microfrontendIds);
+  
   const startedAt = new Date().toISOString();
   const run = async () => {
     const results = await Promise.all(microfrontends.map(async (microfrontend) => {
@@ -512,7 +518,8 @@ async function openOrRequestBrowser(project) {
 
 async function runEnvironment(projectId, options = {}) {
   addLog('Entorno', 'stage', 'Iniciando proceso. Validando la shell y MOVA Components…');
-  const project = getProjects().find((item) => item.id === projectId);
+  // AÑADIDO: await
+  const project = (await getProjects()).find((item) => item.id === projectId);
   if (!project) throw new Error('Shell no encontrada.');
   const validationStartedAt = new Date().toISOString();
   beginExecution(project, [{
@@ -601,7 +608,8 @@ async function runEnvironment(projectId, options = {}) {
 }
 
 async function rebuildShellServer(projectId) {
-  const project = getProjects().find((item) => item.id === projectId);
+  // AÑADIDO: await
+  const project = (await getProjects()).find((item) => item.id === projectId);
   if (!project) throw new Error('Shell no encontrada.');
   if (state.shell.status !== 'stopped') throw new Error('Detén la shell antes de reconstruir su servidor.');
   if (!project.workflow?.prepareServer || !project.workflow?.buildLocal) throw new Error('Esta shell no define npm run prepare-server y npm run build:local.');
@@ -669,8 +677,8 @@ async function cancelAndStopAll(reason = 'Entorno detenido') {
   updateSession({ status: 'idle', stage: 'idle', plan: null, message: reason, projectId: null, projectName: null, startedAt: null });
 }
 
-function openScaffolding(projectId) {
-  const project = getProjects().find((item) => item.id === projectId);
+async function openScaffolding(projectId) {
+  const project = (await getProjects()).find((item) => item.id === projectId);
   if (!project) throw new Error('Shell no encontrada.');
   if (!project.workflow?.scaffolding) throw new Error('Esta shell no define npm run scaffolding.');
   const child = process.platform === 'win32'
@@ -682,7 +690,8 @@ function openScaffolding(projectId) {
 
 async function reopenChrome({ newWindow = true } = {}) {
   if (state.shell.status !== 'running' || !state.shell.projectId) throw new Error('No hay una shell activa para abrir en Chrome.');
-  const project = getProjects().find((item) => item.id === state.shell.projectId);
+  // AÑADIDO: await
+  const project = (await getProjects()).find((item) => item.id === state.shell.projectId);
   if (!project) throw new Error('No se encontró la configuración de la shell activa.');
   await openChrome(project, { newWindow });
 }
@@ -691,21 +700,6 @@ async function openEmptyBrowser() {
   await openChrome(null, { newWindow: true });
 }
 
-function findVsCodeExecutable() {
-  const candidates = [
-    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Microsoft VS Code', 'Code.exe'),
-    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Microsoft VS Code Insiders', 'Code - Insiders.exe'),
-    path.join(process.env.ProgramFiles || '', 'Microsoft VS Code', 'Code.exe'),
-    path.join(process.env['ProgramFiles(x86)'] || '', 'Microsoft VS Code', 'Code.exe'),
-    'C:\\Program Files\\Microsoft VS Code\\Code.exe',
-    'C:\\Program Files (x86)\\Microsoft VS Code\\Code.exe'
-  ];
-  const installed = candidates.find((candidate) => candidate && fs.existsSync(candidate));
-  if (installed) return { command: installed, shell: false };
-  const lookup = spawnSync('where.exe', ['code'], { encoding: 'utf8', windowsHide: true });
-  const command = lookup.status === 0 ? lookup.stdout.split(/\r?\n/).find(Boolean)?.trim() : null;
-  return command ? { command, shell: command.toLowerCase().endsWith('.cmd') || command.toLowerCase().endsWith('.bat') } : null;
-}
 
 function launchDetached(command, args, shell = false) {
   return new Promise((resolve, reject) => {
@@ -715,29 +709,9 @@ function launchDetached(command, args, shell = false) {
   });
 }
 
-async function openMicrofrontend(projectId, microfrontendId) {
-  const project = getIndexedProject(projectId) || getProjects().find((item) => item.id === projectId);
-  const microfrontend = project?.microfrontends?.find((item) => item.id === microfrontendId);
-  if (!microfrontend) throw new Error('No se encontró el microfrontend solicitado.');
-  const executable = findVsCodeExecutable();
-  if (!executable) throw new Error('No se encontró VS Code. Instálalo o agrega el comando code al PATH.');
-  await launchDetached(executable.command, ['--new-window', microfrontend.path], executable.shell);
-  addLog('Microfronts', 'system', `VS Code abierto para ${microfrontend.name}.`);
-}
-
-async function openProjectWebapp(projectId) {
-  const project = getProjects().find((item) => item.id === projectId);
-  if (!project?.appName || !project?.serverPath) throw new Error('La shell no tiene una webapp asociada configurada.');
-  const webappPath = path.join(project.serverPath, project.appName);
-  if (!fs.existsSync(webappPath)) throw new Error('No se encontró la ubicación local de la webapp asociada.');
-  const executable = findVsCodeExecutable();
-  if (!executable) throw new Error('No se encontró VS Code. Instálalo o agrega el comando code al PATH.');
-  await launchDetached(executable.command, ['--new-window', webappPath], executable.shell);
-  addLog('Shells', 'system', `VS Code abierto para la webapp ${project.appName}.`);
-}
-
 async function openMicrofrontendFolder(projectId, microfrontendId) {
-  const project = getProjects().find((item) => item.id === projectId);
+  // AÑADIDO: await
+  const project = (await getProjects()).find((item) => item.id === projectId);
   const microfrontend = project?.microfrontends?.find((item) => item.id === microfrontendId);
   if (!microfrontend) throw new Error('No se encontró el microfrontend solicitado.');
   const command = process.platform === 'win32' ? 'explorer.exe' : 'xdg-open';
@@ -755,7 +729,8 @@ function runGit(args, cwd) {
 }
 
 async function switchMicrofrontendBranch(projectId, microfrontendId, branch, progress = null, report = null) {
-  const project = getProjects().find((item) => item.id === projectId);
+  // AÑADIDO: await
+  const project = (await getProjects()).find((item) => item.id === projectId);
   const microfrontend = project?.microfrontends?.find((item) => item.id === microfrontendId);
   if (!microfrontend) throw new Error('No se encontró el microfrontend solicitado.');
   const branchName = String(branch).replace(/^origin\//, '');
@@ -827,7 +802,7 @@ function selectLocalDirectory(description) {
   }));
 }
 
-const findProject = (projectId) => getIndexedProject(projectId) || getProjects().find((item) => item.id === projectId);
+const findProject = async (projectId) => getIndexedProject(projectId) || (await getProjects()).find((item) => item.id === projectId);
 const vsCodeService = createVsCodeService({ findProject, addLog });
 const handleMicrofrontendRequest = createMicrofrontendHandler({
   getProjects, openMicrofrontend: vsCodeService.openMicrofrontend, openMicrofrontendFolder, buildMicrofrontend,
@@ -899,15 +874,20 @@ server.on('error', (error) => {
 });
 
 if (process.argv.includes('--check')) {
-  const versions = getVersions();
-  console.log(JSON.stringify({
-    ok: true,
-    projectsDetected: getProjects().length,
-    tagsDetected: versions.length,
-    cachedVersions: versions.filter((item) => item.cached).length,
-    preferredTag: readPreferences().preferredTag,
-    interfaceBuilt: fs.existsSync(path.join(distRoot, 'index.html'))
-  }, null, 2));
+  // Envolvemos en una función asíncrona autoejecutable
+  (async () => {
+    const versions = getVersions();
+    const projects = await getProjects();
+    console.log(JSON.stringify({
+      ok: true,
+      projectsDetected: projects.length,
+      tagsDetected: versions.length,
+      cachedVersions: versions.filter((item) => item.cached).length,
+      preferredTag: readPreferences().preferredTag,
+      interfaceBuilt: fs.existsSync(path.join(distRoot, 'index.html'))
+    }, null, 2));
+    process.exit(0);
+  })();
 } else {
   server.listen(port, host, () => {
     console.log(`Microfront Launcher V2 disponible en http://${host}:${port}`);

@@ -1,6 +1,7 @@
 export function createStateHandler({ getState, readConfig, needsInitialSetup, getProjects, logs, eventClients, json }) {
   return async function handleStateRequest(request, response, url) {
     const { method, pathname } = { method: request.method, pathname: url.pathname };
+    
     if (method === 'GET' && pathname === '/api/state') {
       json(response, 200, getState());
       return true;
@@ -14,7 +15,9 @@ export function createStateHandler({ getState, readConfig, needsInitialSetup, ge
       return true;
     }
     if (method === 'GET' && pathname === '/api/projects') {
-      json(response, 200, getProjects({ force: url.searchParams.get('refresh') === '1' }));
+      // AÑADIDO: await antes de getProjects
+      const projects = await getProjects({ force: url.searchParams.get('refresh') === '1' });
+      json(response, 200, projects);
       return true;
     }
     if (method === 'GET' && pathname === '/api/logs') {

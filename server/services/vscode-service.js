@@ -34,13 +34,13 @@ export function createVsCodeService({ findProject, addLog }) {
 
   return {
     async openMicrofrontend(projectId, microfrontendId) {
-      const project = findProject(projectId);
+      const project = await findProject(projectId);
       const microfrontend = project?.microfrontends?.find((item) => item.id === microfrontendId);
       if (!microfrontend) throw new Error('No se encontró el microfrontend solicitado.');
       await openPath(project, microfrontend.path, `VS Code abierto para ${microfrontend.name}.`);
     },
     async openProjectWebapp(projectId) {
-      const project = findProject(projectId);
+      const project = await findProject(projectId);
       if (!project?.appName || !project?.serverPath) throw new Error('La shell no tiene una webapp asociada configurada.');
       const webappPath = path.join(project.serverPath, project.appName);
       if (!fs.existsSync(webappPath)) throw new Error('No se encontró la ubicación local de la webapp asociada.');

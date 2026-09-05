@@ -1,8 +1,12 @@
+// Reemplaza tus imports actuales por estos:
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execFile } from 'node:child_process'; // Añadido execFile
+import { promisify } from 'node:util'; // Añadido promisify
 import { fileURLToPath } from 'node:url';
+
+const execFileAsync = promisify(execFile); // Inicializamos la versión asíncrona
 
 const libDir = path.dirname(fileURLToPath(import.meta.url));
 export const appRoot = path.resolve(libDir, '..', '..');
@@ -132,16 +136,17 @@ export function invalidateProjectScan() {
   scanCache.at = 0;
 }
 
-function gitBranchInfo(projectPath) {
+async function gitBranchInfo(projectPath) {
   try {
-    const branch = execFileSync('git', ['-C', projectPath, 'branch', '--show-current'], {
-      encoding: 'utf8', windowsHide: true
-    }).trim() || 'HEAD';
-    const refs = execFileSync('git', [
-      '-C', projectPath, 'for-each-ref', '--format=%(refname:short)',
-      'refs/heads', 'refs/remotes/origin'
-    ], { encoding: 'utf8', windowsHide: true });
-    const branches = [...new Set(refs.split(/\r?\n/)
+    const gitOptions = { encoding: 'utf8', windowsHide: true };
+    // Lanzamos ambos comandos de Git al mismo tiempo para máxima velocidad
+    const [branchReq, refsReq] = await Promise.all([
+      execFileAsync('git', ['-C', projectPath, 'branch', '--show-current'], gitOptions),
+      execFileAsync('git', ['-C', projectPath, 'for-each-ref', '--format=%(refname:short)', 'refs/heads', 'refs/remotes/origin'], gitOptions)
+    ]);
+
+    const branch = branchReq.stdout.trim() || 'HEAD';
+    const branches = [...new Set(refsReq.stdout.split(/\r?\n/)
       .filter((ref) => ref && ref !== 'HEAD' && ref !== 'origin'))].sort();
     return { branch, branches };
   } catch {
@@ -149,11 +154,12 @@ function gitBranchInfo(projectPath) {
   }
 }
 
-function shellProfile(shellPath, pkg, defaults) {
+async function shellProfile(shellPath, pkg, defaults) {
   const projectRoot = path.dirname(shellPath);
   const configRoot = path.join(shellPath, 'config');
   let appConfig = null;
   let configFolder = null;
+  
   if (fs.existsSync(configRoot)) {
     const candidates = fs.readdirSync(configRoot, { withFileTypes: true })
       .filter((entry) => entry.isDirectory() && !['des', 'val', 'prod'].includes(entry.name.toLowerCase()))
@@ -168,27 +174,35 @@ function shellProfile(shellPath, pkg, defaults) {
 
   const appName = appConfig?.app || configFolder || null;
   const serverPath = path.join(projectRoot, 'server');
-  const microfrontends = Object.entries(appConfig?.remotes || {}).flatMap(([name, remote]) => {
-    if (!String(remote?.remoteEntry || '').includes('localhost:8080')) return [];
-    const microfrontendPath = path.join(projectRoot, name);
-    const packagePath = path.join(microfrontendPath, 'package.json');
-    if (!fs.existsSync(packagePath)) return [];
-    const microfrontendPackage = readJson(packagePath, {});
-    const git = gitBranchInfo(microfrontendPath);
-    return [{
-      id: projectId(microfrontendPath), name, path: microfrontendPath,
-      version: remote.version || microfrontendPackage.version || null,
-      branch: git.branch,
-      branches: git.branches,
-      remoteEntry: remote.remoteEntry,
-      command: microfrontendPackage.scripts?.watch ? 'npm run watch' : null,
-      watchAvailable: Boolean(microfrontendPackage.scripts?.watch),
-      buildAvailable: Boolean(microfrontendPackage.scripts?.build),
-      localBuildAvailable: fs.existsSync(path.join(microfrontendPath, 'dist'))
-    }];
-  });
-
+  
+  // AHORA PROCESAMOS LOS MICROFRONTENDS EN PARALELO
+  const microfrontendsRaw = await Promise.all(
+    Object.entries(appConfig?.remotes || {}).map(async ([name, remote]) => {
+      if (!String(remote?.remoteEntry || '').includes('localhost:8080')) return null;
+      const microfrontendPath = path.join(projectRoot, name);
+      const packagePath = path.join(microfrontendPath, 'package.json');
+      if (!fs.existsSync(packagePath)) return null;
+      
+      const microfrontendPackage = readJson(packagePath, {});
+      const git = await gitBranchInfo(microfrontendPath); // Esperamos a Git aquí
+      
+      return {
+        id: projectId(microfrontendPath), name, path: microfrontendPath,
+        version: remote.version || microfrontendPackage.version || null,
+        branch: git.branch,
+        branches: git.branches,
+        remoteEntry: remote.remoteEntry,
+        command: microfrontendPackage.scripts?.watch ? 'npm run watch' : null,
+        watchAvailable: Boolean(microfrontendPackage.scripts?.watch),
+        buildAvailable: Boolean(microfrontendPackage.scripts?.build),
+        localBuildAvailable: fs.existsSync(path.join(microfrontendPath, 'dist'))
+      };
+    })
+  );
+  
+  const microfrontends = microfrontendsRaw.filter(Boolean); // Limpiamos los nulls
   const serverPort = Number(defaults.serverPort || 8080);
+  
   return {
     command: pkg.scripts?.['local-server'] ? 'npm run local-server' : defaults.command,
     url: appName ? `http://127.0.0.1:${serverPort}/${appName}/` : defaults.url.replace('localhost', '127.0.0.1'),
@@ -204,12 +218,13 @@ function shellProfile(shellPath, pkg, defaults) {
   };
 }
 
-export function scanShells(rootPath, defaults, { force = false } = {}) {
+export async function scanShells(rootPath, defaults, { force = false } = {}) {
   if (!rootPath || !fs.existsSync(rootPath)) return [];
   if (!force && scanCache.rootPath === rootPath && Date.now() - scanCache.at < 15000) return scanCache.projects;
+  
   const ignored = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.angular', '.nx', '.next']);
   const pending = [{ directory: rootPath, depth: 0 }];
-  const found = [];
+  const shellsToProcess = []; // Guardamos los detectados para procesarlos en paralelo
 
   while (pending.length) {
     const { directory: current, depth } = pending.pop();
@@ -224,13 +239,7 @@ export function scanShells(rootPath, defaults, { force = false } = {}) {
           const pkg = readJson(packagePath);
           if (pkg.scripts?.['local-server'] || pkg.scripts?.start) {
             const segments = path.relative(rootPath, current).split(path.sep).filter((part) => part !== 'mova3_shell');
-            found.push({
-              id: projectId(current),
-            name: segments[0] || 'mova3_shell',
-              path: current,
-              ...shellProfile(current, pkg, defaults),
-              detected: true
-            });
+            shellsToProcess.push({ current, pkg, segments });
           }
         } catch { /* Continue discovering other shells. */ }
       }
@@ -245,26 +254,44 @@ export function scanShells(rootPath, defaults, { force = false } = {}) {
       }
     }
   }
+
+  // PROCESAMOS TODOS LOS SHELLS DETECTADOS EN PARALELO
+  const found = await Promise.all(
+    shellsToProcess.map(async ({ current, pkg, segments }) => {
+      const profile = await shellProfile(current, pkg, defaults);
+      return {
+        id: projectId(current),
+        name: segments[0] || 'mova3_shell',
+        path: current,
+        ...profile,
+        detected: true
+      };
+    })
+  );
+
   const projects = found.sort((a, b) => a.name.localeCompare(b.name, 'es'));
   scanCache = { rootPath, at: Date.now(), projects };
   return projects;
 }
 
-export function getProjects({ force = false } = {}) {
+export async function getProjects({ force = false } = {}) {
   const config = readConfig();
-  const detected = scanShells(config.rootPath, config.shellDefaults, { force });
+  const detected = await scanShells(config.rootPath, config.shellDefaults, { force }); // Añadido await
   const byId = new Map(detected.map((project) => [project.id, project]));
+  
   for (const project of config.projects) {
     const id = project.id || projectId(project.path);
     byId.set(id, { ...byId.get(id), ...project, id });
   }
+  
   const hidden = new Set(config.hiddenProjects);
   const serverPort = Number(config.shellDefaults.serverPort || 8080);
   const projects = [...byId.values()].filter((project) => !hidden.has(project.id)).map((project) => {
     let url = project.url;
-    try { const parsed = new URL(url); parsed.port = String(serverPort); url = parsed.toString(); } catch { /* Mantener URL manual inválida para que se pueda corregir. */ }
+    try { const parsed = new URL(url); parsed.port = String(serverPort); url = parsed.toString(); } catch { /* ... */ }
     return { ...project, serverPort, url };
   });
+  
   projectIndex = new Map(projects.map((project) => [project.id, project]));
   return projects;
 }
