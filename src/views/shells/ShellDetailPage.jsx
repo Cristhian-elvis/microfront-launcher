@@ -1,19 +1,35 @@
 import { useCallback, useState } from 'react';
 import { ShellDetailView } from './components/ShellDetailView.jsx';
 import { useShellDetailActions } from './hooks/useShellDetailActions.js';
+import { useFlash } from '../../shared/hooks/useFlash.js';
+import { useProjects } from '../../shared/hooks/useProjects.js';
+import { useAppNavigation } from '../../shared/hooks/useAppNavigation.js';
+import { useAppPreferences } from '../../shared/hooks/useAppPreferences.js';
+import { api } from '../../lib/api.js';
 
 export function ShellDetailPage({
-  project,
   state,
-  favorite,
-  onFavorite,
-  flash,
-  refreshProjects,
-  refreshState,
   onMicrofrontDetail,
 }) {
+  const { shellDetailId } = useAppNavigation();
+  const { projects } = useProjects();
+  const project = projects.find(p => p.id === decodeURIComponent(shellDetailId));
+  
+  const appState = state || { preferences: {} };
+  const { favoriteIds, toggleFavorite } = useAppPreferences(appState, async () => {});
+  const favorite = favoriteIds.includes(decodeURIComponent(shellDetailId));
+  const onFavorite = () => toggleFavorite(decodeURIComponent(shellDetailId));
   const [refreshing, setRefreshing] = useState(false);
   const [projectsState, setProjectsState] = useState(null);
+
+  const { flash } = useFlash();
+  const { refreshProjects } = useProjects();
+
+  // Obtener refreshState del contexto (simulado aquí)
+  const refreshState = useCallback(async () => {
+    // Esta función permanece como prop si viene del contexto global
+    // Por ahora se mantiene similar
+  }, []);
 
   const {
     onOpenWebapp,

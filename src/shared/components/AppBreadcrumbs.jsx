@@ -1,7 +1,24 @@
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Link from "@mui/material/Link";
+import { useAppNavigation } from "../hooks/useAppNavigation.js";
+import { useProjects } from "../hooks/useProjects.js";
 
-export function AppBreadcrumbs({ activeView, shellName, microfrontName, onNavigate, shellId, routerNavigate }) {
+export function AppBreadcrumbs({ onNavigate, routerNavigate }) {
+  const { activeView, shellDetailId, microfrontDetailId } = useAppNavigation();
+  const { projects } = useProjects();
+  
+  const shellName = shellDetailId
+    ? projects.find((p) => p.id === decodeURIComponent(shellDetailId))?.name
+    : null;
+  
+  const microfrontName =
+    shellDetailId && microfrontDetailId
+      ? projects
+          .find((p) => p.id === decodeURIComponent(shellDetailId))
+          ?.microfrontends?.find(
+            (mf) => mf.id === decodeURIComponent(microfrontDetailId)
+          )?.name
+      : null;
   if (activeView === "home") return null;
   const items = [{ label: "Inicio", view: "home" }];
   if (activeView === "shells") items.push({ label: "Shells", view: "shells" });
@@ -9,7 +26,7 @@ export function AppBreadcrumbs({ activeView, shellName, microfrontName, onNaviga
     items.push({ label: "Microfronts", view: "microfronts" });
   if (activeView === "tags")
     items.push({ label: "Tags de MOVA", view: "tags" });
-  if (shellName) items.push({ label: shellName.toUpperCase(), shellId, action: "goToShell" });
+  if (shellName) items.push({ label: shellName.toUpperCase(), shellId: shellDetailId, action: "goToShell" });
   if (microfrontName) items.push({ label: microfrontName });
   return (
     <Breadcrumbs

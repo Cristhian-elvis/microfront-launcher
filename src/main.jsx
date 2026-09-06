@@ -30,7 +30,11 @@ import { useAppNavigation } from "./shared/hooks/useAppNavigation.js";
 import { useAppActions } from "./shared/hooks/useAppActions.js";
 import { useAppPreferences } from "./shared/hooks/useAppPreferences.js";
 import { useProjects } from "./shared/hooks/useProjects.js";
+import { useFlash } from "./shared/hooks/useFlash.js";
+import { useActions } from "./shared/hooks/useActions.js";
 import { ProjectsProvider } from "./shared/context/ProjectsContext.jsx";
+import { FlashProvider } from "./shared/context/FlashContext.jsx";
+import { ActionsProvider } from "./shared/context/ActionsContext.jsx";
 import "./styles.css";
 
 function AppContent() {
@@ -321,27 +325,6 @@ function AppContent() {
         <main>
           <AppBreadcrumbs
             activeView={activeView}
-            shellId={shellDetailId}
-            shellName={
-              shellDetailId
-                ? projects.find(
-                    (project) =>
-                      project.id === decodeURIComponent(shellDetailId),
-                  )?.name
-                : ""
-            }
-            microfrontName={
-              shellDetailId && microfrontDetailId
-                ? projects
-                    .find(
-                      (project) =>
-                        project.id === decodeURIComponent(shellDetailId),
-                    )
-                    ?.microfrontends?.find(
-                      (mf) => mf.id === decodeURIComponent(microfrontDetailId),
-                    )?.name
-                : ""
-            }
             onNavigate={navigate}
             routerNavigate={routerNavigate}
           />
@@ -349,11 +332,8 @@ function AppContent() {
             <div className="shells-table-wrapper">
               <ShellsPage
                 projects={filtered}
-                search={search}
                 state={state}
                 favoriteIds={favoriteIds}
-                onSearch={setSearch}
-                onRefresh={refreshProjects}
                 onFavorite={toggleFavorite}
                 onStart={startShell}
                 onStop={() => action("/api/environment/stop")}
@@ -368,17 +348,7 @@ function AppContent() {
           {shellDetailId && !microfrontDetailId && (
             <div className="shell-detail-wrapper">
               <ShellDetailPage
-                project={projects.find(
-                  (project) => project.id === decodeURIComponent(shellDetailId),
-                )}
                 state={state}
-                favorite={favoriteIds.includes(
-                  decodeURIComponent(shellDetailId),
-                )}
-                onFavorite={toggleFavorite}
-                flash={flash}
-                refreshProjects={refreshProjects}
-                refreshState={refreshState}
                 onMicrofrontDetail={(microfront) =>
                   routerNavigate(
                     `/shells/${encodeURIComponent(shellDetailId)}/${encodeURIComponent(microfront.id)}`
@@ -390,22 +360,7 @@ function AppContent() {
           {shellDetailId && microfrontDetailId && (
             <div className="microfront-detail-wrapper">
               <MicrofrontDetailPage
-                project={projects.find(
-                  (project) => project.id === decodeURIComponent(shellDetailId),
-                )}
-                microfront={
-                  projects
-                    .find(
-                      (project) => project.id === decodeURIComponent(shellDetailId),
-                    )
-                    ?.microfrontends?.find(
-                      (mf) => mf.id === decodeURIComponent(microfrontDetailId),
-                    )
-                }
                 state={state}
-                flash={flash}
-                refreshProjects={refreshProjects}
-                refreshState={refreshState}
               />
             </div>
           )}
@@ -425,20 +380,13 @@ function AppContent() {
               state={state}
               buildLogs={buildLogs}
               environmentLogs={environmentLogs}
-              consoleTab={consoleTab}
-              setConsoleTab={setConsoleTab}
               logEnd={logEnd}
               componentVersion={componentVersion}
               componentsActive={componentsActive}
               environmentLabel={environmentLabel}
               onNavigateToTags={() => navigate("tags")}
-              onComponentStop={() => action("/api/components/stop")}
-              onComponentStart={() => action("/api/components/start")}
               onMicrofronts={setMicrofrontProject}
-              onOpenBrowser={() => action("/api/chrome/open", { mode: "window" })}
-              onOpenBrowserTab={() => action("/api/chrome/open", { mode: "tab" })}
               onSelectShell={() => navigate("shells")}
-              onStop={() => action("/api/environment/stop")}
               projects={projects}
               clearLogs={clearLogs}
             />
@@ -447,14 +395,10 @@ function AppContent() {
             <MicrofrontsPage
               items={allMicrofronts}
               selectedId={microfrontFilter}
-              search={microfrontSearch}
               favoriteIds={favoriteMicrofrontIds}
               processes={state.processes || []}
-              onSearch={setMicrofrontSearch}
               onClearSelection={() => navigate("microfronts")}
               onToggleFavorite={toggleMicrofrontFavorite}
-              flash={flash}
-              refreshProjects={refreshProjects}
             />
           )}
         </main>
@@ -496,7 +440,11 @@ function AppContent() {
 function App() {
   return (
     <ProjectsProvider>
-      <AppContent />
+      <FlashProvider>
+        <ActionsProvider>
+          <AppContent />
+        </ActionsProvider>
+      </FlashProvider>
     </ProjectsProvider>
   );
 }

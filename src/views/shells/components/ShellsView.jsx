@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useProjects } from "../../../shared/hooks/useProjects.js";
 import { Icon } from "../../../shared/components/Icon.jsx";
 import { Modal } from "../../../shared/components/Modal.jsx";
 
@@ -110,10 +111,8 @@ function StatusDetails({ project, state, onClose }) {
 
 export function ShellsView({
   projects,
-  search,
   state,
   favoriteIds,
-  onSearch,
   onRefresh,
   onFavorite,
   onStart,
@@ -123,6 +122,7 @@ export function ShellsView({
   onDetails,
 }) {
   const [statusProject, setStatusProject] = useState(null);
+  const [search, setSearch] = useState("");
   return (
     <div className="view-panel shells-view">
       <section className="workspace">
@@ -136,7 +136,7 @@ export function ShellsView({
               <Icon name="search" size={17} />
               <input
                 value={search}
-                onChange={(event) => onSearch(event.target.value)}
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Buscar shell o microfrontend..."
               />
             </div>

@@ -1,5 +1,7 @@
-import { ShellsView } from './components/ShellsView.jsx';
+import { ShellsView } from "./components/ShellsView.jsx";
+import { useProjects } from "../../shared/hooks/useProjects.js";
 
 export function ShellsPage(props) {
-  return <ShellsView {...props} />;
+  const { refreshProjects } = useProjects();
+  return <ShellsView {...props} onRefresh={refreshProjects} />;
 }

@@ -1,29 +1,26 @@
+import { useState } from "react";
 import { Icon } from "../../shared/components/Icon.jsx";
 import { useHomeActions } from "./hooks/useHomeActions.js";
+import { useActions } from "../../shared/hooks/useActions.js";
 import { ProcessConsole } from "./components/ProcessConsole.jsx";
 
 export function HomePage({
   state,
   buildLogs,
   environmentLogs,
-  consoleTab,
-  setConsoleTab,
   logEnd,
   componentVersion,
   componentsActive,
   environmentLabel,
   onNavigateToTags,
-  onComponentStop,
-  onComponentStart,
   onMicrofronts,
-  onOpenBrowser,
-  onOpenBrowserTab,
   onSelectShell,
-  onStop,
   projects,
   clearLogs,
 }) {
+  const [consoleTab, setConsoleTab] = useState("environment");
   const { onClear } = useHomeActions(clearLogs);
+  const { onComponentStop, onComponentStart, onOpenBrowser, onEnvironmentStop } = useActions();
 
   const displayLogs = consoleTab === "build" ? buildLogs : environmentLogs;
 
@@ -144,7 +141,7 @@ export function HomePage({
               {state.shell.status === "running" && (
                 <button
                   className="open-chrome"
-                  onClick={onOpenBrowser}
+                  onClick={() => onOpenBrowser("window")}
                 >
                   <Icon name="chrome" size={14} />
                   Nueva ventana
@@ -153,7 +150,7 @@ export function HomePage({
               {state.shell.status === "running" && (
                 <button
                   className="open-chrome-tab"
-                  onClick={onOpenBrowserTab}
+                  onClick={() => onOpenBrowser("tab")}
                 >
                   <Icon name="external" size={14} />
                   Abrir pestaña
@@ -172,7 +169,7 @@ export function HomePage({
               {state.session.status !== "idle" && (
                 <button
                   disabled={state.session.status === "stopping"}
-                  onClick={onStop}
+                  onClick={onEnvironmentStop}
                 >
                   <Icon name="stop" size={14} />
                   {state.session.status === "stopping"

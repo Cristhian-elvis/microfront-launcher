@@ -1,5 +1,11 @@
 import { Icon } from "../../../shared/components/Icon.jsx";
-import { Select, MenuItem, FormControl, InputLabel, Button } from "@mui/material";
+import {
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Button,
+} from "@mui/material";
 import "./MicrofrontDetailView.css";
 
 import { useState } from "react";
@@ -19,7 +25,7 @@ export function MicrofrontDetailView({
 }) {
   const [selectedAction, setSelectedAction] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
-  
+
   if (!project || !microfront)
     return (
       <div className="view-panel microfront-detail-view">
@@ -36,8 +42,10 @@ export function MicrofrontDetailView({
 
   const buildOperation = state.microfrontendBuild;
   const branchOperation = state.microfrontendBranch;
-  const rowBuildOperation = state.microfrontendOperations?.[`build:${microfront.id}`];
-  const rowBranchOperation = state.microfrontendOperations?.[`branch:${microfront.id}`];
+  const rowBuildOperation =
+    state.microfrontendOperations?.[`build:${microfront.id}`];
+  const rowBranchOperation =
+    state.microfrontendOperations?.[`branch:${microfront.id}`];
 
   const isBuilding =
     buildOperation?.microfrontendId === microfront.id &&
@@ -91,7 +99,9 @@ export function MicrofrontDetailView({
                 {microfront.branches && microfront.branches.length > 0 && (
                   <MenuItem value="branch">Cambiar rama</MenuItem>
                 )}
-                {onFetchBranch && <MenuItem value="fetch">Actualizar rama</MenuItem>}
+                {onFetchBranch && (
+                  <MenuItem value="fetch">Actualizar rama</MenuItem>
+                )}
               </Select>
             </FormControl>
 
@@ -115,16 +125,17 @@ export function MicrofrontDetailView({
               </FormControl>
             )}
 
-            {selectedAction && (selectedAction !== "branch" || selectedBranch) && (
-              <Button
-                variant="contained"
-                size="small"
-                disabled={busy}
-                onClick={handleApply}
-              >
-                Aplicar
-              </Button>
-            )}
+            {selectedAction &&
+              (selectedAction !== "branch" || selectedBranch) && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  disabled={busy}
+                  onClick={handleApply}
+                >
+                  Aplicar
+                </Button>
+              )}
           </div>
         </div>
 
@@ -184,7 +195,9 @@ export function MicrofrontDetailView({
           branchOperation?.microfrontendId === microfront.id) && (
           <div className="microfront-operation-status">
             <h3>Estado de la operación</h3>
-            <div className={`status-info ${buildOperation?.status || branchOperation?.status}`}>
+            <div
+              className={`status-info ${buildOperation?.status || branchOperation?.status}`}
+            >
               <Icon
                 name={
                   buildOperation?.status === "running" ||

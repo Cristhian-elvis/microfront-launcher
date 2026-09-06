@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Icon } from "../../../shared/components/Icon.jsx";
 import { MicrofrontDirectory } from "./MicrofrontDirectory.jsx";
 import { microfrontKey } from "../../../lib/microfronts.js";
@@ -7,10 +8,8 @@ import { useSearchParams } from "react-router-dom";
 export function MicrofrontsView({
   items,
   selectedId,
-  search,
   favoriteIds,
   processes,
-  onSearch,
   onClearSelection,
   onToggleFavorite,
   onOpen,
@@ -25,6 +24,7 @@ export function MicrofrontsView({
   onBuild,
   onRefresh,
 }) {
+  const [search, setSearch] = useState("");
   const [searchParams] = useSearchParams();
   const projectId = searchParams.get("project") || "";
   const selected = items.find(
@@ -66,7 +66,7 @@ export function MicrofrontsView({
               <Icon name="search" size={17} />
               <input
                 value={search}
-                onChange={(event) => onSearch(event.target.value)}
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Buscar microfront o shell..."
               />
             </div>

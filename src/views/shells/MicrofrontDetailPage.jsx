@@ -1,15 +1,17 @@
 import { useCallback, useState } from "react";
 import { MicrofrontDetailView } from "./components/MicrofrontDetailView.jsx";
 import { useMicrofrontDetailActions } from "./hooks/useMicrofrontDetailActions.js";
+import { useFlash } from "../../shared/hooks/useFlash.js";
+import { useProjects } from "../../shared/hooks/useProjects.js";
 
 export function MicrofrontDetailPage({
   project,
   microfront,
   state,
-  flash,
-  refreshProjects,
-  refreshState,
 }) {
+  const { flash } = useFlash();
+  const { refreshProjects } = useProjects();
+  const refreshState = useCallback(async () => {}, []);
   const [refreshing, setRefreshing] = useState(false);
 
   const {

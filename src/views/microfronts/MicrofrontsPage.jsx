@@ -1,5 +1,7 @@
 import { MicrofrontsView } from './components/MicrofrontsView.jsx';
 import { useMicrofrontsActions } from './hooks/useMicrofrontsActions.js';
+import { useFlash } from '../../shared/hooks/useFlash.js';
+import { useProjects } from '../../shared/hooks/useProjects.js';
 
 export function MicrofrontsPage({
   items,
@@ -10,9 +12,10 @@ export function MicrofrontsPage({
   onSearch,
   onClearSelection,
   onToggleFavorite,
-  flash,
-  refreshProjects,
 }) {
+  const { flash } = useFlash();
+  const { refreshProjects } = useProjects();
+
   const {
     onOpen,
     onBuild,
