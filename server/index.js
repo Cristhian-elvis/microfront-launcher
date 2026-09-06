@@ -53,78 +53,10 @@ import { createEnvironmentHandler } from "./handlers/environment-handler.js";
 import { createApiRouter } from "./routes/api-router.js";
 import { createVsCodeService } from "./services/vscode-service.js";
 import { json, readBody } from "./lib/http.js";
+import { state } from "./state.js";
 
 const host = "127.0.0.1";
 const port = Number(process.env.PORT || 3187);
-
-const state = {
-  session: {
-    status: "idle",
-    stage: "idle",
-    projectId: null,
-    projectName: null,
-    message: "Todo detenido",
-    startedAt: null,
-  },
-  components: {
-    status: "stopped",
-    url: null,
-    version: null,
-    tag: null,
-    external: false,
-  },
-  shell: {
-    status: "stopped",
-    url: null,
-    projectId: null,
-    name: null,
-    appName: null,
-    external: false,
-  },
-  microfrontend: {
-    status: "stopped",
-    projectId: null,
-    id: null,
-    name: null,
-    version: null,
-  },
-  microfrontendBranch: {
-    status: "idle",
-    projectId: null,
-    microfrontendId: null,
-    phase: null,
-    message: null,
-    error: null,
-    startedAt: null,
-  },
-  microfrontendBuild: {
-    status: "idle",
-    projectId: null,
-    microfrontendId: null,
-    phase: null,
-    message: null,
-    error: null,
-    startedAt: null,
-  },
-  microfrontendOperations: {},
-  build: {
-    status: "idle",
-    tag: null,
-    action: null,
-    message: "Sin compilaciones en curso",
-    startedAt: null,
-  },
-  execution: {
-    status: "idle",
-    projectId: null,
-    projectName: null,
-    steps: [],
-    error: null,
-    startedAt: null,
-    endedAt: null,
-  },
-  browserPrompt: null,
-};
 
 let environmentOperation = null;
 let buildOperation = null;
@@ -1573,39 +1505,6 @@ async function openEmptyBrowser() {
   await openChrome(null, { newWindow: true });
 }
 
-function launchDetached(command, args, shell = false) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: false,
-      shell,
-    });
-    child.once("error", reject);
-    child.once("spawn", () => {
-      child.unref();
-      resolve();
-    });
-  });
-}
-
-async function openMicrofrontendFolder(projectId, microfrontendId) {
-  // AÑADIDO: await
-  const project = (await getProjects()).find((item) => item.id === projectId);
-  const microfrontend = project?.microfrontends?.find(
-    (item) => item.id === microfrontendId,
-  );
-  if (!microfrontend)
-    throw new Error("No se encontró el microfrontend solicitado.");
-  const command = process.platform === "win32" ? "explorer.exe" : "xdg-open";
-  await launchDetached(command, [microfrontend.path]);
-  addLog(
-    "Microfronts",
-    "system",
-    `Carpeta abierta para ${microfrontend.name}.`,
-  );
-}
-
 function runGit(args, cwd) {
   return new Promise((resolve, reject) => {
     execFile(
@@ -1784,18 +1683,12 @@ const findProject = async (projectId) =>
   (await getProjects()).find((item) => item.id === projectId);
 const vsCodeService = createVsCodeService({ findProject, addLog });
 const handleMicrofrontendRequest = createMicrofrontendHandler({
-  getProjects,
   openMicrofrontend: vsCodeService.openMicrofrontend,
-  openMicrofrontendFolder,
   buildMicrofrontend,
   startBuildBatch: startMicrofrontendBuildBatch,
   startBranchSwitch: startMicrofrontendBranchSwitch,
   startBranchBatch: startMicrofrontendBranchBatch,
   startWatch: startMicrofrontend,
-  stopWatch: (projectId, microfrontendId) =>
-    stopProcess(`microfrontend:${projectId}:${microfrontendId}`),
-  readBody,
-  json,
 });
 const handleProjectsRequest = createProjectsHandler({
   getState,
