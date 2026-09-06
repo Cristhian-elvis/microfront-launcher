@@ -14,6 +14,7 @@ import { Sidebar } from "./shared/components/Sidebar.jsx";
 import { MicrofrontsPage } from "./views/microfronts/MicrofrontsPage.jsx";
 import { ShellsPage } from "./views/shells/ShellsPage.jsx";
 import { ShellDetailPage } from "./views/shells/ShellDetailPage.jsx";
+import { MicrofrontDetailPage } from "./views/shells/MicrofrontDetailPage.jsx";
 import { TagsPage } from "./views/tags/TagsPage.jsx";
 import { AppBreadcrumbs } from "./shared/components/AppBreadcrumbs.jsx";
 import { GlobalSettings } from "./views/settings/components/GlobalSettings.jsx";
@@ -38,6 +39,7 @@ function App() {
     location,
     routerNavigate,
     shellDetailId,
+    microfrontDetailId,
     activeView,
     microfrontFilter,
     navigate,
@@ -274,6 +276,7 @@ function App() {
         <main>
           <AppBreadcrumbs
             activeView={activeView}
+            shellId={shellDetailId}
             shellName={
               shellDetailId
                 ? projects.find(
@@ -282,7 +285,20 @@ function App() {
                   )?.name
                 : ""
             }
+            microfrontName={
+              shellDetailId && microfrontDetailId
+                ? projects
+                    .find(
+                      (project) =>
+                        project.id === decodeURIComponent(shellDetailId),
+                    )
+                    ?.microfrontends?.find(
+                      (mf) => mf.id === decodeURIComponent(microfrontDetailId),
+                    )?.name
+                : ""
+            }
             onNavigate={navigate}
+            routerNavigate={routerNavigate}
           />
           {activeView === "shells" && !shellDetailId && (
             <div className="shells-table-wrapper">
@@ -304,7 +320,7 @@ function App() {
               />
             </div>
           )}
-          {shellDetailId && (
+          {shellDetailId && !microfrontDetailId && (
             <div className="shell-detail-wrapper">
               <ShellDetailPage
                 project={projects.find(
@@ -315,6 +331,33 @@ function App() {
                   decodeURIComponent(shellDetailId),
                 )}
                 onFavorite={toggleFavorite}
+                flash={flash}
+                refreshProjects={refreshProjects}
+                refreshState={refreshState}
+                onMicrofrontDetail={(microfront) =>
+                  routerNavigate(
+                    `/shells/${encodeURIComponent(shellDetailId)}/${encodeURIComponent(microfront.id)}`
+                  )
+                }
+              />
+            </div>
+          )}
+          {shellDetailId && microfrontDetailId && (
+            <div className="microfront-detail-wrapper">
+              <MicrofrontDetailPage
+                project={projects.find(
+                  (project) => project.id === decodeURIComponent(shellDetailId),
+                )}
+                microfront={
+                  projects
+                    .find(
+                      (project) => project.id === decodeURIComponent(shellDetailId),
+                    )
+                    ?.microfrontends?.find(
+                      (mf) => mf.id === decodeURIComponent(microfrontDetailId),
+                    )
+                }
+                state={state}
                 flash={flash}
                 refreshProjects={refreshProjects}
                 refreshState={refreshState}

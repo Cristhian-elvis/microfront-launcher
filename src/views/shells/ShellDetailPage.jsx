@@ -10,6 +10,7 @@ export function ShellDetailPage({
   flash,
   refreshProjects,
   refreshState,
+  onMicrofrontDetail,
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const [projectsState, setProjectsState] = useState(null);
@@ -49,6 +50,7 @@ export function ShellDetailPage({
       onBuildMicrofront={onBuildMicrofront}
       onBuildMicrofrontBatch={onBuildMicrofrontBatch}
       onRefresh={onRefresh}
+      onMicrofrontDetail={onMicrofrontDetail}
       favorite={favorite}
       onFavorite={onFavorite}
     />

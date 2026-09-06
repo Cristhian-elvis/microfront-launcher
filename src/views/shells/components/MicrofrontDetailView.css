@@ -1,0 +1,305 @@
+.microfront-detail-view {
+  display: grid;
+}
+
+.microfront-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.microfront-detail-title h2 {
+  margin: 0;
+  color: #eef7ff;
+  font-size: 19px;
+}
+
+.microfront-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.microfront-detail-info {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #1d394e;
+  border-radius: 9px;
+  background: #091725;
+}
+
+.microfront-detail-info span {
+  display: block;
+  color: #718ca1;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.microfront-detail-info strong {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  color: #dceaf5;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.microfront-detail-info code {
+  display: block;
+  margin-top: 6px;
+  overflow: hidden;
+  color: #87a3b9;
+  font: 9px "Cascadia Code", Consolas, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.microfront-detail-action {
+  margin-top: 14px;
+}
+
+.out-of-sync-warning {
+  display: block;
+  margin-top: 8px;
+  color: #f0c36d;
+  font-size: 9px;
+}
+
+.microfront-detail-actions-section {
+  margin-bottom: 28px;
+  padding: 16px;
+  border: 1px solid #1d394e;
+  border-radius: 9px;
+  background: #091725;
+}
+
+.microfront-detail-actions-section h3 {
+  margin: 0 0 14px;
+  color: #eef7ff;
+  font-size: 13px;
+}
+
+.microfront-actions-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.microfront-actions-toolbar select {
+  height: 38px;
+  border: 1px solid #31576d;
+  border-radius: 8px;
+  background: #0c1e2d;
+  color: #dceaf5;
+  padding: 0 11px;
+  font: 11px "DM Mono";
+  outline: 0;
+  cursor: pointer;
+}
+
+.microfront-actions-toolbar select:hover:not(:disabled) {
+  border-color: #4a7a8f;
+}
+
+.microfront-actions-toolbar select:focus {
+  border-color: #35d6cf;
+  box-shadow: 0 0 0 3px rgba(53, 214, 207, 0.08);
+}
+
+.microfront-actions-toolbar select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.microfront-actions-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.microfront-actions-buttons .button {
+  height: 35px;
+}
+
+.microfront-branch-selector {
+  width: 100%;
+  max-width: 400px;
+}
+
+.microfront-branch-selector .MuiFormControl-root {
+  width: 100%;
+}
+
+.microfront-branch-selector .MuiOutlinedInput-root {
+  height: 38px;
+  color: #dceaf5;
+  background: #0c1e2d;
+}
+
+.microfront-branch-selector .MuiOutlinedInput-notchedOutline {
+  border-color: #31576d !important;
+}
+
+.microfront-branch-selector .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #4a7a8f !important;
+}
+
+.microfront-branch-selector .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #35d6cf !important;
+}
+
+.microfront-branch-selector .MuiInputLabel-root {
+  color: #8ba7b8;
+}
+
+.microfront-branch-selector .MuiInputLabel-root.Mui-focused {
+  color: #79ddd7;
+}
+
+.microfront-branch-selector .MuiSelect-icon {
+  color: #78d9d3;
+}
+
+.microfront-operation-status {
+  margin-top: 20px;
+  padding: 14px;
+  border: 1px solid #1d394e;
+  border-radius: 9px;
+  background: #091725;
+}
+
+.microfront-operation-status h3 {
+  margin: 0 0 12px;
+  color: #eef7ff;
+  font-size: 13px;
+}
+
+.status-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #31576d;
+  border-radius: 7px;
+  background: #0c1e2d;
+  color: #8dded9;
+}
+
+.status-info.running {
+  border-color: rgba(53, 214, 207, 0.45);
+}
+
+.status-info.success {
+  border-color: rgba(85, 230, 158, 0.35);
+  color: #79dca7;
+}
+
+.status-info.error {
+  border-color: rgba(255, 107, 115, 0.42);
+  background: rgba(255, 107, 115, 0.06);
+  color: #ff939b;
+}
+
+.status-info > div {
+  display: grid;
+  gap: 3px;
+}
+
+.status-message {
+  margin: 0;
+  font-size: 10px;
+  color: inherit;
+}
+
+.status-error {
+  margin: 4px 0 0;
+  color: #ff8990;
+  font-size: 9px;
+}
+
+.microfront-detail-actions .MuiFormControl-root {
+  min-width: 160px;
+}
+
+.microfront-detail-actions .MuiOutlinedInput-root {
+  color: #dceaf5;
+  background: #0c1e2d;
+}
+
+.microfront-detail-actions .MuiOutlinedInput-notchedOutline {
+  border-color: #31576d !important;
+}
+
+.microfront-detail-actions .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #4a7a8f !important;
+}
+
+.microfront-detail-actions .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #35d6cf !important;
+}
+
+.microfront-detail-actions .MuiInputLabel-root {
+  color: #8ba7b8;
+}
+
+.microfront-detail-actions .MuiInputLabel-root.Mui-focused {
+  color: #79ddd7;
+}
+
+.microfront-detail-actions .MuiSelect-icon {
+  color: #78d9d3;
+}
+
+.microfront-detail-actions .MuiPaper-root {
+  background: #0d2031 !important;
+  border: 1px solid #31576d;
+}
+
+.microfront-detail-actions .MuiMenuItem-root {
+  color: #dceaf5 !important;
+}
+
+.microfront-detail-actions .MuiMenuItem-root:hover {
+  background: rgba(53, 214, 207, 0.1) !important;
+}
+
+.microfront-detail-actions .MuiMenuItem-root.Mui-selected {
+  background: rgba(53, 214, 207, 0.16) !important;
+  color: #35d6cf !important;
+}
+
+.microfront-detail-actions .MuiButton-contained {
+  background: #35d6cf !important;
+  color: #062025 !important;
+}
+
+.microfront-detail-actions .MuiButton-contained:hover:not(:disabled) {
+  background: #25bdb7 !important;
+}
+
+.microfront-detail-actions .MuiButton-contained:disabled {
+  opacity: 0.55;
+}
+
+@media (max-width: 900px) {
+  .microfront-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .microfront-actions-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .microfront-branch-selector {
+    max-width: 100%;
+  }
+}

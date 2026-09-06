@@ -6,7 +6,12 @@ export function useAppNavigation() {
   const routerNavigate = useNavigate();
 
   const shellDetailId = useMemo(
-    () => location.pathname.match(/^\/shells\/([^/]+)$/)?.[1] || "",
+    () => location.pathname.match(/^\/shells\/([^/]+)(?:\/|$)/)?.[1] || "",
+    [location.pathname],
+  );
+
+  const microfrontDetailId = useMemo(
+    () => location.pathname.match(/^\/shells\/[^/]+\/([^/]+)$/)?.[1] || "",
     [location.pathname],
   );
 
@@ -58,6 +63,7 @@ export function useAppNavigation() {
     location,
     routerNavigate,
     shellDetailId,
+    microfrontDetailId,
     activeView,
     microfrontFilter,
     navigate,

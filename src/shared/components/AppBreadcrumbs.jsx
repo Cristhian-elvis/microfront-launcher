@@ -1,7 +1,7 @@
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Link from "@mui/material/Link";
 
-export function AppBreadcrumbs({ activeView, shellName, onNavigate }) {
+export function AppBreadcrumbs({ activeView, shellName, microfrontName, onNavigate, shellId, routerNavigate }) {
   if (activeView === "home") return null;
   const items = [{ label: "Inicio", view: "home" }];
   if (activeView === "shells") items.push({ label: "Shells", view: "shells" });
@@ -9,7 +9,8 @@ export function AppBreadcrumbs({ activeView, shellName, onNavigate }) {
     items.push({ label: "Microfronts", view: "microfronts" });
   if (activeView === "tags")
     items.push({ label: "Tags de MOVA", view: "tags" });
-  if (shellName) items.push({ label: shellName.toUpperCase() });
+  if (shellName) items.push({ label: shellName.toUpperCase(), shellId, action: "goToShell" });
+  if (microfrontName) items.push({ label: microfrontName });
   return (
     <Breadcrumbs
       className="app-breadcrumbs"
@@ -23,7 +24,13 @@ export function AppBreadcrumbs({ activeView, shellName, onNavigate }) {
           <Link
             key={item.label}
             component="button"
-            onClick={() => onNavigate(item.view)}
+            onClick={() => {
+              if (item.action === "goToShell" && routerNavigate) {
+                routerNavigate(`/shells/${encodeURIComponent(item.shellId)}`);
+              } else {
+                onNavigate(item.view);
+              }
+            }}
             underline="hover"
           >
             {item.label}

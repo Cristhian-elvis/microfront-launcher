@@ -24,6 +24,7 @@ export function MicrofrontDirectory({
             <th>Favorito</th>
             <th>Microfront</th>
             <th>Proyecto</th>
+            <th>Versión</th>
             <th className="actions-column">Acciones</th>
           </tr>
         </thead>
@@ -58,6 +59,11 @@ export function MicrofrontDirectory({
                   <span className="project-tag">
                     {project.name.split("_")[0].toUpperCase()}
                   </span>
+                </td>
+                <td>
+                  <code className="microfront-version">
+                    {microfrontend.version || "—"}
+                  </code>
                 </td>
                 <td>
                   <div className="microfront-directory-actions">

@@ -15,6 +15,7 @@ export function ShellDetailView({
   onBuildMicrofront,
   onBuildMicrofrontBatch,
   onRefresh,
+  onMicrofrontDetail,
   favorite,
   onFavorite,
 }) {
@@ -155,6 +156,7 @@ export function ShellDetailView({
           }
           onChangeBranchBatch={(microfronts, branch) => onChangeMicrofrontBranchBatch?.(project, microfronts, branch)}
           onBuildBatch={(microfronts) => onBuildMicrofrontBatch?.(project, microfronts)}
+          onMicrofrontDetail={onMicrofrontDetail}
           onRefresh={onRefresh}
         />
       </section>

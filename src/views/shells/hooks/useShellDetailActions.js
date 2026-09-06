@@ -2,6 +2,21 @@ import { useCallback } from "react";
 import { api } from "../../../lib/api.js";
 
 export function useShellDetailActions(flash, refreshProjects, refreshState) {
+  const action = useCallback(
+    async (url, body) => {
+      try {
+        const result = await api(url, {
+          method: "POST",
+          body: JSON.stringify(body || {}),
+        });
+        return result;
+      } catch (e) {
+        flash(e.message, "error");
+      }
+    },
+    [flash],
+  );
+
   const startMicrofrontendAction = useCallback(
     async (url, body) => {
       try {
@@ -19,7 +34,12 @@ export function useShellDetailActions(flash, refreshProjects, refreshState) {
     [flash, refreshState],
   );
 
-  const action = useCallback(
+  const onOpenWebapp = useCallback(
+    (project) => action("/api/projects/open-webapp", { projectId: project.id }),
+    [action],
+  );
+
+  const startAction = useCallback(
     async (url, body) => {
       try {
         const result = await api(url, {
@@ -35,24 +55,19 @@ export function useShellDetailActions(flash, refreshProjects, refreshState) {
     [flash, refreshProjects, refreshState],
   );
 
-  const onOpenWebapp = useCallback(
-    (project) => action("/api/projects/open-webapp", { projectId: project.id }),
-    [action],
-  );
-
   const onStart = useCallback(
-    (project) => action("/api/environment/start", { projectId: project.id }),
-    [action],
+    (project) => startAction("/api/environment/start", { projectId: project.id }),
+    [startAction],
   );
 
   const onStop = useCallback(
-    () => action("/api/environment/stop"),
-    [action],
+    () => startAction("/api/environment/stop"),
+    [startAction],
   );
 
   const onRebuild = useCallback(
-    (project) => action("/api/shell/rebuild", { projectId: project.id }),
-    [action],
+    (project) => startAction("/api/shell/rebuild", { projectId: project.id }),
+    [startAction],
   );
 
   const onChangeMicrofrontBranch = useCallback(
