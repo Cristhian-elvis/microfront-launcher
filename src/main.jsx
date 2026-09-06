@@ -24,16 +24,16 @@ import { BrowserOpenModal } from "./shared/components/BrowserOpenModal.jsx";
 import { AppHeader } from "./shared/components/AppHeader.jsx";
 import { flattenMicrofronts } from "./lib/microfronts.js";
 import { useLauncherEvents } from "./shared/hooks/useLauncherEvents.js";
-import { useShellProjects } from "./views/shells/hooks/useShellProjects.js";
 import { useMovaVersions } from "./views/tags/hooks/useMovaVersions.js";
 import { useProcessLogs } from "./views/home/hooks/useProcessLogs.js";
 import { useAppNavigation } from "./shared/hooks/useAppNavigation.js";
 import { useAppActions } from "./shared/hooks/useAppActions.js";
 import { useAppPreferences } from "./shared/hooks/useAppPreferences.js";
-import { useAppEffects } from "./shared/hooks/useAppEffects.js";
+import { useProjects } from "./shared/hooks/useProjects.js";
+import { ProjectsProvider } from "./shared/context/ProjectsContext.jsx";
 import "./styles.css";
 
-function App() {
+function AppContent() {
   // Navigation state and utilities
   const {
     location,
@@ -72,14 +72,8 @@ function App() {
     setTimeout(() => setNotice(null), 5000);
   }, []);
 
-  // Data fetching
-  const {
-    projects: hookProjects,
-    loading,
-    refreshProjects,
-  } = useShellProjects(flash);
-  const [projectsState, setProjectsState] = useState(null);
-  const projects = projectsState !== null ? projectsState : hookProjects;
+  // Data fetching - Usar ProjectsContext centralizado
+  const { projects, refreshProjects } = useProjects();
 
   const { versions, refreshVersions } = useMovaVersions(flash);
   const { logs, receiveLog, clearLogs } = useProcessLogs(flash);
@@ -149,26 +143,61 @@ function App() {
     toggleMicrofrontFavorite,
   } = useAppPreferences(state || { preferences: {} }, preferences);
 
-  // Effects
-  useAppEffects(
-    setupRequired,
-    location,
-    routerNavigate,
-    state,
-    shellDetailId,
-    projects,
-    refreshVersions,
+  // Effects - solo mantener los que no están relacionados a proyectos
+  useEffect(() => {
+    if (setupRequired && location.pathname !== "/inicio")
+      routerNavigate("/inicio", { replace: true });
+  }, [setupRequired, location.pathname, routerNavigate]);
+
+  useEffect(() => {
+    if (state?.build?.status === "success")
+      refreshVersions().catch(() => {});
+  }, [refreshVersions, state?.build?.status, state?.build?.tag]);
+
+  useEffect(() => {
+    if (state?.microfrontendBranch?.status === "success")
+      refreshProjects();
+  }, [
     refreshProjects,
-    theme,
-    sidebarCollapsed,
-    activeView,
-    setConsoleTab,
-    logEnd,
-    logs,
-    flash,
-    setProjectsState,
-    api,
-  );
+    state?.microfrontendBranch?.status,
+    state?.microfrontendBranch?.startedAt,
+  ]);
+
+  useEffect(() => {
+    if (state?.microfrontendBuild?.status === "success")
+      refreshProjects();
+  }, [
+    refreshProjects,
+    state?.microfrontendBuild?.status,
+    state?.microfrontendBuild?.startedAt,
+  ]);
+
+  useEffect(() => {
+    if (state?.buildBusy) setConsoleTab("build");
+  }, [state?.buildBusy, setConsoleTab]);
+
+  useEffect(() => {
+    logEnd.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs, logEnd]);
+
+  useEffect(() => {
+    localStorage.setItem("microfront-theme", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    document.body.classList.toggle(
+      "launcher-home-view",
+      activeView === "home",
+    );
+    return () => document.body.classList.remove("launcher-home-view");
+  }, [activeView]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "microfront-sidebar-collapsed",
+      String(sidebarCollapsed),
+    );
+  }, [sidebarCollapsed]);
 
   // Computed values
   const filtered = useMemo(() => {
@@ -217,7 +246,7 @@ function App() {
             : "Detenido";
 
   // Loading state
-  if (!state || !config)
+  if (!state || !config || !projects || projects.length === 0)
     return (
       <div className="boot-screen">
         <div className="loader" />
@@ -236,6 +265,22 @@ function App() {
         }}
       />
     );
+
+  // Validar que proyecto existe cuando intentamos acceder a detalle
+  const currentProject = shellDetailId
+    ? projects.find(
+        (project) => project.id === decodeURIComponent(shellDetailId),
+      )
+    : null;
+
+  if (shellDetailId && !currentProject) {
+    return (
+      <div className="boot-screen">
+        <div className="loader" />
+        <p>Cargando proyecto...</p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -445,6 +490,14 @@ function App() {
         />
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ProjectsProvider>
+      <AppContent />
+    </ProjectsProvider>
   );
 }
 

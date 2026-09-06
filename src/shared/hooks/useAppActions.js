@@ -25,7 +25,7 @@ export function useAppActions(flash, refreshProjects, refreshState, refreshVersi
           method: "POST",
           body: JSON.stringify(body || {}),
         });
-        void refreshState();
+        await refreshState();
         return result;
       } catch (e) {
         flash(e.message, "error");

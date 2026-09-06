@@ -1,7 +1,10 @@
 import { useCallback } from "react";
 import { api } from "../../../lib/api.js";
+import { useProjects } from "../../../shared/hooks/useProjects.js";
 
 export function useMicrofrontDetailActions(flash, refreshProjects, refreshState) {
+  const { updateProject } = useProjects();
+
   const action = useCallback(
     async (url, body) => {
       try {
@@ -24,7 +27,7 @@ export function useMicrofrontDetailActions(flash, refreshProjects, refreshState)
           method: "POST",
           body: JSON.stringify(body || {}),
         });
-        void refreshState();
+        await refreshState();
         return result;
       } catch (e) {
         flash(e.message, "error");
@@ -77,12 +80,13 @@ export function useMicrofrontDetailActions(flash, refreshProjects, refreshState)
         await api(
           `/api/projects/${encodeURIComponent(projectId)}/refresh`,
         );
-        await refreshProjects();
+        // Actualizar solo el proyecto específico en lugar de recargar todo
+        await updateProject(projectId, false);
       } catch (e) {
         flash(e.message, "error");
       }
     },
-    [flash, refreshProjects],
+    [flash, updateProject],
   );
 
   const onFetchBranch = useCallback(

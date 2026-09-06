@@ -1,7 +1,10 @@
 import { useCallback } from "react";
 import { api } from "../../../lib/api.js";
+import { useProjects } from "../../../shared/hooks/useProjects.js";
 
 export function useMicrofrontsActions(flash, refreshProjects) {
+  const { updateProject } = useProjects();
+
   const action = useCallback(
     async (url, body) => {
       try {
@@ -23,7 +26,7 @@ export function useMicrofrontsActions(flash, refreshProjects) {
           method: "POST",
           body: JSON.stringify(body || {}),
         });
-        void refreshProjects();
+        await refreshProjects();
       } catch (e) {
         flash(e.message, "error");
         throw e;
@@ -50,9 +53,9 @@ export function useMicrofrontsActions(flash, refreshProjects) {
     [startMicrofrontendAction],
   );
 
-  const onRefresh = useCallback(() => {
-    return refreshProjects();
-  }, [refreshProjects]);
+  const onRefresh = useCallback((project) => {
+    return updateProject(project.id, false);
+  }, [updateProject]);
 
   return {
     onOpen,
