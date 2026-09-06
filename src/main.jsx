@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { api } from "./lib/api.js";
 import { Icon } from "./shared/components/Icon.jsx";
-import { Field, Modal } from "./shared/components/Modal.jsx";
 import { HomePage } from "./views/home/HomePage.jsx";
 import { Sidebar } from "./shared/components/Sidebar.jsx";
 import { MicrofrontsPage } from "./views/microfronts/MicrofrontsPage.jsx";
@@ -14,150 +13,32 @@ import { TagsPage } from "./views/tags/TagsPage.jsx";
 import { AppBreadcrumbs } from "./shared/components/AppBreadcrumbs.jsx";
 import { GlobalSettings } from "./views/settings/components/GlobalSettings.jsx";
 import { InitialSetup } from "./views/setup/components/InitialSetup.jsx";
+import { ProjectEditor } from "./shared/components/ProjectEditor.jsx";
+import { BrowserOpenModal } from "./shared/components/BrowserOpenModal.jsx";
 import { flattenMicrofronts } from "./lib/microfronts.js";
 import { useLauncherEvents } from "./shared/hooks/useLauncherEvents.js";
 import { useShellProjects } from "./views/shells/hooks/useShellProjects.js";
 import { useMovaVersions } from "./views/tags/hooks/useMovaVersions.js";
 import { useProcessLogs } from "./views/home/hooks/useProcessLogs.js";
+import { useAppNavigation } from "./shared/hooks/useAppNavigation.js";
+import { useAppActions } from "./shared/hooks/useAppActions.js";
+import { useAppPreferences } from "./shared/hooks/useAppPreferences.js";
+import { useAppEffects } from "./shared/hooks/useAppEffects.js";
 import "./styles.css";
 
-function ProjectEditor({ project, defaults, onClose, onSaved }) {
-  const [form, setForm] = useState(
-    project || {
-      name: "",
-      path: "",
-      command: defaults?.shellDefaults?.command || "npm start",
-      url: defaults?.shellDefaults?.url || "http://localhost:4200",
-      detected: false,
-    },
-  );
-  const [error, setError] = useState("");
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
-  const save = async (e) => {
-    e.preventDefault();
-    setError("");
-    try {
-      await api("/api/projects", {
-        method: "POST",
-        body: JSON.stringify(form),
-      });
-      onSaved();
-      onClose();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-  return (
-    <Modal
-      title={project ? "Configurar shell" : "Agregar shell"}
-      subtitle="Los valores detectados pueden personalizarse sin modificar el repositorio."
-      onClose={onClose}
-    >
-      <form onSubmit={save}>
-        <div className="modal-body form-grid">
-          <Field
-            label="Nombre"
-            value={form.name}
-            onChange={set("name")}
-            required
-          />
-          <Field
-            label="Carpeta"
-            value={form.path}
-            onChange={set("path")}
-            required
-          />
-          <div className="two-columns">
-            <Field
-              label="Comando"
-              value={form.command}
-              onChange={set("command")}
-              required
-            />
-            <Field
-              label="URL"
-              value={form.url}
-              onChange={set("url")}
-              required
-            />
-          </div>
-          {error && (
-            <div className="form-error">
-              <Icon name="alert" size={16} />
-              {error}
-            </div>
-          )}
-        </div>
-        <footer className="modal-actions">
-          <button type="button" className="button ghost" onClick={onClose}>
-            Cancelar
-          </button>
-          <button className="button primary">
-            <Icon name="check" />
-            Guardar
-          </button>
-        </footer>
-      </form>
-    </Modal>
-  );
-}
-
-function BrowserOpenModal({ prompt, onClose, onOpen }) {
-  const [remember, setRemember] = useState(false);
-  return (
-    <Modal
-      title="Navegador ya abierto"
-      subtitle={`Ya existe una ventana de ${prompt.browser}${prompt.insecure ? " con esta configuración de desarrollo" : ""}.`}
-      onClose={onClose}
-      width={520}
-    >
-      <div className="modal-body browser-choice">
-        <p>¿Cómo deseas abrir esta shell?</p>
-        <label>
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(event) => setRemember(event.target.checked)}
-          />{" "}
-          Marcar como preferencia
-        </label>
-      </div>
-      <footer className="modal-actions">
-        <button className="button ghost" onClick={onClose}>
-          Ahora no
-        </button>
-        <button
-          className="button secondary"
-          onClick={() => onOpen("tab", remember)}
-        >
-          Nueva pestaña
-        </button>
-        <button
-          className="button primary"
-          onClick={() => onOpen("window", remember)}
-        >
-          Nueva ventana
-        </button>
-      </footer>
-    </Modal>
-  );
-}
-
 function App() {
-  const location = useLocation();
-  const routerNavigate = useNavigate();
-  const shellDetailId =
-    location.pathname.match(/^\/shells\/([^/]+)$/)?.[1] || "";
-  const activeView =
-    location.pathname === "/shells" || shellDetailId
-      ? "shells"
-      : location.pathname === "/microfronts"
-        ? "microfronts"
-        : location.pathname === "/tags"
-          ? "tags"
-          : "home";
-  const microfrontFilter =
-    new URLSearchParams(location.search).get("microfront") || "";
+  // Navigation state and utilities
+  const {
+    location,
+    routerNavigate,
+    shellDetailId,
+    activeView,
+    microfrontFilter,
+    navigate,
+    setMicrofrontProject,
+  } = useAppNavigation();
+
+  // UI state
   const [config, setConfig] = useState(null);
   const [state, setState] = useState(null);
   const [setupRequired, setSetupRequired] = useState(false);
@@ -174,23 +55,26 @@ function App() {
     () => localStorage.getItem("microfront-sidebar-collapsed") === "true",
   );
   const [refreshing, setRefreshing] = useState(false);
-  const setMicrofrontProject = (project) => {
-    if (project)
-      routerNavigate({
-        pathname: "/microfronts",
-        search: `?project=${encodeURIComponent(project.id)}`,
-      });
-  };
+
+  // Refs
   const logEnd = useRef(null);
+
+  // Utilities
   const flash = useCallback((message, kind = "success") => {
     setNotice({ message, kind });
     setTimeout(() => setNotice(null), 5000);
   }, []);
+
+  // Data fetching
+  const { projects: hookProjects, loading, refreshProjects } =
+    useShellProjects(flash);
   const [projectsState, setProjectsState] = useState(null);
-  const { projects: hookProjects, loading, refreshProjects } = useShellProjects(flash);
   const projects = projectsState !== null ? projectsState : hookProjects;
+
   const { versions, refreshVersions } = useMovaVersions(flash);
   const { logs, receiveLog, clearLogs } = useProcessLogs(flash);
+
+  // API calls
   const refreshState = useCallback(async () => {
     try {
       setState(await api("/api/state"));
@@ -198,147 +82,133 @@ function App() {
       flash(e.message, "error");
     }
   }, [flash]);
+
   const refreshBootstrap = useCallback(async () => {
     try {
-      const [nextConfig, nextState, setup] = await Promise.all([api("/api/config"), api("/api/state"), api("/api/setup")]);
+      const [nextConfig, nextState, setup] = await Promise.all([
+        api("/api/config"),
+        api("/api/state"),
+        api("/api/setup"),
+      ]);
       setConfig(nextConfig);
       setState(nextState);
       setSetupRequired(Boolean(setup.required));
-    } catch (e) { flash(e.message, "error"); }
+    } catch (e) {
+      flash(e.message, "error");
+    }
   }, [flash]);
+
   useEffect(() => {
     refreshBootstrap();
-  }, [flash, refreshBootstrap]);
-  useEffect(() => {
-    if (shellDetailId && projects.length > 0) {
-      // Cargar datos frescos del proyecto específico desde backend
-      api(`/api/projects/${encodeURIComponent(shellDetailId)}`)
-        .then((updated) => {
-          setProjectsState((current) => 
-            (current || projects).map((p) => p.id === updated.id ? updated : p)
-          );
-        })
-        .catch((e) => flash(e.message, "error"));
-    }
-  }, [shellDetailId, projects.length]);
+  }, [refreshBootstrap]);
+
+  // Event listeners
   const onState = useCallback((next) => setState(next), []);
   useLauncherEvents({ onLog: receiveLog, onState });
+
   useEffect(() => {
-    logEnd.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logs]);
-  useEffect(() => {
-    if (state?.buildBusy) setConsoleTab("build");
-  }, [state?.buildBusy]);
-  useEffect(() => {
-    if (setupRequired && location.pathname !== "/inicio")
-      routerNavigate("/inicio", { replace: true });
-  }, [setupRequired, location.pathname, routerNavigate]);
-  useEffect(() => {
-    if (state?.build?.status === "success")
-      refreshVersions()
-        .catch(() => {});
-  }, [refreshVersions, state?.build?.status, state?.build?.tag]);
-  useEffect(() => {
-    if (state?.microfrontendBranch?.status === "success") refreshProjects();
-  }, [refreshProjects, state?.microfrontendBranch?.status, state?.microfrontendBranch?.startedAt]);
-  useEffect(() => {
-    if (state?.microfrontendBuild?.status === "success") refreshProjects();
-  }, [refreshProjects, state?.microfrontendBuild?.status, state?.microfrontendBuild?.startedAt]);
-  useEffect(() => {
-    localStorage.setItem("microfront-theme", theme);
-  }, [theme]);
-  useEffect(() => {
-    document.body.classList.toggle(
-      "launcher-home-view",
-      activeView === "home",
-    );
-    return () => document.body.classList.remove("launcher-home-view");
-  }, [activeView]);
-  useEffect(() => {
-    localStorage.setItem(
-      "microfront-sidebar-collapsed",
-      String(sidebarCollapsed),
-    );
-  }, [sidebarCollapsed]);
+    const handleRebuild = (event) => {
+      routerNavigate("/home");
+      action("/api/shell/rebuild", { projectId: event.detail.id });
+    };
+    window.addEventListener("launcher:rebuild-server", handleRebuild);
+    return () =>
+      window.removeEventListener("launcher:rebuild-server", handleRebuild);
+  }, [routerNavigate]);
+
+  // Actions
+  const {
+    action,
+    startMicrofrontendAction,
+    startShell,
+    preferences: preferencesAction,
+    remove,
+  } = useAppActions(flash, refreshProjects, refreshState, refreshVersions);
+
+  const preferences = useCallback(
+    async (patch, reload = true) => {
+      return preferencesAction(setState, state, patch, reload);
+    },
+    [preferencesAction, state],
+  );
+
+  // Preferences
+  const { favoriteIds, favoriteMicrofrontIds, toggleFavorite, toggleMicrofrontFavorite } =
+    useAppPreferences(state || { preferences: {} }, preferences);
+
+  // Effects
+  useAppEffects(
+    setupRequired,
+    location,
+    routerNavigate,
+    state,
+    shellDetailId,
+    projects,
+    refreshVersions,
+    refreshProjects,
+    theme,
+    sidebarCollapsed,
+    activeView,
+    setConsoleTab,
+    logEnd,
+    logs,
+    flash,
+    setProjectsState,
+    api,
+  );
+
+  // Computed values
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return projects.filter(
       (p) =>
         !q ||
-        `${p.name} ${p.path} ${p.appName || ""} ${(p.microfrontends || []).map((item) => item.name).join(" ")}`
+        `${p.name} ${p.path} ${p.appName || ""} ${(p.microfrontends || [])
+          .map((item) => item.name)
+          .join(" ")}`
           .toLowerCase()
           .includes(q),
     );
   }, [projects, search]);
-  const action = async (url, body) => {
-    try {
-      const result = await api(url, {
-        method: "POST",
-        body: JSON.stringify(body || {}),
-      });
-      await Promise.all([refreshProjects(), refreshState()]);
-      return result;
-    } catch (e) {
-      flash(e.message, "error");
-    }
-  };
-  const startMicrofrontendAction = async (url, body) => {
-    try {
-      const result = await api(url, {
-        method: "POST",
-        body: JSON.stringify(body || {}),
-      });
-      void refreshState();
-      return result;
-    } catch (e) {
-      flash(e.message, "error");
-      throw e;
-    }
-  };
-  const startShell = async (project) => {
-    await action("/api/environment/start", { projectId: project.id });
-  };
-  const rebuildServer = async (project) => {
-    routerNavigate("/home");
-    await action("/api/shell/rebuild", { projectId: project.id });
-  };
-  useEffect(() => {
-    const handleRebuild = (event) => rebuildServer(event.detail);
-    window.addEventListener("launcher:rebuild-server", handleRebuild);
-    return () =>
-      window.removeEventListener("launcher:rebuild-server", handleRebuild);
-  });
-  const preferences = async (patch, reload = true) => {
-    try {
-      const next = await api("/api/mova/preferences", {
-        method: "PUT",
-        body: JSON.stringify(patch),
-      });
-      setState((current) => ({
-        ...current,
-        preferences: { ...current.preferences, ...next },
-      }));
-      if (reload) await refreshState();
-      return next;
-    } catch (e) {
-      flash(e.message, "error");
-      return null;
-    }
-  };
-  const remove = async (project) => {
-    if (
-      !confirm(
-        `¿Quitar “${project.name}” de la lista? No se borrarán archivos.`,
-      )
-    )
-      return;
-    try {
-      await api(`/api/projects/${project.id}`, { method: "DELETE" });
-      await refreshProjects();
-    } catch (e) {
-      flash(e.message, "error");
-    }
-  };
+
+  const favoriteFiltered = filtered.filter((project) =>
+    favoriteIds.includes(project.id),
+  );
+  const generalProjects = filtered;
+
+  const buildLogs = logs.filter((log) =>
+    ["Versiones", "Build MOVA"].includes(log.source),
+  );
+  const environmentLogs = logs.filter(
+    (log) => !["Versiones", "Build MOVA"].includes(log.source),
+  );
+
+  const componentVersion =
+    versions.find((item) => item.tag === state?.preferences?.preferredTag) ||
+    versions.find((item) => item.cached) ||
+    versions[0];
+
+  const includeComponents = true;
+  const componentsActive = state?.components?.status === "running";
+
+  const browserName = config?.chrome?.browser?.startsWith("edge")
+    ? "Edge"
+    : "Chrome";
+
+  const allMicrofronts = flattenMicrofronts(projects);
+
+  const environmentLabel =
+    state?.execution?.status === "error"
+      ? "Error"
+      : state?.session?.status === "ready"
+        ? "Listo"
+        : state?.session?.status === "stopping"
+          ? "Deteniendo"
+          : ["starting", "building"].includes(state?.session?.status)
+            ? "Iniciando"
+            : "Detenido";
+
+  // Loading state
   if (!state || !config)
     return (
       <div className="boot-screen">
@@ -346,6 +216,7 @@ function App() {
         <p>Preparando Microfront Launcher V2...</p>
       </div>
     );
+
   if (setupRequired || location.pathname === "/inicio")
     return (
       <InitialSetup
@@ -357,79 +228,7 @@ function App() {
         }}
       />
     );
-  const environmentLabel =
-    state.execution?.status === "error"
-      ? "Error"
-      : state.session.status === "ready"
-        ? "Listo"
-        : state.session.status === "stopping"
-          ? "Deteniendo"
-          : ["starting", "building"].includes(state.session.status)
-            ? "Iniciando"
-            : "Detenido";
-  const favoriteIds = state.preferences.favoriteShellIds || [];
-  const favoriteMicrofrontIds = state.preferences.favoriteMicrofrontIds || [];
-  const favoriteFiltered = filtered.filter((project) =>
-    favoriteIds.includes(project.id),
-  );
-  const generalProjects = filtered;
-  const buildLogs = logs.filter((log) =>
-    ["Versiones", "Build MOVA"].includes(log.source),
-  );
-  const environmentLogs = logs.filter(
-    (log) => !["Versiones", "Build MOVA"].includes(log.source),
-  );
-  const componentVersion =
-    versions.find((item) => item.tag === state.preferences.preferredTag) ||
-    versions.find((item) => item.cached) ||
-    versions[0];
-  const includeComponents = true;
-  const componentsActive = state.components.status === "running";
-  const browserName = config.chrome.browser?.startsWith("edge")
-    ? "Edge"
-    : "Chrome";
-  const toggleFavorite = (projectId) =>
-    preferences(
-      {
-        favoriteShellIds: favoriteIds.includes(projectId)
-          ? favoriteIds.filter((id) => id !== projectId)
-          : [...favoriteIds, projectId],
-      },
-      false,
-    );
-  const toggleMicrofrontFavorite = (microfrontId) =>
-    preferences(
-      {
-        favoriteMicrofrontIds: favoriteMicrofrontIds.includes(microfrontId)
-          ? favoriteMicrofrontIds.filter((id) => id !== microfrontId)
-          : [...favoriteMicrofrontIds, microfrontId],
-      },
-      false,
-    );
-  const allMicrofronts = flattenMicrofronts(projects);
-  const navigate = (
-    view,
-    shellSearch = "",
-    microfrontId = "",
-    projectId = "",
-  ) => {
-    setSearch(shellSearch);
-    const pathname =
-      view === "shells"
-        ? "/shells"
-        : view === "microfronts"
-          ? "/microfronts"
-          : view === "tags"
-            ? "/tags"
-            : "/home";
-    const searchParams = new URLSearchParams();
-    if (microfrontId) searchParams.set("microfront", microfrontId);
-    if (projectId) searchParams.set("project", projectId);
-    routerNavigate({
-      pathname,
-      search: searchParams.toString() ? `?${searchParams}` : "",
-    });
-  };
+
   return (
     <div
       className={`app-shell ${theme} ${activeView === "tags" ? "tags-route" : ""}`}
@@ -705,62 +504,13 @@ function App() {
                   (project) => project.id === decodeURIComponent(shellDetailId),
                 )}
                 state={state}
-                refreshing={refreshing}
-                onBack={() => routerNavigate("/shells")}
-                onOpenWebapp={(project) =>
-                  action("/api/projects/open-webapp", { projectId: project.id })
-                }
-                onStart={(project) =>
-                  action("/api/environment/start", { projectId: project.id })
-                }
-                onStop={() => action("/api/environment/stop")}
-                onRebuild={(project) =>
-                  action("/api/shell/rebuild", { projectId: project.id })
-                }
-                onChangeMicrofrontBranch={(project, microfrontend, branch) =>
-                  startMicrofrontendAction("/api/microfrontends/branch", {
-                    projectId: project.id,
-                    microfrontendId: microfrontend.id,
-                    branch,
-                  })
-                }
-                onChangeMicrofrontBranchBatch={(project, microfronts, branch) =>
-                  startMicrofrontendAction("/api/microfrontends/branch-batch", {
-                    projectId: project.id,
-                    microfrontendIds: microfronts.map((microfront) => microfront.id),
-                    branch,
-                  })
-                }
-                onBuildMicrofront={(project, microfrontend) =>
-                  startMicrofrontendAction("/api/microfrontends/build", {
-                    projectId: project.id,
-                    microfrontendId: microfrontend.id,
-                  })
-                }
-                onBuildMicrofrontBatch={(project, microfronts) =>
-                  startMicrofrontendAction("/api/microfrontends/build-batch", {
-                    projectId: project.id,
-                    microfrontendIds: microfronts.map((microfront) => microfront.id),
-                  })
-                }
-                onRefresh={async () => {
-                  try {
-                    setRefreshing(true);
-                    const updated = await api(`/api/projects/${encodeURIComponent(shellDetailId)}/refresh`);
-                    // Actualizar solo el proyecto en la lista local, sin hacer otra petición
-                    setProjectsState(projects.map((p) =>
-                      p.id === updated.id ? updated : p
-                    ));
-                  } catch (e) {
-                    flash(e.message, "error");
-                  } finally {
-                    setRefreshing(false);
-                  }
-                }}
                 favorite={favoriteIds.includes(
                   decodeURIComponent(shellDetailId),
                 )}
                 onFavorite={toggleFavorite}
+                flash={flash}
+                refreshProjects={refreshProjects}
+                refreshState={refreshState}
               />
             </div>
           )}
