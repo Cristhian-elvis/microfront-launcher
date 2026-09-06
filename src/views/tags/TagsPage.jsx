@@ -1,5 +1,33 @@
 import { TagsTable } from './components/TagsTable.jsx';
+import { useTagsActions } from './hooks/useTagsActions.js';
 
-export function TagsPage(props) {
-  return <TagsTable {...props} />;
+export function TagsPage({
+  versions,
+  build,
+  busy,
+  processes,
+  preferredTag,
+  flash,
+  refreshState,
+}) {
+  const {
+    onBuild,
+    onCancelBuild,
+    onUse,
+    onRefresh,
+  } = useTagsActions(flash, refreshState);
+
+  return (
+    <TagsTable
+      versions={versions}
+      build={build}
+      busy={busy}
+      processes={processes}
+      preferredTag={preferredTag}
+      onBuild={onBuild}
+      onCancelBuild={onCancelBuild}
+      onUse={onUse}
+      onRefresh={onRefresh}
+    />
+  );
 }
