@@ -28,15 +28,17 @@ export function ProjectsProvider({ children }) {
   });
 
   const hasInitialized = useRef(false);
+  const hasLoadedProjectsOnce = useRef(false);
 
   useEffect(() => {
-    if (hasInitialized.current) return;
+    if (hasInitialized.current || hasLoadedProjectsOnce.current) return;
     hasInitialized.current = true;
 
     (async () => {
       try {
         dispatch({ type: 'SET_LOADING', payload: true });
-        const projects = await api('/api/projects?refresh=1');
+        const projects = await api('/api/projects');
+        hasLoadedProjectsOnce.current = true;
         dispatch({ type: 'SET_PROJECTS', payload: projects });
       } catch (e) {
         console.error('Error loading projects:', e.message);
@@ -45,10 +47,16 @@ export function ProjectsProvider({ children }) {
     })();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      hasInitialized.current = false;
+    };
+  }, []);
+
   const refreshProjects = async () => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const projects = await api('/api/projects?refresh=1');
+      const projects = await api('/api/projects');
       dispatch({ type: 'SET_PROJECTS', payload: projects });
       return projects;
     } catch (e) {

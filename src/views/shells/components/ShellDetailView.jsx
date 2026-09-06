@@ -8,6 +8,7 @@ export function ShellDetailView({
   onBack,
   onOpenWebapp,
   onStart,
+  isStartingShell = false,
   onStop,
   onRebuild,
   onChangeMicrofrontBranch,
@@ -44,7 +45,7 @@ export function ShellDetailView({
     state.shell.projectId === project.id && state.shell.status === "running";
   const anotherShellRunning =
     state.shell.status !== "stopped" && state.shell.projectId !== project.id;
-  const cannotStart = state.busy || anotherShellRunning || !project.configured;
+  const cannotStart = state.busy || anotherShellRunning || !project.configured || isStartingShell;
   const cannotRebuild = state.busy || anotherShellRunning;
   return (
     <div className="view-panel shell-detail-view">
@@ -92,15 +93,14 @@ export function ShellDetailView({
                 <Icon name="stop" />
                 Detener shell
               </button>
-            ) : operationActive ? (
+            ) : operationActive || isStartingShell ? (
               <button
                 className="button stop shell-start-button is-starting"
-                title="Detener inicio"
-                disabled={refreshing}
-                onClick={onStop}
+                title="Iniciando shell"
+                disabled
               >
                 <span className="shell-start-status" />
-                Detener inicio
+                Iniciando...
               </button>
             ) : (
               <button

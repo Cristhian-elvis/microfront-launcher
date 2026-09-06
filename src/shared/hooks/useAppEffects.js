@@ -46,25 +46,6 @@ export function useAppEffects(
       refreshVersions().catch(() => {});
   }, [refreshVersions, state?.build?.status, state?.build?.tag]);
 
-  // Refresh projects on successful branch switch
-  useEffect(() => {
-    if (state?.microfrontendBranch?.status === "success")
-      refreshProjects();
-  }, [
-    refreshProjects,
-    state?.microfrontendBranch?.status,
-    state?.microfrontendBranch?.startedAt,
-  ]);
-
-  // Refresh projects on successful microfrontend build
-  useEffect(() => {
-    if (state?.microfrontendBuild?.status === "success")
-      refreshProjects();
-  }, [
-    refreshProjects,
-    state?.microfrontendBuild?.status,
-    state?.microfrontendBuild?.startedAt,
-  ]);
 
   // Set console tab when build is busy
   useEffect(() => {

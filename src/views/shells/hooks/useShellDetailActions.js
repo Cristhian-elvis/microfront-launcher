@@ -1,7 +1,8 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { api } from "../../../lib/api.js";
 
 export function useShellDetailActions(flash, refreshProjects, refreshState) {
+  const [isStartingShell, setIsStartingShell] = useState(false);
   const action = useCallback(
     async (url, body) => {
       try {
@@ -46,18 +47,26 @@ export function useShellDetailActions(flash, refreshProjects, refreshState) {
           method: "POST",
           body: JSON.stringify(body || {}),
         });
-        await Promise.all([refreshProjects(), refreshState()]);
+        await refreshState();
         return result;
       } catch (e) {
         flash(e.message, "error");
       }
     },
-    [flash, refreshProjects, refreshState],
+    [flash, refreshState],
   );
 
   const onStart = useCallback(
-    (project) => startAction("/api/environment/start", { projectId: project.id }),
-    [startAction],
+    async (project) => {
+      if (isStartingShell) return;
+      setIsStartingShell(true);
+      try {
+        return await startAction("/api/environment/start", { projectId: project.id });
+      } finally {
+        setIsStartingShell(false);
+      }
+    },
+    [isStartingShell, startAction],
   );
 
   const onStop = useCallback(
@@ -132,5 +141,6 @@ export function useShellDetailActions(flash, refreshProjects, refreshState) {
     onBuildMicrofront,
     onBuildMicrofrontBatch,
     onRefresh,
+    isStartingShell,
   };
 }

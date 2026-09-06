@@ -5,7 +5,6 @@ import { useFlash } from '../../shared/hooks/useFlash.js';
 import { useProjects } from '../../shared/hooks/useProjects.js';
 import { useAppNavigation } from '../../shared/hooks/useAppNavigation.js';
 import { useAppPreferences } from '../../shared/hooks/useAppPreferences.js';
-import { api } from '../../lib/api.js';
 
 export function ShellDetailPage({
   state,
@@ -20,11 +19,9 @@ export function ShellDetailPage({
   const favorite = favoriteIds.includes(decodeURIComponent(shellDetailId));
   const onFavorite = () => toggleFavorite(decodeURIComponent(shellDetailId));
   const [refreshing, setRefreshing] = useState(false);
-  const [projectsState, setProjectsState] = useState(null);
 
   const { flash } = useFlash();
   const { refreshProjects } = useProjects();
-
   // Obtener refreshState del contexto (simulado aquí)
   const refreshState = useCallback(async () => {
     // Esta función permanece como prop si viene del contexto global
@@ -32,7 +29,6 @@ export function ShellDetailPage({
   }, []);
 
   const {
-    onOpenWebapp,
     onStart,
     onStop,
     onRebuild,
@@ -41,12 +37,13 @@ export function ShellDetailPage({
     onBuildMicrofront,
     onBuildMicrofrontBatch,
     onRefresh: onRefreshAction,
+    isStartingShell,
   } = useShellDetailActions(flash, refreshProjects, refreshState);
 
   const onRefresh = useCallback(async () => {
     try {
       setRefreshing(true);
-      await onRefreshAction(project.id, [project], setProjectsState);
+      await onRefreshAction(project.id, [project], () => {});
     } finally {
       setRefreshing(false);
     }
@@ -57,8 +54,8 @@ export function ShellDetailPage({
       project={project}
       state={state}
       refreshing={refreshing}
-      onOpenWebapp={onOpenWebapp}
       onStart={onStart}
+      isStartingShell={isStartingShell}
       onStop={onStop}
       onRebuild={onRebuild}
       onChangeMicrofrontBranch={onChangeMicrofrontBranch}

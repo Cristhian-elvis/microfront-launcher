@@ -3,13 +3,20 @@ import { api } from "../../lib/api.js";
 
 export function useAppActions(flash, refreshProjects, refreshState, refreshVersions) {
   const action = useCallback(
-    async (url, body) => {
+    async (url, body, options = {}) => {
+      const { refreshProjectsAfter = false, refreshStateAfter = true } = options;
       try {
         const result = await api(url, {
           method: "POST",
           body: JSON.stringify(body || {}),
         });
-        await Promise.all([refreshProjects(), refreshState()]);
+        if (refreshProjectsAfter && refreshStateAfter) {
+          await Promise.all([refreshProjects(), refreshState()]);
+        } else if (refreshProjectsAfter) {
+          await refreshProjects();
+        } else if (refreshStateAfter) {
+          await refreshState();
+        }
         return result;
       } catch (e) {
         flash(e.message, "error");
@@ -37,14 +44,20 @@ export function useAppActions(flash, refreshProjects, refreshState, refreshVersi
 
   const startShell = useCallback(
     async (project) => {
-      await action("/api/environment/start", { projectId: project.id });
+      await action("/api/environment/start", { projectId: project.id }, {
+        refreshProjectsAfter: false,
+        refreshStateAfter: false,
+      });
     },
     [action],
   );
 
   const rebuildServer = useCallback(
     async (project) => {
-      await action("/api/shell/rebuild", { projectId: project.id });
+      await action("/api/shell/rebuild", { projectId: project.id }, {
+        refreshProjectsAfter: false,
+        refreshStateAfter: true,
+      });
     },
     [action],
   );

@@ -159,24 +159,6 @@ function AppContent() {
   }, [refreshVersions, state?.build?.status, state?.build?.tag]);
 
   useEffect(() => {
-    if (state?.microfrontendBranch?.status === "success")
-      refreshProjects();
-  }, [
-    refreshProjects,
-    state?.microfrontendBranch?.status,
-    state?.microfrontendBranch?.startedAt,
-  ]);
-
-  useEffect(() => {
-    if (state?.microfrontendBuild?.status === "success")
-      refreshProjects();
-  }, [
-    refreshProjects,
-    state?.microfrontendBuild?.status,
-    state?.microfrontendBuild?.startedAt,
-  ]);
-
-  useEffect(() => {
     if (state?.buildBusy) setConsoleTab("build");
   }, [state?.buildBusy, setConsoleTab]);
 
@@ -336,7 +318,12 @@ function AppContent() {
                 favoriteIds={favoriteIds}
                 onFavorite={toggleFavorite}
                 onStart={startShell}
-                onStop={() => action("/api/environment/stop")}
+                onStop={() =>
+                  action("/api/environment/stop", {}, {
+                    refreshProjectsAfter: false,
+                    refreshStateAfter: false,
+                  })
+                }
                 onAction={action}
                 onMicrofronts={setMicrofrontProject}
                 onDetails={(project) =>
@@ -414,7 +401,7 @@ function AppContent() {
           project={editor}
           defaults={config}
           onClose={() => setEditor(undefined)}
-          onSaved={refreshProjects}
+          onSaved={async () => {}}
         />
       )}
       {showSettings && (

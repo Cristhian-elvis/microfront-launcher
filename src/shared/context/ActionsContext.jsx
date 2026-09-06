@@ -16,13 +16,13 @@ export function ActionsProvider({ children, onRefreshState }) {
           method: 'POST',
           body: JSON.stringify(body || {}),
         });
-        await Promise.all([refreshProjects(), onRefreshState?.()].filter(Boolean));
+        await onRefreshState?.();
         return result;
       } catch (e) {
         flash(e.message, 'error');
       }
     },
-    [flash, refreshProjects, onRefreshState],
+    [flash, onRefreshState],
   );
 
   const startMicrofrontendAction = useCallback(

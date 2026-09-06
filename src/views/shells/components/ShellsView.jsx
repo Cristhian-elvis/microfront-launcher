@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProjects } from "../../../shared/hooks/useProjects.js";
 import { Icon } from "../../../shared/components/Icon.jsx";
 import { Modal } from "../../../shared/components/Modal.jsx";
@@ -6,20 +6,28 @@ import { Modal } from "../../../shared/components/Modal.jsx";
 function shellStatus(project, state) {
   const execution = state.execution || {};
   const isCurrentOperation = execution.projectId === project.id;
-  const starting = isCurrentOperation && execution.status === "running";
-  const failed = isCurrentOperation && execution.status === "error";
+  const starting =
+    isCurrentOperation &&
+    execution.kind === "start" &&
+    execution.status === "running";
+  const failedStart =
+    isCurrentOperation &&
+    execution.kind === "start" &&
+    execution.status === "error";
   const active =
     state.shell.projectId === project.id && state.shell.status === "running";
-  if (failed) return { tone: "error", label: "Error", clickable: true };
   if (starting)
     return { tone: "starting", label: "Iniciando", clickable: true };
   if (active) return { tone: "active", label: "Activa", clickable: true };
+  if (failedStart) return { tone: "error", label: "Error", clickable: true };
   return { tone: "stopped", label: "Detenida", clickable: false };
 }
 
 function healthCheck(project, state, status) {
   const execution = state.execution || {};
-  const steps = execution.projectId === project.id ? execution.steps || [] : [];
+  const isStartExecution =
+    execution.projectId === project.id && execution.kind === "start";
+  const steps = isStartExecution ? execution.steps || [] : [];
   const completed = steps.filter((step) => step.status === "success").length;
   if (status.tone === "error")
     return {
@@ -33,21 +41,20 @@ function healthCheck(project, state, status) {
       tone: "starting",
       clickable: true,
     };
-  if (status.tone === "active")
-    return {
-      label: `${steps.length}/${steps.length} comprobaciones correctas`,
-      tone: "active",
-      clickable: true,
-    };
+  if (status.tone === "active") {
+    return { label: "Completado", tone: "active", clickable: true };
+  }
   return { label: "—", tone: "stopped", clickable: false };
 }
 
 function StatusDetails({ project, state, onClose }) {
   const execution = state.execution || {};
-  const steps = execution.projectId === project.id ? execution.steps || [] : [];
+  const isStartExecution =
+    execution.projectId === project.id && execution.kind === "start";
+  const steps = isStartExecution ? execution.steps || [] : [];
   const status = shellStatus(project, state);
   const errorStep = steps.find((step) => step.status === "error");
-  const error = errorStep?.message || execution.error;
+  const error = status.tone === "active" ? null : errorStep?.message || execution.error;
   return (
     <Modal
       title={`Chequeo de estado · ${project.name.toUpperCase()}`}
@@ -123,6 +130,39 @@ export function ShellsView({
 }) {
   const [statusProject, setStatusProject] = useState(null);
   const [search, setSearch] = useState("");
+  const [startingProjectId, setStartingProjectId] = useState(null);
+  const [stoppingProjectId, setStoppingProjectId] = useState(null);
+  const [uiStartProjectId, setUiStartProjectId] = useState(null);
+  useEffect(() => {
+    if (
+      state.execution?.kind === "start" &&
+      state.execution?.status === "running" &&
+      state.execution?.projectId
+    ) {
+      setUiStartProjectId(state.execution.projectId);
+      return;
+    }
+    if (
+      state.execution?.kind === "start" &&
+      ["success", "error", "cancelled"].includes(state.execution?.status)
+    ) {
+      setUiStartProjectId(null);
+      return;
+    }
+    if (state.shell?.status === "running" || state.shell?.status === "stopped") {
+      setUiStartProjectId(null);
+    }
+  }, [
+    state.execution?.kind,
+    state.execution?.status,
+    state.execution?.projectId,
+    state.shell?.status,
+  ]);
+
+  const currentStartProjectId = useMemo(
+    () => uiStartProjectId || startingProjectId,
+    [uiStartProjectId, startingProjectId],
+  );
   return (
     <div className="view-panel shells-view">
       <section className="workspace">
@@ -161,11 +201,30 @@ export function ShellsView({
             <tbody>
               {projects.map((project) => {
                 const own = state.shell.projectId === project.id;
+                const isStartingCurrentProject = currentStartProjectId === project.id;
+                const isActionLocked =
+                  isStartingCurrentProject || stoppingProjectId === project.id;
                 const disabled =
                   state.busy || (state.shell.status !== "stopped" && !own);
                 const favorite = favoriteIds.includes(project.id);
                 const status = shellStatus(project, state);
                 const check = healthCheck(project, state, status);
+                const hasSuccessfulStartForProject =
+                  state.execution?.kind === "start" &&
+                  state.execution?.projectId === project.id &&
+                  state.execution?.status === "success";
+                const shouldForceStartingVisual =
+                  isStartingCurrentProject && !hasSuccessfulStartForProject;
+                const displayStatus = shouldForceStartingVisual
+                  ? { tone: "starting", label: "Iniciando", clickable: true }
+                  : status;
+                const displayCheck = shouldForceStartingVisual
+                  ? {
+                      label: "Iniciando...",
+                      tone: "starting",
+                      clickable: true,
+                    }
+                  : check;
                 return (
                   <tr key={project.id}>
                     <td className="favorite-column">
@@ -193,21 +252,21 @@ export function ShellsView({
                     </td>
                     <td>
                       <button
-                        className={`shell-state ${status.tone}`}
-                        disabled={!status.clickable}
+                        className={`shell-state ${displayStatus.tone}`}
+                        disabled={!displayStatus.clickable}
                         onClick={() => setStatusProject(project)}
                       >
                         <span className="shell-status-dot" />
-                        {status.label}
+                        {displayStatus.label}
                       </button>
                     </td>
                     <td>
                       <button
-                        className={`shell-health ${check.tone}`}
-                        disabled={!check.clickable}
+                        className={`shell-health ${displayCheck.tone}`}
+                        disabled={!displayCheck.clickable}
                         onClick={() => setStatusProject(project)}
                       >
-                        {check.label}
+                        {displayCheck.label}
                       </button>
                     </td>
                     <td>
@@ -226,35 +285,53 @@ export function ShellsView({
                         >
                           <Icon name="list" size={16} />
                         </button>
-                        {own && (
-                          <button
-                            className="icon-button"
-                            title="Abrir webapp"
-                            onClick={() =>
-                              onAction("/api/chrome/open", { mode: "tab" })
-                            }
-                          >
-                            <Icon name="external" size={16} />
-                          </button>
-                        )}
-                        {own ? (
+                        {own && !isStartingCurrentProject ? (
                           <button
                             className="icon-button stop-action"
-                            title="Detener entorno"
-                            onClick={onStop}
+                            title={
+                              stoppingProjectId === project.id
+                                ? "Deteniendo..."
+                                : "Detener entorno"
+                            }
+                            disabled={stoppingProjectId === project.id}
+                            onClick={async () => {
+                              if (stoppingProjectId === project.id) return;
+                              setStoppingProjectId(project.id);
+                              try {
+                                await onStop();
+                                setStartingProjectId(null);
+                              } finally {
+                                setStoppingProjectId(null);
+                              }
+                            }}
                           >
-                            <Icon name="stop" size={16} />
+                            {stoppingProjectId === project.id ? (
+                              <Icon name="loader" size={16} />
+                            ) : (
+                              <Icon name="stop" size={16} />
+                            )}
                           </button>
                         ) : (
                           <button
                             className="icon-button primary-action"
                             title={
-                              project.configured
-                                ? "Iniciar shell"
-                                : "La shell requiere configuración"
+                              isStartingCurrentProject
+                                ? "Iniciando shell..."
+                                : project.configured
+                                  ? "Iniciar shell"
+                                  : "La shell requiere configuración"
                             }
-                            disabled={disabled || !project.configured}
-                            onClick={() => onStart(project)}
+                            disabled={disabled || !project.configured || isActionLocked}
+                            onClick={async () => {
+                              if (isActionLocked) return;
+                              setStartingProjectId(project.id);
+                              try {
+                                await onStart(project);
+                              } finally {
+                                setStartingProjectId(null);
+                                setUiStartProjectId(project.id);
+                              }
+                            }}
                           >
                             <Icon name="play" size={16} />
                           </button>

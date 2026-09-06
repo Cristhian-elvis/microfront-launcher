@@ -234,6 +234,159 @@ async function cleanupStartedResources() {
   emitState();
 }
 
+async function stopEnvironmentInternals({
+  reason = "Entorno detenido",
+  emitStopExecution = true,
+  emitFinalSession = true,
+} = {}) {
+  if (environmentOperation) environmentOperation.controller.abort();
+  const projectName = state.shell.name || "Shell";
+
+  if (emitStopExecution) {
+    const stopSteps = [
+      ...(state.shell.status !== "stopped"
+        ? [
+            {
+              id: "stopShell",
+              label: projectName,
+              command: "Detener shell",
+              detail: "Cerrar servidor HTTP interno",
+            },
+          ]
+        : []),
+    ];
+    state.execution = {
+      status: "running",
+      kind: "stop",
+      projectId: state.shell.projectId,
+      projectName,
+      steps: stopSteps.map((step) => ({
+        ...step,
+        status: "pending",
+        startedAt: null,
+        endedAt: null,
+      })),
+      error: null,
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+    };
+    updateSession({ status: "stopping", stage: "stopping", message: reason });
+  }
+
+  const stopStep = async (id, message, task) => {
+    if (!emitStopExecution) {
+      await task();
+      return;
+    }
+    const index = state.execution.steps.findIndex((step) => step.id === id);
+    const action = state.execution.steps[index]?.command || message;
+    updateExecutionStep(id, {
+      status: "running",
+      startedAt: new Date().toISOString(),
+    });
+    addLog(action, "stage", message);
+    await task();
+    updateExecutionStep(id, {
+      status: "success",
+      endedAt: new Date().toISOString(),
+    });
+  };
+
+  try {
+    if (state.shell.status !== "stopped")
+      await stopStep(
+        "stopShell",
+        "Deteniendo servidor HTTP de la shell.",
+        async () => {
+          await stopStaticServer("shell");
+          state.shell = {
+            status: "stopped",
+            url: null,
+            projectId: null,
+            name: null,
+            appName: null,
+            external: false,
+          };
+          if (emitStopExecution) emitState();
+        },
+      );
+    if (state.components.status !== "stopped") {
+      await stopStaticServer("components");
+      state.components = {
+        status: "stopped",
+        url: null,
+        version: null,
+        tag: null,
+        external: false,
+      };
+      addLog(
+        "MOVA Components",
+        "success",
+        "Components detenido junto con la shell.",
+      );
+      if (emitStopExecution) emitState();
+    }
+    await stopEnvironmentProcesses();
+    state.microfrontend = {
+      status: "stopped",
+      projectId: null,
+      id: null,
+      name: null,
+      version: null,
+    };
+    if (emitStopExecution) {
+      updateExecution({ status: "success", endedAt: new Date().toISOString() });
+    }
+  } catch (error) {
+    if (emitStopExecution) {
+      updateExecution({
+        status: "error",
+        error: error.message,
+        endedAt: new Date().toISOString(),
+      });
+    }
+    throw error;
+  }
+
+  environmentOperation = null;
+
+  if (emitFinalSession) {
+    updateSession({
+      status: "idle",
+      stage: "idle",
+      plan: null,
+      message: reason,
+      projectId: null,
+      projectName: null,
+      startedAt: null,
+    });
+  }
+}
+
+function clearExecutionForRestart() {
+  state.execution = {
+    status: "idle",
+    kind: null,
+    projectId: null,
+    projectName: null,
+    steps: [],
+    error: null,
+    startedAt: null,
+    endedAt: null,
+  };
+  emitState();
+}
+
+async function stopForRestart(reason = "Reiniciando entorno") {
+  await stopEnvironmentInternals({
+    reason,
+    emitStopExecution: false,
+    emitFinalSession: false,
+  });
+  clearExecutionForRestart();
+  emitState();
+}
+
 async function stopEnvironmentProcesses() {
   const records = [...childProcesses.entries()].filter(
     ([key]) => !key.startsWith("build:"),
@@ -964,6 +1117,7 @@ async function openOrRequestBrowser(project) {
 }
 
 async function runEnvironment(projectId, options = {}) {
+  clearExecutionForRestart();
   addLog(
     "Entorno",
     "stage",
@@ -973,18 +1127,6 @@ async function runEnvironment(projectId, options = {}) {
   const project = (await getProjects()).find((item) => item.id === projectId);
   if (!project) throw new Error("Shell no encontrada.");
   const validationStartedAt = new Date().toISOString();
-  beginExecution(project, [
-    {
-      id: "validation",
-      label: "Validar inicio",
-      command: "Validar shell y MOVA Components",
-      detail: "Comprobando el build local y la configuración requerida.",
-    },
-  ]);
-  updateExecutionStep("validation", {
-    status: "running",
-    startedAt: validationStartedAt,
-  });
   let includeComponents;
   let version;
   let microfrontend;
@@ -1029,15 +1171,6 @@ async function runEnvironment(projectId, options = {}) {
   } catch (error) {
     recordStartValidationError(project, error);
     throw error;
-  }
-  if (state.components.status === "running") {
-    addLog(
-      "MOVA Components",
-      "stage",
-      "Deteniendo Components independiente para iniciar la shell en el mismo puerto.",
-    );
-    await stopComponents();
-    addLog("MOVA Components", "success", "Components independiente detenido.");
   }
   const current = beginOperation("environment", {
     projectId,
@@ -1107,25 +1240,64 @@ async function runEnvironment(projectId, options = {}) {
       detail: "Ejecutando navegador autorizado",
     },
   ];
+
   beginExecution(project, steps);
   updateExecutionStep("validation", {
-    status: "success",
+    status: "running",
     startedAt: validationStartedAt,
-    endedAt: new Date().toISOString(),
   });
   updateSession({
     status: "starting",
-    stage: includeComponents ? "components" : "shell",
+    stage: "validation",
     plan,
-    message: includeComponents
-      ? `Iniciando MOVA Components ${version.version}`
-      : `Iniciando ${project.name} sin MOVA Components`,
+    message: "Validando la configuración inicial",
     projectId,
     projectName: project.name,
     startedAt: new Date().toISOString(),
   });
 
   try {
+    if (
+      state.shell.status !== "stopped" ||
+      state.components.status !== "stopped" ||
+      state.microfrontend.status !== "stopped"
+    ) {
+      addLog(
+        "Entorno",
+        "stage",
+        "Deteniendo recursos previos antes de iniciar el nuevo entorno.",
+      );
+      await stopForRestart("Reiniciando entorno");
+      updateSession({
+        status: "starting",
+        stage: "validation",
+        plan,
+        message: "Validando la configuración inicial",
+        projectId,
+        projectName: project.name,
+      });
+      beginExecution(project, steps);
+      updateExecutionStep("validation", {
+        status: "running",
+        startedAt: validationStartedAt,
+      });
+    }
+
+    updateExecutionStep("validation", {
+      status: "success",
+      endedAt: new Date().toISOString(),
+    });
+    updateSession({
+      status: "starting",
+      stage: includeComponents ? "components" : "shell",
+      plan,
+      message: includeComponents
+        ? `Iniciando MOVA Components ${version.version}`
+        : `Iniciando ${project.name} sin MOVA Components`,
+      projectId,
+      projectName: project.name,
+    });
+
     if (includeComponents)
       await runTrackedStage({
         id: "components",
@@ -1355,111 +1527,10 @@ async function rebuildShellServer(projectId) {
 }
 
 async function cancelAndStopAll(reason = "Entorno detenido") {
-  if (environmentOperation) environmentOperation.controller.abort();
-  const projectName = state.shell.name || "Shell";
-  const stopSteps = [
-    ...(state.shell.status !== "stopped"
-      ? [
-          {
-            id: "stopShell",
-            label: projectName,
-            command: "Detener shell",
-            detail: "Cerrar servidor HTTP interno",
-          },
-        ]
-      : []),
-  ];
-  state.execution = {
-    status: "running",
-    kind: "stop",
-    projectId: state.shell.projectId,
-    projectName,
-    steps: stopSteps.map((step) => ({
-      ...step,
-      status: "pending",
-      startedAt: null,
-      endedAt: null,
-    })),
-    error: null,
-    startedAt: new Date().toISOString(),
-    endedAt: null,
-  };
-  updateSession({ status: "stopping", stage: "stopping", message: reason });
-  const stopStep = async (id, label, message, task) => {
-    const index = state.execution.steps.findIndex((step) => step.id === id);
-    const action = state.execution.steps[index]?.command || message;
-    updateExecutionStep(id, {
-      status: "running",
-      startedAt: new Date().toISOString(),
-    });
-    addLog(action, "stage", message);
-    await task();
-    updateExecutionStep(id, {
-      status: "success",
-      endedAt: new Date().toISOString(),
-    });
-  };
-  try {
-    if (state.shell.status !== "stopped")
-      await stopStep(
-        "stopShell",
-        projectName,
-        "Deteniendo servidor HTTP de la shell.",
-        async () => {
-          await stopStaticServer("shell");
-          state.shell = {
-            status: "stopped",
-            url: null,
-            projectId: null,
-            name: null,
-            appName: null,
-            external: false,
-          };
-          emitState();
-        },
-      );
-    if (state.components.status !== "stopped") {
-      await stopStaticServer("components");
-      state.components = {
-        status: "stopped",
-        url: null,
-        version: null,
-        tag: null,
-        external: false,
-      };
-      addLog(
-        "MOVA Components",
-        "success",
-        "Components detenido junto con la shell.",
-      );
-      emitState();
-    }
-    await stopEnvironmentProcesses();
-    state.microfrontend = {
-      status: "stopped",
-      projectId: null,
-      id: null,
-      name: null,
-      version: null,
-    };
-    updateExecution({ status: "success", endedAt: new Date().toISOString() });
-  } catch (error) {
-    updateExecution({
-      status: "error",
-      error: error.message,
-      endedAt: new Date().toISOString(),
-    });
-    throw error;
-  }
-  environmentOperation = null;
-  updateSession({
-    status: "idle",
-    stage: "idle",
-    plan: null,
-    message: reason,
-    projectId: null,
-    projectName: null,
-    startedAt: null,
+  await stopEnvironmentInternals({
+    reason,
+    emitStopExecution: true,
+    emitFinalSession: true,
   });
 }
 
