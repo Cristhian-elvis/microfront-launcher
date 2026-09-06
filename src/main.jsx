@@ -173,6 +173,7 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem("microfront-sidebar-collapsed") === "true",
   );
+  const [refreshing, setRefreshing] = useState(false);
   const setMicrofrontProject = (project) => {
     if (project)
       routerNavigate({
@@ -185,7 +186,9 @@ function App() {
     setNotice({ message, kind });
     setTimeout(() => setNotice(null), 5000);
   }, []);
-  const { projects, loading, refreshProjects } = useShellProjects(flash);
+  const [projectsState, setProjectsState] = useState(null);
+  const { projects: hookProjects, loading, refreshProjects } = useShellProjects(flash);
+  const projects = projectsState !== null ? projectsState : hookProjects;
   const { versions, refreshVersions } = useMovaVersions(flash);
   const { logs, receiveLog, clearLogs } = useProcessLogs(flash);
   const refreshState = useCallback(async () => {
@@ -207,8 +210,17 @@ function App() {
     refreshBootstrap();
   }, [flash, refreshBootstrap]);
   useEffect(() => {
-    if (shellDetailId) void refreshProjects();
-  }, [shellDetailId, refreshProjects]);
+    if (shellDetailId && projects.length > 0) {
+      // Cargar datos frescos del proyecto específico desde backend
+      api(`/api/projects/${encodeURIComponent(shellDetailId)}`)
+        .then((updated) => {
+          setProjectsState((current) => 
+            (current || projects).map((p) => p.id === updated.id ? updated : p)
+          );
+        })
+        .catch((e) => flash(e.message, "error"));
+    }
+  }, [shellDetailId, projects.length]);
   const onState = useCallback((next) => setState(next), []);
   useLauncherEvents({ onLog: receiveLog, onState });
   useEffect(() => {
@@ -693,6 +705,7 @@ function App() {
                   (project) => project.id === decodeURIComponent(shellDetailId),
                 )}
                 state={state}
+                refreshing={refreshing}
                 onBack={() => routerNavigate("/shells")}
                 onOpenWebapp={(project) =>
                   action("/api/projects/open-webapp", { projectId: project.id })
@@ -730,7 +743,20 @@ function App() {
                     microfrontendIds: microfronts.map((microfront) => microfront.id),
                   })
                 }
-                onRefresh={refreshProjects}
+                onRefresh={async () => {
+                  try {
+                    setRefreshing(true);
+                    const updated = await api(`/api/projects/${encodeURIComponent(shellDetailId)}/refresh`);
+                    // Actualizar solo el proyecto en la lista local, sin hacer otra petición
+                    setProjectsState(projects.map((p) =>
+                      p.id === updated.id ? updated : p
+                    ));
+                  } catch (e) {
+                    flash(e.message, "error");
+                  } finally {
+                    setRefreshing(false);
+                  }
+                }}
                 favorite={favoriteIds.includes(
                   decodeURIComponent(shellDetailId),
                 )}

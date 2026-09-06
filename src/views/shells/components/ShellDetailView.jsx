@@ -4,6 +4,7 @@ import { ShellMicrofrontList } from "./ShellMicrofrontList.jsx";
 export function ShellDetailView({
   project,
   state,
+  refreshing,
   onBack,
   onOpenWebapp,
   onStart,
@@ -64,8 +65,17 @@ export function ShellDetailView({
           <div className="toolbar shell-detail-actions">
             <button
               className="button ghost"
+              title="Sincronizar información del proyecto"
+              disabled={refreshing}
+              onClick={onRefresh}
+            >
+              <Icon name={refreshing ? "loader" : "refresh"} />
+              {refreshing ? "Sincronizando..." : "Sincronizar"}
+            </button>
+            <button
+              className="button ghost"
               title="Reconstruir todo: prepara el servidor y reconstruye el build local"
-              disabled={cannotRebuild}
+              disabled={cannotRebuild || refreshing}
               onClick={() => onRebuild(project)}
             >
               <Icon name="refresh" />
@@ -75,6 +85,7 @@ export function ShellDetailView({
               <button
                 className="button stop"
                 title="Detener shell"
+                disabled={refreshing}
                 onClick={onStop}
               >
                 <Icon name="stop" />
@@ -84,6 +95,7 @@ export function ShellDetailView({
               <button
                 className="button stop shell-start-button is-starting"
                 title="Detener inicio"
+                disabled={refreshing}
                 onClick={onStop}
               >
                 <span className="shell-start-status" />
@@ -97,7 +109,7 @@ export function ShellDetailView({
                     ? "Iniciar shell"
                     : "La shell requiere configuración"
                 }
-                disabled={cannotStart}
+                disabled={cannotStart || refreshing}
                 onClick={() => onStart(project)}
               >
                 <Icon name="play" />
@@ -137,6 +149,7 @@ export function ShellDetailView({
           branchOperation={state.microfrontendBranch}
           buildOperation={state.microfrontendBuild}
           operations={state.microfrontendOperations}
+          disabled={refreshing}
           onChangeBranch={(microfront, branch) =>
             onChangeMicrofrontBranch?.(project, microfront, branch)
           }

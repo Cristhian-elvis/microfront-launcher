@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Checkbox } from "@mui/material";
 import { Icon } from "../../../shared/components/Icon.jsx";
 
-export function ShellMicrofrontList({ microfronts = [], branchOperation, buildOperation, operations = {}, onChangeBranch, onChangeBranchBatch, onBuildBatch, onRefresh }) {
+export function ShellMicrofrontList({ microfronts = [], branchOperation, buildOperation, operations = {}, disabled = false, onChangeBranch, onChangeBranchBatch, onBuildBatch, onRefresh }) {
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkAction, setBulkAction] = useState("");
@@ -123,12 +123,12 @@ export function ShellMicrofrontList({ microfronts = [], branchOperation, buildOp
       <div><h3 id="shell-microfronts-title">Microfronts locales</h3><p>{microfronts.length} detectados para esta shell.</p></div>
       {selected.length ? <div className="microfront-bulk-toolbar">
         <strong>{selected.length} {selected.length === 1 ? "microfront seleccionado" : "microfronts seleccionados"}</strong>
-        <select aria-label="Acción masiva" value={bulkAction} disabled={busy} onChange={(event) => chooseAction(event.target.value)}><option value="">Acciones masivas…</option><option value="build">Compilar seleccionados</option><option value="branch">Cambiar a rama…</option></select>
-        {bulkAction === "build" && <button className="button primary" disabled={busy || !selected.some((item) => item.buildAvailable)} onClick={applyBuild}>Aplicar</button>}
-        {bulkAction === "branch" && <><select aria-label="Rama destino" value={targetBranch} disabled={busy || !branches.length} onChange={(event) => setTargetBranch(event.target.value)}><option value="">{branches.length ? "Seleccionar rama…" : "Sin ramas comunes"}</option>{branches.map((branch) => <option key={branch} value={branch}>{branch}</option>)}</select><button className="button primary" disabled={busy || !targetBranch} onClick={applyBranch}>Aplicar</button></>}
-      </div> : <div className="microfront-default-toolbar"><label className="microfront-search"><Icon name="search" size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar microfront…" /></label><button className="button ghost" onClick={onRefresh}><Icon name="refresh" size={14} />Actualizar</button></div>}
+        <select aria-label="Acción masiva" value={bulkAction} disabled={busy || disabled} onChange={(event) => chooseAction(event.target.value)}><option value="">Acciones masivas…</option><option value="build">Compilar seleccionados</option><option value="branch">Cambiar a rama…</option></select>
+        {bulkAction === "build" && <button className="button primary" disabled={busy || disabled || !selected.some((item) => item.buildAvailable)} onClick={applyBuild}>Aplicar</button>}
+        {bulkAction === "branch" && <><select aria-label="Rama destino" value={targetBranch} disabled={busy || disabled || !branches.length} onChange={(event) => setTargetBranch(event.target.value)}><option value="">{branches.length ? "Seleccionar rama…" : "Sin ramas comunes"}</option>{branches.map((branch) => <option key={branch} value={branch}>{branch}</option>)}</select><button className="button primary" disabled={busy || disabled || !targetBranch} onClick={applyBranch}>Aplicar</button></>}
+      </div> : <div className="microfront-default-toolbar"><label className="microfront-search"><Icon name="search" size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar microfront…" disabled={disabled} /></label></div>}
     </header>
-    {microfronts.length ? <><div className="shell-microfront-columns"><span className="microfront-header-checkbox"><Checkbox size="small" checked={allVisibleSelected} indeterminate={selected.length > 0 && !allVisibleSelected} onChange={toggleVisible} inputProps={{ "aria-label": "Seleccionar resultados visibles" }} /></span><span>Microfront</span><span>Rama actual</span><span>Build local</span><span>Chequeo de proceso</span></div><ul>
+    {microfronts.length ? <><div className="shell-microfront-columns"><span className="microfront-header-checkbox"><Checkbox size="small" checked={allVisibleSelected} indeterminate={selected.length > 0 && !allVisibleSelected} disabled={disabled} onChange={toggleVisible} inputProps={{ "aria-label": "Seleccionar resultados visibles" }} /></span><span>Microfront</span><span>Rama actual</span><span>Build local</span><span>Chequeo de proceso</span></div><ul>
       {visible.map((microfront) => {
         const operation = operationFor(microfront);
         const changingBranch = branchIsChanging(microfront);
@@ -136,9 +136,9 @@ export function ShellMicrofrontList({ microfronts = [], branchOperation, buildOp
         const shownBranch = branchOverrides[microfront.id] || microfront.branch || "No disponible";
         const localBuildAvailable = localBuildOverrides[microfront.id] ?? microfront.localBuildAvailable;
         return <li key={microfront.id} className={selectedSet.has(microfront.id) ? "selected" : ""}>
-          <span className="microfront-select"><Checkbox size="small" checked={selectedSet.has(microfront.id)} onChange={() => toggle(microfront.id)} inputProps={{ "aria-label": `Seleccionar ${microfront.name}` }} /></span>
+          <span className="microfront-select"><Checkbox size="small" checked={selectedSet.has(microfront.id)} disabled={disabled} onChange={() => toggle(microfront.id)} inputProps={{ "aria-label": `Seleccionar ${microfront.name}` }} /></span>
           <div className="microfront-identity"><Icon name="package" size={16} /><div><strong>{microfront.name}</strong><code title={microfront.path}>{microfront.path}</code></div></div>
-          <span className={`microfront-branch-value ${changingBranch ? "changing" : ""}`} title={changingBranch ? branchOperation?.message || "Preparando cambio de rama." : shownBranch}><Icon name="branch" size={14} /><i />{changingBranch ? "Cambiando rama…" : shownBranch}</span>
+          <span className={`microfront-branch-value ${changingBranch ? "changing" : ""} ${microfront.outOfSync ? "out-of-sync" : ""}`} title={changingBranch ? branchOperation?.message || "Preparando cambio de rama." : microfront.outOfSync ? `${shownBranch} - Cambios pendientes por descargar` : shownBranch}><Icon name="branch" size={14} /><i />{changingBranch ? "Cambiando rama…" : shownBranch}{microfront.outOfSync ? " ⚠️" : ""}</span>
           <span className={`microfront-build-status ${building ? "building" : localBuildAvailable ? "available" : "unavailable"}`}><i />{building ? (localBuildAvailable ? "Reconstruyendo…" : "Preparando construcción…") : localBuildAvailable ? "Disponible" : "No disponible"}</span>
           <span className={`microfront-operation-state ${operation.tone}`}><i />{operation.label}</span>
         </li>;

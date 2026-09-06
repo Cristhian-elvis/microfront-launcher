@@ -52,7 +52,6 @@ import { createComponentsHandler } from "./handlers/components-handler.js";
 import { createEnvironmentHandler } from "./handlers/environment-handler.js";
 import { createApiRouter } from "./routes/api-router.js";
 import { createVsCodeService } from "./services/vscode-service.js";
-import { createGitWatcher } from "./services/git-watcher.js";
 import { json, readBody } from "./lib/http.js";
 
 const host = "127.0.0.1";
@@ -131,7 +130,6 @@ let environmentOperation = null;
 let buildOperation = null;
 let branchOperation = null;
 let microfrontendBatchOperation = null;
-let gitWatcher = null;
 
 function emitState() {
   emit("state", getState());
@@ -1812,6 +1810,7 @@ const handleProjectsRequest = createProjectsHandler({
   selectLocalDirectory,
   openScaffolding,
   openProjectWebapp: vsCodeService.openProjectWebapp,
+  gitBranchInfo,
   readBody,
   json,
 });
@@ -1957,29 +1956,9 @@ if (process.argv.includes("--check")) {
       );
       browser.unref();
     }
-
-    // Iniciar Git Watcher
-    try {
-      gitWatcher = createGitWatcher({
-        getProjects,
-        gitBranchInfo,
-        emit,
-        addLog,
-      });
-      await gitWatcher.start();
-    } catch (error) {
-      addLog(
-        "Git Watcher",
-        "error",
-        `Fallo al iniciar watcher: ${error.message}`,
-      );
-    }
   });
 
   async function cleanupAndExit() {
-    if (gitWatcher) {
-      gitWatcher.stop();
-    }
     await cancelAndStopAll("Launcher cerrado");
     server.close(() => process.exit(0));
   }

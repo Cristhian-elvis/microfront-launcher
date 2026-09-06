@@ -380,6 +380,10 @@ export function versionPaths(tag) {
   return { root, dist: path.join(root, 'dist'), manifest: path.join(root, 'manifest.json') };
 }
 
+export function invalidateScanCache() {
+  scanCache.at = 0;
+}
+
 export function assertInside(parent, candidate) {
   const relative = path.relative(path.resolve(parent), path.resolve(candidate));
   if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Ruta de almacenamiento no válida.');
