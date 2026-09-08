@@ -909,6 +909,61 @@ h1 em {
 .init-form { display: grid; gap: 16px; margin-top: 28px; }
 .init-path-field { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; }
 .init-path-field .MuiButton-root { align-self: start; margin-top: 19px; white-space: nowrap; }
+.init-directory-button.MuiButton-root,
+.tags-refresh-button.MuiButton-root {
+  min-height: 35px;
+  border: 1px solid #263c51;
+  border-radius: 8px;
+  padding: 0 13px;
+  background: rgba(15, 31, 47, 0.7);
+  color: #a8bacb;
+  box-shadow: none;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: none;
+}
+.init-directory-button.MuiButton-root:hover,
+.tags-refresh-button.MuiButton-root:hover {
+  border-color: #3d5b71;
+  background: #142b3e;
+  color: #d9e9f5;
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+.init-directory-button.MuiButton-root.Mui-disabled,
+.tags-refresh-button.MuiButton-root.Mui-disabled {
+  border-color: #263c51;
+  color: #a8bacb;
+  opacity: .55;
+}
+.init-submit-button.MuiButton-root {
+  min-height: 35px;
+  border-radius: 8px;
+  padding: 0 13px;
+  background: var(--cyan);
+  color: #062025;
+  box-shadow: 0 8px 20px rgba(53, 214, 207, .12);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: none;
+}
+.init-submit-button.MuiButton-root:hover {
+  background: #5ee6df;
+  box-shadow: 0 9px 23px rgba(53, 214, 207, .2);
+  transform: translateY(-1px);
+}
+.init-submit-button.MuiButton-root.Mui-disabled {
+  background: var(--cyan);
+  color: #062025;
+  opacity: .55;
+}
+.init-directory-button .MuiButton-startIcon,
+.init-submit-button .MuiButton-startIcon,
+.tags-refresh-button .MuiButton-startIcon {
+  margin-right: 7px;
+}
 .init-selector-status { display: flex; align-items: center; gap: 8px; margin: 0; color: #8fb5c9; font-size: 10px; }
 .init-actions { display: flex; justify-content: flex-end; margin-top: 24px; }
 .settings-body {
@@ -3255,6 +3310,18 @@ h1 em {
   border-color: #bed0dd;
   color: #435d72;
 }
+.app-shell.light .init-directory-button.MuiButton-root,
+.app-shell.light .tags-refresh-button.MuiButton-root {
+  border-color: #bed0dd;
+  background: #f9fcfe;
+  color: #435d72;
+}
+.app-shell.light .init-directory-button.MuiButton-root:hover,
+.app-shell.light .tags-refresh-button.MuiButton-root:hover {
+  border-color: #91adbf;
+  background: #edf5f9;
+  color: #244257;
+}
 .app-shell.light .button.secondary {
   background: #e4eef5;
   border-color: #c3d4e0;
@@ -3580,6 +3647,21 @@ body:has(.app-shell.light) {
 .tag-state.starting i { background: #f0c36d; box-shadow: 0 0 7px rgba(240, 195, 109, .65); animation: pulse-dot 1.2s infinite; }
 .tag-state.error, .tag-health.error { color: #ff949a; }
 .tag-state.error i { background: #ff6b73; box-shadow: 0 0 7px rgba(255, 107, 115, .65); }
+.tags-page { display: grid; gap: 22px; }
+.tags-page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 0 2px; }
+.tags-page-header h1 { margin: 5px 0 7px; color: #e6f4fc; font-size: 24px; letter-spacing: -.5px; }
+.tags-page-description { max-width: 590px; margin: 0; color: #8ea7b8; font-size: 11px; line-height: 1.55; }
+.tags-page-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+.tags-count { color: #78d9d3; font-size: 10px; font-weight: 800; letter-spacing: .35px; white-space: nowrap; }
+.tags-empty-cell { padding: 0 !important; }
+.tags-empty-state { display: flex; align-items: center; gap: 14px; min-height: 112px; padding: 18px 20px; color: #78d9d3; }
+.tags-empty-state > div { flex: 1; color: #d7e5f1; }
+.tags-empty-state strong { display: block; font-size: 11px; }
+.tags-empty-state p { margin: 5px 0 0; color: #8ea7b8; font-size: 9px; line-height: 1.5; }
+.app-shell.light .tags-page-header h1 { color: #153047; }
+.app-shell.light .tags-page-description, .app-shell.light .tags-empty-state p { color: #587188; }
+@media (max-width: 700px) { .tags-page-header { align-items: flex-start; flex-direction: column; } .tags-page-actions { justify-content: flex-start; } .tags-empty-state { align-items: flex-start; flex-wrap: wrap; } .tags-empty-state > button { width: 100%; } }
+
 .tags-view .workspace {
   border-top: 0;
   padding-top: 0;

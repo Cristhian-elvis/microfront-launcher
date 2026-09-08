@@ -228,7 +228,11 @@ function AppContent() {
         config={config}
         onCompleted={async () => {
           setSetupRequired(false);
-          await Promise.all([refreshBootstrap(), refreshProjects()]);
+          await Promise.all([
+            refreshBootstrap(),
+            refreshProjects(),
+            refreshVersions(),
+          ]);
           routerNavigate("/home", { replace: true });
         }}
       />
@@ -313,6 +317,7 @@ function AppContent() {
               preferredTag={state.preferences.preferredTag}
               flash={flash}
               refreshState={refreshState}
+              refreshVersions={refreshVersions}
             />
           }
         />

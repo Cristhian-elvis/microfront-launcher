@@ -68,6 +68,7 @@ export function InitialSetup({ config, onCompleted }) {
                 hint="Carpeta que contiene los proyectos de shell; elige la carpeta padre común."
               />
               <Button
+                className="init-directory-button"
                 type="button"
                 variant="outlined"
                 disabled={Boolean(selecting)}
@@ -93,6 +94,7 @@ export function InitialSetup({ config, onCompleted }) {
                 hint="Carpeta local del repositorio MOVA, la que contiene su carpeta .git."
               />
               <Button
+                className="init-directory-button"
                 type="button"
                 variant="outlined"
                 disabled={Boolean(selecting)}
@@ -133,6 +135,7 @@ export function InitialSetup({ config, onCompleted }) {
           )}
           <footer className="init-actions">
             <Button
+              className="init-submit-button"
               type="submit"
               variant="contained"
               startIcon={<Icon name="check" />}

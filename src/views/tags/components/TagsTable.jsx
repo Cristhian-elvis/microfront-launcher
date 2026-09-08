@@ -71,6 +71,8 @@ export function TagsTable({
   busy,
   processes = [],
   onBuild,
+  onRefreshTags,
+  refreshing,
   preferredTag,
 }) {
   return (
@@ -88,50 +90,75 @@ export function TagsTable({
               </tr>
             </thead>
             <tbody>
-              {versions.map((item) => {
-                const status = tagState(item, build);
-                const process = buildProcessState(item, build, processes);
-                return (
-                  <tr
-                    key={item.tag}
-                    className={item.tag === preferredTag ? "in-use" : ""}
-                  >
-                    <td>
-                      <div className="tag-table-name">
-                        <Icon name="tag" size={15} />
-                        <div className="tag-name-line">
-                          <strong>{item.tag}</strong>
-                          {item.tag === preferredTag && (
-                            <small className="tag-in-use-label">En uso</small>
-                          )}
-                        </div>
+              {versions.length === 0 ? (
+                <tr>
+                  <td className="tags-empty-cell" colSpan="5">
+                    <div className="tags-empty-state">
+                      <Icon name="tag" size={22} />
+                      <div>
+                        <strong>No hay tags MOVA disponibles</strong>
+                        <p>
+                          Verifica que la ruta configurada apunte al repositorio
+                          MOVA o sincroniza sus tags desde el remoto.
+                        </p>
                       </div>
-                    </td>
-                    <td className="tag-date">{formatDate(item.date)}</td>
-                    <td>
-                      <span className={`tag-state ${status.tone}`}>
-                        <i />
-                        {status.compilation}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`shell-health ${process.tone}`}>
-                        {process.check}
-                      </span>
-                    </td>
-                    <td className="tag-actions-cell">
                       <button
-                        className="button ghost tag-row-action"
-                        disabled={busy}
-                        onClick={() => onBuild(item.tag)}
+                        className="button ghost"
+                        disabled={refreshing || busy}
+                        onClick={onRefreshTags}
                       >
-                        <Icon name="play" size={14} />
-                        {item.cached ? "Recompilar" : "Compilar"}
+                        <Icon name="refresh" size={14} />
+                        {refreshing ? "Actualizando…" : "Actualizar tags"}
                       </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                versions.map((item) => {
+                  const status = tagState(item, build);
+                  const process = buildProcessState(item, build, processes);
+                  return (
+                    <tr
+                      key={item.tag}
+                      className={item.tag === preferredTag ? "in-use" : ""}
+                    >
+                      <td>
+                        <div className="tag-table-name">
+                          <Icon name="tag" size={15} />
+                          <div className="tag-name-line">
+                            <strong>{item.tag}</strong>
+                            {item.tag === preferredTag && (
+                              <small className="tag-in-use-label">En uso</small>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="tag-date">{formatDate(item.date)}</td>
+                      <td>
+                        <span className={`tag-state ${status.tone}`}>
+                          <i />
+                          {status.compilation}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`shell-health ${process.tone}`}>
+                          {process.check}
+                        </span>
+                      </td>
+                      <td className="tag-actions-cell">
+                        <button
+                          className="button ghost tag-row-action"
+                          disabled={busy}
+                          onClick={() => onBuild(item.tag)}
+                        >
+                          <Icon name="play" size={14} />
+                          {item.cached ? "Recompilar" : "Compilar"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

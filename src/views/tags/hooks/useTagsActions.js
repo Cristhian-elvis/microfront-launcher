@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { api } from "../../../lib/api.js";
 
-export function useTagsActions(flash, refreshState) {
+export function useTagsActions(flash, refreshState, refreshVersions) {
   const onBuild = useCallback(
     async (tag) => {
       try {
@@ -17,5 +17,17 @@ export function useTagsActions(flash, refreshState) {
     [flash, refreshState],
   );
 
-  return { onBuild };
+  const onRefreshTags = useCallback(async () => {
+    try {
+      const result = await api("/api/mova/tags/refresh", {
+        method: "POST",
+      });
+      await refreshVersions();
+      flash(result.message);
+    } catch (error) {
+      flash(error.message, "error");
+    }
+  }, [flash, refreshVersions]);
+
+  return { onBuild, onRefreshTags };
 }
