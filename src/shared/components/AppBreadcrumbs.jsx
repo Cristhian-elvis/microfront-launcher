@@ -1,22 +1,27 @@
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import Link from "@mui/material/Link";
+import { useMatch } from "react-router-dom";
 import { useAppNavigation } from "../hooks/useAppNavigation.js";
 import { useProjects } from "../hooks/useProjects.js";
 
 export function AppBreadcrumbs({ onNavigate, routerNavigate }) {
-  const { activeView, shellDetailId, microfrontDetailId } = useAppNavigation();
+  const { activeView } = useAppNavigation();
+  const shellMatch = useMatch("/shells/:shellId");
+  const microfrontMatch = useMatch("/shells/:shellId/:microfrontId");
+  const shellId = microfrontMatch?.params.shellId || shellMatch?.params.shellId;
+  const microfrontId = microfrontMatch?.params.microfrontId;
   const { projects } = useProjects();
-  
-  const shellName = shellDetailId
-    ? projects.find((p) => p.id === decodeURIComponent(shellDetailId))?.name
+
+  const shellName = shellId
+    ? projects.find((p) => p.id === decodeURIComponent(shellId))?.name
     : null;
-  
+
   const microfrontName =
-    shellDetailId && microfrontDetailId
+    shellId && microfrontId
       ? projects
-          .find((p) => p.id === decodeURIComponent(shellDetailId))
+          .find((p) => p.id === decodeURIComponent(shellId))
           ?.microfrontends?.find(
-            (mf) => mf.id === decodeURIComponent(microfrontDetailId)
+            (mf) => mf.id === decodeURIComponent(microfrontId)
           )?.name
       : null;
   if (activeView === "home") return null;
@@ -26,7 +31,7 @@ export function AppBreadcrumbs({ onNavigate, routerNavigate }) {
     items.push({ label: "Microfronts", view: "microfronts" });
   if (activeView === "tags")
     items.push({ label: "Tags de MOVA", view: "tags" });
-  if (shellName) items.push({ label: shellName.toUpperCase(), shellId: shellDetailId, action: "goToShell" });
+  if (shellName) items.push({ label: shellName.toUpperCase(), shellId, action: "goToShell" });
   if (microfrontName) items.push({ label: microfrontName });
   return (
     <Breadcrumbs

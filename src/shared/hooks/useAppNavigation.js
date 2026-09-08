@@ -5,22 +5,12 @@ export function useAppNavigation() {
   const location = useLocation();
   const routerNavigate = useNavigate();
 
-  const shellDetailId = useMemo(
-    () => location.pathname.match(/^\/shells\/([^/]+)(?:\/|$)/)?.[1] || "",
-    [location.pathname],
-  );
-
-  const microfrontDetailId = useMemo(
-    () => location.pathname.match(/^\/shells\/[^/]+\/([^/]+)$/)?.[1] || "",
-    [location.pathname],
-  );
-
   const activeView = useMemo(() => {
-    if (location.pathname === "/shells" || shellDetailId) return "shells";
+    if (location.pathname.startsWith("/shells")) return "shells";
     if (location.pathname === "/microfronts") return "microfronts";
     if (location.pathname === "/tags") return "tags";
     return "home";
-  }, [location.pathname, shellDetailId]);
+  }, [location.pathname]);
 
   const microfrontFilter = useMemo(
     () => new URLSearchParams(location.search).get("microfront") || "",
@@ -62,8 +52,6 @@ export function useAppNavigation() {
   return {
     location,
     routerNavigate,
-    shellDetailId,
-    microfrontDetailId,
     activeView,
     microfrontFilter,
     navigate,
