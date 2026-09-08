@@ -214,7 +214,7 @@ function AppContent() {
             ? "Iniciando"
             : "Detenido";
 
-  if (!state || !config || !projects || projects.length === 0)
+  if (!state || !config)
     return (
       <div className="boot-screen">
         <div className="loader" />
@@ -232,6 +232,14 @@ function AppContent() {
           routerNavigate("/home", { replace: true });
         }}
       />
+    );
+
+  if (!projects || projects.length === 0)
+    return (
+      <div className="boot-screen">
+        <div className="loader" />
+        <p>Preparando Microfront Launcher V2...</p>
+      </div>
     );
 
   return (
