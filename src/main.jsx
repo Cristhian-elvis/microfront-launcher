@@ -8,20 +8,14 @@ import React, {
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { api } from "./lib/api.js";
-import { Icon } from "./shared/components/Icon.jsx";
 import { HomePage } from "./views/home/HomePage.jsx";
-import { Sidebar } from "./shared/components/Sidebar.jsx";
 import { MicrofrontsPage } from "./views/microfronts/MicrofrontsPage.jsx";
 import { ShellsPage } from "./views/shells/ShellsPage.jsx";
 import { ShellDetailPage } from "./views/shells/ShellDetailPage.jsx";
 import { MicrofrontDetailPage } from "./views/shells/MicrofrontDetailPage.jsx";
 import { TagsPage } from "./views/tags/TagsPage.jsx";
-import { AppBreadcrumbs } from "./shared/components/AppBreadcrumbs.jsx";
-import { GlobalSettings } from "./views/settings/components/GlobalSettings.jsx";
 import { InitialSetup } from "./views/setup/components/InitialSetup.jsx";
-import { ProjectEditor } from "./shared/components/ProjectEditor.jsx";
-import { BrowserOpenModal } from "./shared/components/BrowserOpenModal.jsx";
-import { AppHeader } from "./shared/components/AppHeader.jsx";
+import { AppLayout } from "./shared/components/AppLayout.jsx";
 import { flattenMicrofronts } from "./lib/microfronts.js";
 import { useLauncherEvents } from "./shared/hooks/useLauncherEvents.js";
 import { useMovaVersions } from "./views/tags/hooks/useMovaVersions.js";
@@ -241,184 +235,148 @@ function AppContent() {
     );
 
   return (
-    <div
-      className={`app-shell ${theme} ${activeView === "tags" ? "tags-route" : ""}`}
-    >
-      <AppHeader
-        theme={theme}
-        onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
-        state={state}
-        onOpenBrowser={() =>
-          action(
-            state.shell.status === "running"
-              ? "/api/chrome/open"
-              : "/api/chrome/open-empty",
-            { mode: "tab" },
-          )
-        }
-        onOpenSettings={() => setShowSettings(true)}
-      />
-      <div
-        className={`app-layout ${sidebarCollapsed ? "sidebar-is-collapsed" : ""}`}
-      >
-        <Sidebar
-          activeView={activeView}
-          projects={projects}
-          favoriteShellIds={favoriteIds}
-          favoriteMicrofrontIds={favoriteMicrofrontIds}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed((value) => !value)}
-          onNavigate={navigate}
-          onNavigateToShell={(project) =>
-            routerNavigate(`/shells/${encodeURIComponent(project.id)}`)
-          }
-          onNavigateToMicrofront={(microfrontId) =>
-            navigate("microfronts", "", microfrontId)
-          }
-        />
-        <main>
-          <AppBreadcrumbs
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <AppLayout
+            theme={theme}
+            onThemeToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
+            state={state}
+            onOpenBrowser={() =>
+              action(
+                state.shell.status === "running"
+                  ? "/api/chrome/open"
+                  : "/api/chrome/open-empty",
+                { mode: "tab" },
+              )
+            }
+            onOpenSettings={() => setShowSettings(true)}
             activeView={activeView}
-            onNavigate={navigate}
+            projects={projects}
+            favoriteIds={favoriteIds}
+            favoriteMicrofrontIds={favoriteMicrofrontIds}
+            sidebarCollapsed={sidebarCollapsed}
+            onToggleSidebar={() => setSidebarCollapsed((value) => !value)}
+            navigate={navigate}
             routerNavigate={routerNavigate}
+            notice={notice}
+            editor={editor}
+            onCloseEditor={() => setEditor(undefined)}
+            config={config}
+            showSettings={showSettings}
+            onCloseSettings={() => setShowSettings(false)}
+            onSavedSettings={refreshBootstrap}
+            onDismissBrowserPrompt={() => action("/api/chrome/dismiss")}
+            onOpenBrowserPrompt={(mode, remember) =>
+              action("/api/chrome/open", { mode, remember })
+            }
           />
-          <Routes>
-            <Route
-              path="/home"
-              element={
-                <HomePage
-                  state={state}
-                  buildLogs={buildLogs}
-                  environmentLogs={environmentLogs}
-                  logEnd={logEnd}
-                  componentVersion={componentVersion}
-                  componentsActive={componentsActive}
-                  environmentLabel={environmentLabel}
-                  versions={versions}
-                  preferredTag={state.preferences.preferredTag}
-                  onSelectVersion={selectMovaVersion}
-                  onStartShell={startShell}
-                  projects={projects}
-                  clearLogs={clearLogs}
-                />
-              }
+        }
+      >
+        <Route
+          path="home"
+          element={
+            <HomePage
+              state={state}
+              buildLogs={buildLogs}
+              environmentLogs={environmentLogs}
+              logEnd={logEnd}
+              componentVersion={componentVersion}
+              componentsActive={componentsActive}
+              environmentLabel={environmentLabel}
+              versions={versions}
+              preferredTag={state.preferences.preferredTag}
+              onSelectVersion={selectMovaVersion}
+              onStartShell={startShell}
+              projects={projects}
+              clearLogs={clearLogs}
             />
-            <Route
-              path="/tags"
-              element={
-                <TagsPage
-                  versions={versions}
-                  build={state.build}
-                  busy={state.buildBusy}
-                  processes={state.processes || []}
-                  preferredTag={state.preferences.preferredTag}
-                  flash={flash}
-                  refreshState={refreshState}
-                />
-              }
-            />
-            <Route
-              path="/microfronts"
-              element={
-                <MicrofrontsPage
-                  items={allMicrofronts}
-                  selectedId={microfrontFilter}
-                  favoriteIds={favoriteMicrofrontIds}
-                  processes={state.processes || []}
-                  onClearSelection={() => navigate("microfronts")}
-                  onToggleFavorite={toggleMicrofrontFavorite}
-                />
-              }
-            />
-            <Route
-              path="/shells"
-              element={
-                <div className="shells-table-wrapper">
-                  <ShellsPage
-                    projects={filtered}
-                    state={state}
-                    favoriteIds={favoriteIds}
-                    onFavorite={toggleFavorite}
-                    onStart={startShell}
-                    onStop={() =>
-                      action(
-                        "/api/environment/stop",
-                        {},
-                        {
-                          refreshProjectsAfter: false,
-                          refreshStateAfter: false,
-                        },
-                      )
-                    }
-                    onAction={action}
-                    onDetails={(project) =>
-                      routerNavigate(
-                        `/shells/${encodeURIComponent(project.id)}`,
-                      )
-                    }
-                  />
-                </div>
-              }
-            />
-            <Route
-              path="/shells/:shellId"
-              element={
-                <div className="shell-detail-wrapper">
-                  <ShellDetailPage
-                    state={state}
-                    onMicrofrontDetail={(microfront) =>
-                      routerNavigate(
-                        `${location.pathname}/${encodeURIComponent(microfront.id)}`,
-                      )
-                    }
-                  />
-                </div>
-              }
-            />
-            <Route
-              path="/shells/:shellId/:microfrontId"
-              element={
-                <div className="microfront-detail-wrapper">
-                  <MicrofrontDetailPage state={state} />
-                </div>
-              }
-            />
-            <Route path="/inicio" element={<Navigate to="/home" replace />} />
-            <Route path="*" element={<Navigate to="/home" replace />} />
-          </Routes>
-        </main>
-      </div>
-      {notice && (
-        <div className={`toast ${notice.kind}`}>
-          <Icon name={notice.kind === "error" ? "alert" : "check"} />
-          {notice.message}
-        </div>
-      )}
-      {editor !== undefined && (
-        <ProjectEditor
-          project={editor}
-          defaults={config}
-          onClose={() => setEditor(undefined)}
-          onSaved={async () => {}}
-        />
-      )}
-      {showSettings && (
-        <GlobalSettings
-          config={config}
-          onClose={() => setShowSettings(false)}
-          onSaved={refreshBootstrap}
-        />
-      )}
-      {state.browserPrompt && (
-        <BrowserOpenModal
-          prompt={state.browserPrompt}
-          onClose={() => action("/api/chrome/dismiss")}
-          onOpen={(mode, remember) =>
-            action("/api/chrome/open", { mode, remember })
           }
         />
-      )}
-    </div>
+        <Route
+          path="tags"
+          element={
+            <TagsPage
+              versions={versions}
+              build={state.build}
+              busy={state.buildBusy}
+              processes={state.processes || []}
+              preferredTag={state.preferences.preferredTag}
+              flash={flash}
+              refreshState={refreshState}
+            />
+          }
+        />
+        <Route
+          path="microfronts"
+          element={
+            <MicrofrontsPage
+              items={allMicrofronts}
+              selectedId={microfrontFilter}
+              favoriteIds={favoriteMicrofrontIds}
+              processes={state.processes || []}
+              onClearSelection={() => navigate("microfronts")}
+              onToggleFavorite={toggleMicrofrontFavorite}
+            />
+          }
+        />
+        <Route
+          path="shells"
+          element={
+            <div className="shells-table-wrapper">
+              <ShellsPage
+                projects={filtered}
+                state={state}
+                favoriteIds={favoriteIds}
+                onFavorite={toggleFavorite}
+                onStart={startShell}
+                onStop={() =>
+                  action(
+                    "/api/environment/stop",
+                    {},
+                    {
+                      refreshProjectsAfter: false,
+                      refreshStateAfter: false,
+                    },
+                  )
+                }
+                onAction={action}
+                onDetails={(project) =>
+                  routerNavigate(`/shells/${encodeURIComponent(project.id)}`)
+                }
+              />
+            </div>
+          }
+        />
+        <Route
+          path="shells/:shellId"
+          element={
+            <div className="shell-detail-wrapper">
+              <ShellDetailPage
+                state={state}
+                onMicrofrontDetail={(microfront) =>
+                  routerNavigate(
+                    `${location.pathname}/${encodeURIComponent(microfront.id)}`,
+                  )
+                }
+              />
+            </div>
+          }
+        />
+        <Route
+          path="shells/:shellId/:microfrontId"
+          element={
+            <div className="microfront-detail-wrapper">
+              <MicrofrontDetailPage state={state} />
+            </div>
+          }
+        />
+        <Route path="inicio" element={<Navigate to="/home" replace />} />
+        <Route index element={<Navigate to="/home" replace />} />
+        <Route path="*" element={<Navigate to="/home" replace />} />
+      </Route>
+    </Routes>
   );
 }
 
