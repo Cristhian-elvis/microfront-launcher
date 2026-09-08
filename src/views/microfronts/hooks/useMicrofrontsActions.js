@@ -1,9 +1,7 @@
 import { useCallback } from "react";
 import { api } from "../../../lib/api.js";
-import { useProjects } from "../../../shared/hooks/useProjects.js";
 
 export function useMicrofrontsActions(flash, refreshProjects) {
-  const { updateProject } = useProjects();
 
   const action = useCallback(
     async (url, body) => {
@@ -53,13 +51,8 @@ export function useMicrofrontsActions(flash, refreshProjects) {
     [startMicrofrontendAction],
   );
 
-  const onRefresh = useCallback((project) => {
-    return updateProject(project.id, false);
-  }, [updateProject]);
-
   return {
     onOpen,
     onBuild,
-    onRefresh,
   };
 }

@@ -26,6 +26,7 @@ import {
   completeInitialSetup,
   getIndexedProject,
   gitBranchInfo,
+  updateMicrofrontendGitCache,
 } from "./lib/core.js";
 import {
   childProcesses,
@@ -238,8 +239,10 @@ async function stopEnvironmentInternals({
   reason = "Entorno detenido",
   emitStopExecution = true,
   emitFinalSession = true,
+  abortOperation = true,
 } = {}) {
-  if (environmentOperation) environmentOperation.controller.abort();
+  const operationToStop = environmentOperation;
+  if (abortOperation) operationToStop?.controller.abort();
   const projectName = state.shell.name || "Shell";
 
   if (emitStopExecution) {
@@ -348,7 +351,9 @@ async function stopEnvironmentInternals({
     throw error;
   }
 
-  environmentOperation = null;
+  if (abortOperation && environmentOperation === operationToStop) {
+    environmentOperation = null;
+  }
 
   if (emitFinalSession) {
     updateSession({
@@ -382,6 +387,7 @@ async function stopForRestart(reason = "Reiniciando entorno") {
     reason,
     emitStopExecution: false,
     emitFinalSession: false,
+    abortOperation: false,
   });
   clearExecutionForRestart();
   emitState();
@@ -1663,7 +1669,7 @@ async function switchMicrofrontendBranch(
     );
   }
   const newGitInfo = await gitBranchInfo(microfrontend.path);
-  updateMicrofrontendCache(projectId, microfrontendId, newGitInfo);
+  updateMicrofrontendGitCache(projectId, microfrontendId, newGitInfo);
 
   addLog(
     "Microfronts",
@@ -1780,8 +1786,6 @@ const handleProjectsRequest = createProjectsHandler({
 });
 const handleBrowserRequest = createBrowserHandler({
   state,
-  getProjects,
-  openOrRequestBrowser,
   reopenChrome,
   openEmptyBrowser,
   readConfig,
@@ -1929,23 +1933,4 @@ if (process.argv.includes("--check")) {
 
   process.on("SIGINT", cleanupAndExit);
   process.on("SIGTERM", cleanupAndExit);
-}
-
-export function updateMicrofrontendCache(
-  projectId,
-  microfrontendId,
-  gitBranchData,
-) {
-  // Si el caché está vacío, no hacemos nada
-  if (!scanCache || !scanCache.projects) return;
-
-  const project = scanCache.projects.find((p) => p.id === projectId);
-  if (!project || !project.microfrontends) return;
-
-  const mf = project.microfrontends.find((m) => m.id === microfrontendId);
-  if (!mf) return;
-
-  // Actualizamos solo los datos de Git de este microfrontend específico
-  mf.branch = gitBranchData.branch;
-  mf.branches = gitBranchData.branches;
 }

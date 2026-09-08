@@ -1,0 +1,344 @@
+/* Centro de operaciones: tarjetas y controles exclusivos de la vista Home. */
+.home-operation-hero {
+  grid-template-columns: minmax(380px, 1fr) minmax(330px, 420px);
+  align-items: center;
+  padding-bottom: 24px;
+}
+
+.home-status-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 21px 10px;
+  border: 1px solid #244158;
+  border-radius: 15px;
+  background: linear-gradient(
+    145deg,
+    rgba(13, 30, 46, 0.96),
+    rgba(8, 21, 34, 0.98)
+  );
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.15);
+}
+
+.home-status-summary > div {
+  min-width: 0;
+  padding: 0 15px;
+  border-right: 1px solid #1f3b50;
+  text-align: center;
+}
+
+.home-status-summary > div:last-child {
+  border-right: 0;
+}
+
+.home-status-summary strong,
+.home-status-summary span {
+  display: block;
+}
+
+.home-status-summary strong {
+  overflow: hidden;
+  color: #edf7ff;
+  font-size: 22px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-status-summary strong.green {
+  color: var(--green);
+}
+
+.home-status-summary strong.red {
+  color: #ff858c;
+}
+
+.home-status-summary span {
+  margin-top: 5px;
+  color: #7f94aa;
+  font-size: 10px;
+}
+
+.home-operation-cards {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.home-operation-card {
+  display: grid;
+  grid-template-columns: 48px minmax(195px, 1fr) 220px auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid rgba(53, 214, 207, 0.28);
+  border-radius: 12px;
+  background: linear-gradient(110deg, rgba(15, 45, 61, 0.92), #091725);
+}
+
+.home-operation-card.running {
+  border-color: rgba(85, 230, 158, 0.34);
+  background: linear-gradient(110deg, rgba(24, 65, 60, 0.58), #091725);
+}
+
+.home-operation-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid rgba(53, 214, 207, 0.26);
+  border-radius: 12px;
+  background: rgba(53, 214, 207, 0.09);
+  color: var(--cyan);
+}
+
+.home-operation-icon.shell {
+  border-color: rgba(112, 138, 255, 0.28);
+  background: rgba(112, 138, 255, 0.1);
+  color: #aebdff;
+}
+
+.home-operation-card.running .home-operation-icon.shell {
+  border-color: rgba(85, 230, 158, 0.3);
+  background: rgba(85, 230, 158, 0.08);
+  color: var(--green);
+}
+
+.home-operation-copy,
+.home-operation-value,
+.home-version-control,
+.home-shell-control {
+  min-width: 0;
+}
+
+.home-operation-copy small,
+.home-operation-value small {
+  display: block;
+  color: #7793a7;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.9px;
+}
+
+.home-operation-copy strong,
+.home-operation-copy span,
+.home-operation-value strong,
+.home-operation-value span {
+  display: block;
+}
+
+.home-operation-copy strong,
+.home-operation-value strong {
+  margin-top: 4px;
+  overflow: hidden;
+  color: #e3f0f9;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-operation-value strong.green {
+  color: var(--green);
+}
+
+.home-operation-copy span,
+.home-operation-value span,
+.home-version-control > span {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #8ea7b8;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-version-control,
+.home-shell-control {
+  width: 220px !important;
+}
+
+.home-version-select,
+.home-shell-control {
+  margin-top: 5px !important;
+}
+
+.home-operation-card.without-control {
+  grid-template-columns: 48px minmax(195px, 1fr) auto;
+}
+
+.home-operation-card.without-control .home-operation-actions {
+  grid-column: 3;
+}
+
+.home-version-select .MuiInputLabel-root,
+.home-shell-control .MuiInputLabel-root {
+  color: #7894a8;
+  font-size: 11px;
+}
+
+.home-version-select .MuiInputLabel-root.Mui-focused,
+.home-shell-control .MuiInputLabel-root.Mui-focused {
+  color: #79ddd7;
+}
+
+.home-version-select .MuiOutlinedInput-root,
+.home-shell-control .MuiOutlinedInput-root {
+  color: #e6f4fc;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.home-version-select .MuiOutlinedInput-notchedOutline,
+.home-shell-control .MuiOutlinedInput-notchedOutline {
+  border-color: #31576d;
+}
+
+.home-version-select .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.home-shell-control .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #5e9baf;
+}
+
+.home-version-select .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.home-shell-control .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--cyan);
+}
+
+.home-version-select .MuiSelect-icon,
+.home-shell-control .MuiSelect-icon {
+  color: #78d9d3;
+}
+
+.home-version-select .MuiOutlinedInput-root.Mui-disabled {
+  color: #b9d0dc;
+  -webkit-text-fill-color: #b9d0dc;
+}
+
+.home-version-select .MuiSelect-select.Mui-disabled {
+  color: #b9d0dc !important;
+  -webkit-text-fill-color: #b9d0dc !important;
+  opacity: 1;
+}
+
+.home-version-select .MuiInputLabel-root.Mui-disabled {
+  color: #8ba7b8;
+  opacity: 1;
+}
+
+.home-version-select .MuiSelect-icon.Mui-disabled {
+  color: #7194a9;
+  opacity: 1;
+}
+
+.home-version-menu {
+  border: 1px solid #31576d;
+  background: #0d2031 !important;
+  color: #e6f4fc !important;
+}
+
+.home-version-menu .MuiMenuItem-root {
+  font-size: 12px;
+}
+
+.home-version-menu .MuiMenuItem-root.Mui-selected,
+.home-version-menu .MuiMenuItem-root.Mui-selected:hover {
+  background: rgba(53, 214, 207, 0.16);
+}
+
+.home-operation-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.home-operation-actions .button {
+  min-width: 98px;
+  height: 34px;
+}
+
+.home-operation-actions .button.stop {
+  flex: 0 0 auto;
+}
+
+.app-shell.light .home-status-summary,
+.app-shell.light .home-operation-card {
+  border-color: #9acdc9;
+  background: linear-gradient(110deg, #effafa, #fff);
+}
+
+.app-shell.light .home-operation-card.running {
+  border-color: #a6d9bc;
+  background: linear-gradient(110deg, #effbf4, #fff);
+}
+
+.app-shell.light .home-status-summary strong,
+.app-shell.light .home-operation-copy strong,
+.app-shell.light .home-operation-value strong {
+  color: #153047;
+}
+
+.app-shell.light .home-operation-value strong.green {
+  color: #207348;
+}
+
+.app-shell.light .home-version-select .MuiInputLabel-root,
+.app-shell.light .home-shell-control .MuiInputLabel-root {
+  color: #587188;
+}
+
+.app-shell.light .home-version-select .MuiOutlinedInput-root,
+.app-shell.light .home-shell-control .MuiOutlinedInput-root {
+  color: #153047;
+}
+
+.app-shell.light .home-version-select .MuiOutlinedInput-notchedOutline,
+.app-shell.light .home-shell-control .MuiOutlinedInput-notchedOutline {
+  border-color: #aac1d0;
+}
+
+.app-shell.light .home-version-select .MuiOutlinedInput-root.Mui-disabled,
+.app-shell.light .home-version-select .MuiSelect-select.Mui-disabled {
+  color: #587188 !important;
+  -webkit-text-fill-color: #587188 !important;
+}
+
+@media (max-width: 900px) {
+  .home-operation-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .home-operation-card {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+  }
+
+  .home-operation-value,
+  .home-version-control,
+  .home-shell-control {
+    grid-column: 2;
+  }
+
+  .home-operation-card.without-control {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+  }
+
+  .home-operation-actions {
+    grid-row: 1 / span 2;
+    grid-column: 3;
+  }
+}
+
+@media (max-width: 600px) {
+  .home-operation-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .home-operation-actions {
+    grid-row: auto;
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .home-operation-actions .button {
+    flex: 1;
+  }
+}

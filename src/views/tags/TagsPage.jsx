@@ -10,12 +10,7 @@ export function TagsPage({
   flash,
   refreshState,
 }) {
-  const {
-    onBuild,
-    onCancelBuild,
-    onUse,
-    onRefresh,
-  } = useTagsActions(flash, refreshState);
+  const { onBuild } = useTagsActions(flash, refreshState);
 
   return (
     <TagsTable
@@ -25,9 +20,6 @@ export function TagsPage({
       processes={processes}
       preferredTag={preferredTag}
       onBuild={onBuild}
-      onCancelBuild={onCancelBuild}
-      onUse={onUse}
-      onRefresh={onRefresh}
     />
   );
 }

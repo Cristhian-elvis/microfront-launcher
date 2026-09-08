@@ -3,6 +3,7 @@ import { api } from "../../../lib/api.js";
 
 export function useShellDetailActions(flash, refreshProjects, refreshState) {
   const [isStartingShell, setIsStartingShell] = useState(false);
+  const [isRebuilding, setIsRebuilding] = useState(false);
   const action = useCallback(
     async (url, body) => {
       try {
@@ -75,8 +76,16 @@ export function useShellDetailActions(flash, refreshProjects, refreshState) {
   );
 
   const onRebuild = useCallback(
-    (project) => startAction("/api/shell/rebuild", { projectId: project.id }),
-    [startAction],
+    async (project) => {
+      if (isRebuilding) return;
+      setIsRebuilding(true);
+      try {
+        return await startAction("/api/shell/rebuild", { projectId: project.id });
+      } finally {
+        setIsRebuilding(false);
+      }
+    },
+    [isRebuilding, startAction],
   );
 
   const onChangeMicrofrontBranch = useCallback(
@@ -142,5 +151,6 @@ export function useShellDetailActions(flash, refreshProjects, refreshState) {
     onBuildMicrofrontBatch,
     onRefresh,
     isStartingShell,
+    isRebuilding,
   };
 }

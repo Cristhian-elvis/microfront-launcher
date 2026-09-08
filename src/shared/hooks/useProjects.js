@@ -12,6 +12,7 @@ export function useProjects() {
     projects: context.projects,
     loading: context.loading,
     refreshProjects: context.refreshProjects,
+    replaceProject: context.replaceProject,
     updateProject: context.updateProject,
   };
 }

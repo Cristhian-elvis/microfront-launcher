@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-call npm run build
+node build.mjs
 if errorlevel 1 (
   pause
   exit /b 1

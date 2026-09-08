@@ -47,7 +47,6 @@ function AppContent() {
     activeView,
     microfrontFilter,
     navigate,
-    setMicrofrontProject,
   } = useAppNavigation();
 
   // UI state
@@ -218,6 +217,21 @@ function AppContent() {
 
   const componentsActive = state?.components?.status === "running";
 
+  const selectMovaVersion = useCallback(
+    async (tag) => {
+      try {
+        await api("/api/mova/preferences", {
+          method: "PUT",
+          body: JSON.stringify({ preferredTag: tag }),
+        });
+        await refreshState();
+      } catch (error) {
+        flash(error.message, "error");
+      }
+    },
+    [flash, refreshState],
+  );
+
   const allMicrofronts = flattenMicrofronts(projects);
 
   const environmentLabel =
@@ -264,6 +278,22 @@ function AppContent() {
       <div className="boot-screen">
         <div className="loader" />
         <p>Cargando proyecto...</p>
+      </div>
+    );
+  }
+
+  const currentMicrofront = microfrontDetailId
+    ? currentProject?.microfrontends?.find(
+        (microfront) =>
+          microfront.id === decodeURIComponent(microfrontDetailId),
+      )
+    : null;
+
+  if (microfrontDetailId && !currentMicrofront) {
+    return (
+      <div className="boot-screen">
+        <div className="loader" />
+        <p>Cargando microfront...</p>
       </div>
     );
   }
@@ -325,7 +355,6 @@ function AppContent() {
                   })
                 }
                 onAction={action}
-                onMicrofronts={setMicrofrontProject}
                 onDetails={(project) =>
                   routerNavigate(`/shells/${encodeURIComponent(project.id)}`)
                 }
@@ -347,6 +376,8 @@ function AppContent() {
           {shellDetailId && microfrontDetailId && (
             <div className="microfront-detail-wrapper">
               <MicrofrontDetailPage
+                project={currentProject}
+                microfront={currentMicrofront}
                 state={state}
               />
             </div>
@@ -371,9 +402,10 @@ function AppContent() {
               componentVersion={componentVersion}
               componentsActive={componentsActive}
               environmentLabel={environmentLabel}
-              onNavigateToTags={() => navigate("tags")}
-              onMicrofronts={setMicrofrontProject}
-              onSelectShell={() => navigate("shells")}
+              versions={versions}
+              preferredTag={state.preferences.preferredTag}
+              onSelectVersion={selectMovaVersion}
+              onStartShell={startShell}
               projects={projects}
               clearLogs={clearLogs}
             />

@@ -1,13 +1,11 @@
 import { createContext, useCallback } from 'react';
 import { api } from '../../lib/api.js';
 import { useFlash } from '../hooks/useFlash.js';
-import { useProjects } from '../hooks/useProjects.js';
 
 export const ActionsContext = createContext(null);
 
 export function ActionsProvider({ children, onRefreshState }) {
   const { flash } = useFlash();
-  const { refreshProjects } = useProjects();
 
   const action = useCallback(
     async (url, body) => {
@@ -16,13 +14,12 @@ export function ActionsProvider({ children, onRefreshState }) {
           method: 'POST',
           body: JSON.stringify(body || {}),
         });
-        await onRefreshState?.();
         return result;
       } catch (e) {
         flash(e.message, 'error');
       }
     },
-    [flash, onRefreshState],
+    [flash],
   );
 
   const startMicrofrontendAction = useCallback(
@@ -32,14 +29,13 @@ export function ActionsProvider({ children, onRefreshState }) {
           method: 'POST',
           body: JSON.stringify(body || {}),
         });
-        await onRefreshState?.();
         return result;
       } catch (e) {
         flash(e.message, 'error');
         throw e;
       }
     },
-    [flash, onRefreshState],
+    [flash],
   );
 
   // Acciones específicas

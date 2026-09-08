@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
 import { Icon } from "../../../shared/components/Icon.jsx";
 
 function tagState(item, build) {
@@ -73,104 +71,12 @@ export function TagsTable({
   busy,
   processes = [],
   onBuild,
-  onCancelBuild,
-  onUse,
-  onRefresh,
   preferredTag,
 }) {
-  const compiledVersions = versions.filter((item) => item.cached);
-  const [nextActiveTag, setNextActiveTag] = useState("");
-  useEffect(() => {
-    const selectedStillAvailable = compiledVersions.some(
-      (item) => item.tag === nextActiveTag,
-    );
-    if ((!nextActiveTag || !selectedStillAvailable) && compiledVersions.length) {
-      setNextActiveTag(
-        compiledVersions.some((item) => item.tag === preferredTag)
-          ? preferredTag
-          : compiledVersions[0].tag,
-      );
-    }
-  }, [compiledVersions, nextActiveTag, preferredTag]);
-  const activeVersion =
-    versions.find((item) => item.tag === preferredTag) ||
-    versions.find((item) => item.preferred);
   return (
     <div className="view-panel tags-view">
       <section className="workspace">
-        <div className="section-head">
-          <div>
-            <h2>Tags de MOVA UI Components</h2>
-            <p>Compila y selecciona el tag reutilizable por las shells.</p>
-          </div>
-          <div className="toolbar">
-            <button className="button ghost" disabled={busy} onClick={onRefresh}>
-              <Icon name="refresh" />
-              Actualizar tags
-            </button>
-          </div>
-        </div>
         <div className="shell-directory tags-directory">
-          <section className="tag-selection-card" aria-live="polite">
-            <div className="tag-selection-card-icon">
-              <Icon name="package" size={20} />
-            </div>
-            <div className="tag-selection-card-copy">
-              <FormControl
-                className="tag-active-select"
-                size="small"
-                fullWidth
-                disabled={!compiledVersions.length}
-              >
-                <InputLabel id="active-mova-version-label">
-                  Versión activa en las shells
-                </InputLabel>
-                <Select
-                  labelId="active-mova-version-label"
-                  id="active-mova-version"
-                  label="Versión activa en las shells"
-                value={nextActiveTag}
-                onChange={(event) => setNextActiveTag(event.target.value)}
-                  MenuProps={{
-                    PaperProps: {
-                      className: "tag-active-menu",
-                    },
-                  }}
-                >
-                  {!compiledVersions.length && (
-                    <MenuItem value="">No hay versiones compiladas</MenuItem>
-                  )}
-                  {compiledVersions.map((item) => (
-                    <MenuItem key={item.tag} value={item.tag}>
-                      {item.tag}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <small>
-                {activeVersion?.cached
-                  ? "Build local disponible para las shells."
-                  : "No hay un build local disponible para las shells."}
-              </small>
-            </div>
-            <button
-              className="button primary tag-apply-action"
-              disabled={!nextActiveTag || nextActiveTag === preferredTag}
-              onClick={() => onUse(nextActiveTag)}
-            >
-              <Icon name="check" size={14} />
-              Aplicar cambio
-            </button>
-            {busy && (
-              <button
-                className="button stop tag-build-action"
-                onClick={onCancelBuild}
-              >
-                <Icon name="stop" size={14} />
-                Detener compilación
-              </button>
-            )}
-          </section>
           <table>
             <thead>
               <tr>

@@ -65,12 +65,16 @@ export function ProjectsProvider({ children }) {
     }
   };
 
+  const replaceProject = (project) => {
+    dispatch({ type: 'UPDATE_PROJECT', payload: project });
+  };
+
   const updateProject = async (projectId, refresh = true) => {
     try {
       const updated = await api(
         `/api/projects/${encodeURIComponent(projectId)}`
       );
-      dispatch({ type: 'UPDATE_PROJECT', payload: updated });
+      replaceProject(updated);
       return updated;
     } catch (e) {
       if (refresh) {
@@ -84,6 +88,7 @@ export function ProjectsProvider({ children }) {
     projects: state.projects,
     loading: state.loading,
     refreshProjects,
+    replaceProject,
     updateProject,
   };
 

@@ -5,11 +5,9 @@ export function ShellDetailView({
   project,
   state,
   refreshing,
+  rebuilding,
   onBack,
   onOpenWebapp,
-  onStart,
-  isStartingShell = false,
-  onStop,
   onRebuild,
   onChangeMicrofrontBranch,
   onChangeMicrofrontBranchBatch,
@@ -38,15 +36,14 @@ export function ShellDetailView({
     project.appName && project.serverPath
       ? `${project.serverPath}\\${project.appName}`
       : "No disponible";
-  const operationActive =
-    state.session.projectId === project.id &&
-    ["starting", "building"].includes(state.session.status);
-  const shellRunning =
-    state.shell.projectId === project.id && state.shell.status === "running";
   const anotherShellRunning =
     state.shell.status !== "stopped" && state.shell.projectId !== project.id;
-  const cannotStart = state.busy || anotherShellRunning || !project.configured || isStartingShell;
-  const cannotRebuild = state.busy || anotherShellRunning;
+  const rebuildInProgress =
+    rebuilding ||
+    (state.execution?.status === "running" &&
+      state.execution.projectId === project.id);
+  const cannotRebuild = state.busy || anotherShellRunning || rebuildInProgress;
+  const interactionsDisabled = refreshing || rebuildInProgress;
   return (
     <div className="view-panel shell-detail-view">
       <section className="workspace">
@@ -57,6 +54,7 @@ export function ShellDetailView({
               <button
                 className={`icon-button ${favorite ? "favorite" : ""}`}
                 title={favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
+                disabled={interactionsDisabled}
                 onClick={() => onFavorite(project.id)}
               >
                 <Icon name="star" size={17} />
@@ -68,7 +66,7 @@ export function ShellDetailView({
             <button
               className="button ghost"
               title="Sincronizar información del proyecto"
-              disabled={refreshing}
+              disabled={interactionsDisabled}
               onClick={onRefresh}
             >
               <Icon name={refreshing ? "loader" : "refresh"} />
@@ -77,46 +75,12 @@ export function ShellDetailView({
             <button
               className="button ghost"
               title="Reconstruir todo: prepara el servidor y reconstruye el build local"
-              disabled={cannotRebuild || refreshing}
+              disabled={cannotRebuild}
               onClick={() => onRebuild(project)}
             >
-              <Icon name="refresh" />
-              Reconstruir todo
+              <Icon name={rebuildInProgress ? "loader" : "refresh"} />
+              {rebuildInProgress ? "Reconstruyendo..." : "Reconstruir todo"}
             </button>
-            {shellRunning ? (
-              <button
-                className="button stop"
-                title="Detener shell"
-                disabled={refreshing}
-                onClick={onStop}
-              >
-                <Icon name="stop" />
-                Detener shell
-              </button>
-            ) : operationActive || isStartingShell ? (
-              <button
-                className="button stop shell-start-button is-starting"
-                title="Iniciando shell"
-                disabled
-              >
-                <span className="shell-start-status" />
-                Iniciando...
-              </button>
-            ) : (
-              <button
-                className="button primary shell-start-button"
-                title={
-                  project.configured
-                    ? "Iniciar shell"
-                    : "La shell requiere configuración"
-                }
-                disabled={cannotStart || refreshing}
-                onClick={() => onStart(project)}
-              >
-                <Icon name="play" />
-                Iniciar shell
-              </button>
-            )}
           </div>
         </div>
         <div className="shell-detail-grid">
@@ -129,7 +93,9 @@ export function ShellDetailView({
             <code>{webappPath}</code>
             <button
               className="button ghost shell-detail-open"
-              disabled={!project.appName || !project.serverPath}
+              disabled={
+                interactionsDisabled || !project.appName || !project.serverPath
+              }
               onClick={() => onOpenWebapp(project)}
             >
               <Icon name="vscode" size={15} />
@@ -150,7 +116,7 @@ export function ShellDetailView({
           branchOperation={state.microfrontendBranch}
           buildOperation={state.microfrontendBuild}
           operations={state.microfrontendOperations}
-          disabled={refreshing}
+          disabled={interactionsDisabled}
           onChangeBranch={(microfront, branch) =>
             onChangeMicrofrontBranch?.(project, microfront, branch)
           }

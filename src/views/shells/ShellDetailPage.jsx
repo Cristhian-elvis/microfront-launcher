@@ -11,7 +11,7 @@ export function ShellDetailPage({
   onMicrofrontDetail,
 }) {
   const { shellDetailId } = useAppNavigation();
-  const { projects } = useProjects();
+  const { projects, refreshProjects, replaceProject } = useProjects();
   const project = projects.find(p => p.id === decodeURIComponent(shellDetailId));
   
   const appState = state || { preferences: {} };
@@ -21,12 +21,9 @@ export function ShellDetailPage({
   const [refreshing, setRefreshing] = useState(false);
 
   const { flash } = useFlash();
-  const { refreshProjects } = useProjects();
-  // Obtener refreshState del contexto (simulado aquí)
   const refreshState = useCallback(async () => {
-    // Esta función permanece como prop si viene del contexto global
-    // Por ahora se mantiene similar
-  }, []);
+    await refreshProjects();
+  }, [refreshProjects]);
 
   const {
     onStart,
@@ -38,22 +35,24 @@ export function ShellDetailPage({
     onBuildMicrofrontBatch,
     onRefresh: onRefreshAction,
     isStartingShell,
+    isRebuilding,
   } = useShellDetailActions(flash, refreshProjects, refreshState);
 
   const onRefresh = useCallback(async () => {
     try {
       setRefreshing(true);
-      await onRefreshAction(project.id, [project], () => {});
+      await onRefreshAction(project.id, projects, replaceProject);
     } finally {
       setRefreshing(false);
     }
-  }, [project.id, onRefreshAction]);
+  }, [project?.id, onRefreshAction, projects, replaceProject]);
 
   return (
     <ShellDetailView
       project={project}
       state={state}
       refreshing={refreshing}
+      rebuilding={isRebuilding}
       onStart={onStart}
       isStartingShell={isStartingShell}
       onStop={onStop}

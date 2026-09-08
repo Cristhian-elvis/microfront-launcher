@@ -22,7 +22,6 @@ export function MicrofrontsView({
       }),
     }),
   onBuild,
-  onRefresh,
 }) {
   const [search, setSearch] = useState("");
   const [searchParams] = useSearchParams();
@@ -76,10 +75,6 @@ export function MicrofrontsView({
                 Ver todos
               </button>
             )}
-            <button className="button ghost" onClick={onRefresh}>
-              <Icon name="refresh" />
-              Actualizar
-            </button>
           </div>
         </div>
         <MicrofrontDirectory

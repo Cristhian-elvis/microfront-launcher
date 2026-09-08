@@ -298,6 +298,35 @@ export function getIndexedProject(projectId) {
   return projectIndex.get(projectId) || null;
 }
 
+export function updateMicrofrontendGitCache(
+  projectId,
+  microfrontendId,
+  gitBranchData,
+) {
+  const updateProject = (project) => {
+    if (project.id !== projectId) return project;
+
+    const microfrontends = project.microfrontends?.map((microfrontend) =>
+      microfrontend.id === microfrontendId
+        ? {
+            ...microfrontend,
+            branch: gitBranchData.branch,
+            branches: gitBranchData.branches,
+          }
+        : microfrontend,
+    );
+
+    return microfrontends ? { ...project, microfrontends } : project;
+  };
+
+  scanCache = {
+    ...scanCache,
+    projects: scanCache.projects.map(updateProject),
+  };
+
+  const indexedProject = projectIndex.get(projectId);
+  if (indexedProject) projectIndex.set(projectId, updateProject(indexedProject));
+}
 export function saveProject(project) {
   const config = readConfig();
   const normalized = { ...project, id: project.id || projectId(project.path), detected: Boolean(project.detected) };

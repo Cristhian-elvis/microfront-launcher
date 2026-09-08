@@ -16,11 +16,7 @@ export function MicrofrontsPage({
   const { flash } = useFlash();
   const { refreshProjects } = useProjects();
 
-  const {
-    onOpen,
-    onBuild,
-    onRefresh,
-  } = useMicrofrontsActions(flash, refreshProjects);
+  const { onOpen, onBuild } = useMicrofrontsActions(flash, refreshProjects);
 
   return (
     <MicrofrontsView
@@ -34,7 +30,6 @@ export function MicrofrontsPage({
       onToggleFavorite={onToggleFavorite}
       onOpen={onOpen}
       onBuild={onBuild}
-      onRefresh={onRefresh}
     />
   );
 }
