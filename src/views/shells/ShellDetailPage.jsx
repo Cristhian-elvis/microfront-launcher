@@ -42,7 +42,7 @@ export function ShellDetailPage({
   const onRefresh = useCallback(async () => {
     try {
       setRefreshing(true);
-      await onRefreshAction(project.id, projects, replaceProject);
+      await onRefreshAction(project.id, replaceProject);
     } finally {
       setRefreshing(false);
     }

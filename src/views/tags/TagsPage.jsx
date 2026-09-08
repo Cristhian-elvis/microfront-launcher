@@ -34,7 +34,7 @@ export function TagsPage({
     <div className="tags-page">
       <header className="tags-page-header">
         <div>
-          <h1>Tags de MOVA</h1>
+          <h2>Tags de MOVA</h2>
           <p className="tags-page-description">
             Consulta las versiones disponibles en tu repositorio local y
             compila la que quieras usar en las shells.

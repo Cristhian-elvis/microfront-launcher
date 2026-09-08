@@ -127,14 +127,16 @@ export function useShellDetailActions(flash, refreshProjects, refreshState) {
   );
 
   const onRefresh = useCallback(
-    async (shellDetailId, projects, setProjectsState) => {
+    async (shellDetailId, replaceProject) => {
       try {
-        const updated = await api(`/api/projects/${encodeURIComponent(shellDetailId)}/refresh`);
-        setProjectsState(projects.map((p) =>
-          p.id === updated.id ? updated : p
-        ));
+        const updated = await api(
+          `/api/projects/${encodeURIComponent(shellDetailId)}/refresh`,
+        );
+        replaceProject(updated);
+        return updated;
       } catch (e) {
         flash(e.message, "error");
+        throw e;
       }
     },
     [flash],

@@ -123,8 +123,8 @@ function AppContent() {
   } = useAppPreferences(state || { preferences: {} }, preferences);
 
   useEffect(() => {
-    if (setupRequired && location.pathname !== "/inicio")
-      routerNavigate("/inicio", { replace: true });
+    if (setupRequired && location.pathname !== "/setup")
+      routerNavigate("/setup", { replace: true });
   }, [setupRequired, location.pathname, routerNavigate]);
 
   useEffect(() => {
@@ -222,7 +222,7 @@ function AppContent() {
       </div>
     );
 
-  if (setupRequired || location.pathname === "/inicio")
+  if (setupRequired || location.pathname === "/setup")
     return (
       <InitialSetup
         config={config}
@@ -385,7 +385,7 @@ function AppContent() {
             </div>
           }
         />
-        <Route path="inicio" element={<Navigate to="/home" replace />} />
+        <Route path="setup" element={<Navigate to="/home" replace />} />
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Route>

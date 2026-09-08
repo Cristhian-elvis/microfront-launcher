@@ -53,10 +53,13 @@ export function ProjectsProvider({ children }) {
     };
   }, []);
 
-  const refreshProjects = async () => {
+  const refreshProjects = async ({ force = false } = {}) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const projects = await api('/api/projects');
+      const projects = await api(
+        force ? '/api/projects/refresh' : '/api/projects',
+        force ? { method: 'POST' } : undefined,
+      );
       dispatch({ type: 'SET_PROJECTS', payload: projects });
       return projects;
     } catch (e) {

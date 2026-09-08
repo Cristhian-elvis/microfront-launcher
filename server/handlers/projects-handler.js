@@ -15,16 +15,21 @@ function runGit(args, cwd) {
 }
 
 export function createProjectsHandler({
-  getState, getProjects, readConfig, saveProject, hideProject, needsInitialSetup,
+  getState, getProjects, refreshProjects, syncProject, invalidateScanCache,
+  readConfig, saveProject, hideProject, needsInitialSetup,
   completeInitialSetup, writeJson, configPath, selectLocalDirectory, openScaffolding,
-  openProjectWebapp, gitBranchInfo,
+  openProjectWebapp,
   readBody, json,
 }) {
   return async function handleProjectsRequest(request, response, url) {
     const { method, pathname } = request.method === 'OPTIONS' ? request : { method: request.method, pathname: url.pathname };
     if (method === 'GET' && pathname === '/api/config') { json(response, 200, readConfig()); return true; }
     if (method === 'GET' && pathname === '/api/setup') { json(response, 200, { required: needsInitialSetup() }); return true; }
-    if (method === 'GET' && pathname === '/api/projects') { json(response, 200, getProjects({ force: url.searchParams.get('refresh') === '1' })); return true; }
+    if (method === 'GET' && pathname === '/api/projects') { json(response, 200, await getProjects()); return true; }
+    if (method === 'POST' && pathname === '/api/projects/refresh') {
+      json(response, 200, await refreshProjects());
+      return true;
+    }
     if (method === 'GET' && pathname.startsWith('/api/projects/') && !pathname.endsWith('/refresh')) {
       const projectId = decodeURIComponent(pathname.split('/')[3]);
       const projects = await getProjects({ force: false });
@@ -35,27 +40,19 @@ export function createProjectsHandler({
     }
     if (method === 'GET' && pathname.startsWith('/api/projects/') && pathname.endsWith('/refresh')) {
       const projectId = decodeURIComponent(pathname.split('/')[3]);
-      const projects = await getProjects({ force: true });
-      const project = projects.find((item) => item.id === projectId);
-      if (!project) { json(response, 404, { error: 'Proyecto no encontrado' }); return true; }
-      // Actualizar ramas de todos los microfronts en paralelo y detectar cambios pendientes
-      if (project.microfrontends?.length) {
-        await Promise.all(project.microfrontends.map(async (microfront) => {
-          const gitInfo = await gitBranchInfo(microfront.path);
-          microfront.branch = gitInfo.branch;
-          microfront.branches = gitInfo.branches;
-          
-          // Detectar si hay cambios pendientes por descargar
-          try {
-            await runGit(['fetch', '--all', '--prune'], microfront.path);
-            const localCommit = await runGit(['rev-parse', 'HEAD'], microfront.path);
-            const remoteCommit = await runGit(['rev-parse', `origin/${gitInfo.branch}`], microfront.path);
-            microfront.outOfSync = localCommit !== remoteCommit;
-          } catch (error) {
-            microfront.outOfSync = false;
-          }
-        }));
-      }
+      const project = await syncProject(projectId);
+      await Promise.all((project.microfrontends || []).map(async (microfront) => {
+        try {
+          const localCommit = await runGit(['rev-parse', 'HEAD'], microfront.path);
+          const remoteCommit = await runGit(
+            ['rev-parse', `origin/${microfront.branch}`],
+            microfront.path,
+          );
+          microfront.outOfSync = localCommit !== remoteCommit;
+        } catch {
+          microfront.outOfSync = false;
+        }
+      }));
       json(response, 200, project);
       return true;
     }
@@ -65,6 +62,7 @@ export function createProjectsHandler({
       const next = { ...current, ...body, mova: { ...current.mova, ...(body.mova || {}) }, projects: current.projects, hiddenProjects: current.hiddenProjects };
       delete next.mova.componentPort;
       writeJson(configPath, next);
+      invalidateScanCache();
       completeInitialSetup();
       json(response, 200, { ok: true });
       return true;

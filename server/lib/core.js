@@ -129,7 +129,7 @@ export function projectId(projectPath) {
   return crypto.createHash('sha1').update(projectPath.toLowerCase()).digest('hex').slice(0, 12);
 }
 
-let scanCache = { rootPath: '', at: 0, projects: [] };
+let scanCache = { rootPath: '', projects: null };
 let projectIndex = new Map();
 
 export async function gitBranchInfo(projectPath) {
@@ -150,7 +150,7 @@ export async function gitBranchInfo(projectPath) {
   }
 }
 
-async function shellProfile(shellPath, pkg, defaults) {
+async function shellProfile(shellPath, pkg, defaults, { syncGit = false } = {}) {
   const projectRoot = path.dirname(shellPath);
   const configRoot = path.join(shellPath, 'config');
   let appConfig = null;
@@ -180,8 +180,19 @@ async function shellProfile(shellPath, pkg, defaults) {
       if (!fs.existsSync(packagePath)) return null;
       
       const microfrontendPackage = readJson(packagePath, {});
-      const git = await gitBranchInfo(microfrontendPath); // Esperamos a Git aquí
-      
+      if (syncGit) {
+        try {
+          await execFileAsync(
+            'git',
+            ['-C', microfrontendPath, 'fetch', '--all', '--prune'],
+            { encoding: 'utf8', windowsHide: true },
+          );
+        } catch {
+          // La información local sigue siendo útil si el remoto no está disponible.
+        }
+      }
+      const git = await gitBranchInfo(microfrontendPath);
+
       return {
         id: projectId(microfrontendPath), name, path: microfrontendPath,
         version: remote.version || microfrontendPackage.version || null,
@@ -214,9 +225,10 @@ async function shellProfile(shellPath, pkg, defaults) {
   };
 }
 
-export async function scanShells(rootPath, defaults, { force = false } = {}) {
+export async function scanShells(rootPath, defaults) {
   if (!rootPath || !fs.existsSync(rootPath)) return [];
-  if (!force && scanCache.rootPath === rootPath && Date.now() - scanCache.at < 15000) return scanCache.projects;
+  if (scanCache.rootPath === rootPath && scanCache.projects !== null)
+    return scanCache.projects;
   
   const ignored = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.angular', '.nx', '.next']);
   const pending = [{ directory: rootPath, depth: 0 }];
@@ -266,13 +278,13 @@ export async function scanShells(rootPath, defaults, { force = false } = {}) {
   );
 
   const projects = found.sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  scanCache = { rootPath, at: Date.now(), projects };
+  scanCache = { rootPath, projects };
   return projects;
 }
 
-export async function getProjects({ force = false } = {}) {
+export async function getProjects() {
   const config = readConfig();
-  const detected = await scanShells(config.rootPath, config.shellDefaults, { force }); // Añadido await
+  const detected = await scanShells(config.rootPath, config.shellDefaults);
   const byId = new Map(detected.map((project) => [project.id, project]));
   
   for (const project of config.projects) {
@@ -298,6 +310,45 @@ export function getIndexedProject(projectId) {
   return projectIndex.get(projectId) || null;
 }
 
+export async function refreshProjects() {
+  invalidateScanCache();
+  return getProjects();
+}
+
+export async function syncProject(projectId) {
+  const currentProject = getIndexedProject(projectId);
+  if (!currentProject)
+    throw new Error('El proyecto no está cargado. Actualiza el catálogo de proyectos.');
+
+  const config = readConfig();
+  const packagePath = path.join(currentProject.path, 'package.json');
+  if (!fs.existsSync(packagePath))
+    throw new Error('No se encontró package.json para la shell solicitada.');
+
+  const profile = await shellProfile(
+    currentProject.path,
+    readJson(packagePath, {}),
+    config.shellDefaults,
+    { syncGit: true },
+  );
+  const updatedProject = {
+    ...currentProject,
+    ...profile,
+    id: currentProject.id,
+    name: currentProject.name,
+    path: currentProject.path,
+  };
+
+  scanCache = {
+    ...scanCache,
+    projects: scanCache.projects?.map((project) =>
+      project.id === projectId ? updatedProject : project,
+    ) ?? null,
+  };
+  projectIndex.set(projectId, updatedProject);
+  return updatedProject;
+}
+
 export function updateMicrofrontendGitCache(
   projectId,
   microfrontendId,
@@ -321,7 +372,7 @@ export function updateMicrofrontendGitCache(
 
   scanCache = {
     ...scanCache,
-    projects: scanCache.projects.map(updateProject),
+    projects: scanCache.projects?.map(updateProject) ?? null,
   };
 
   const indexedProject = projectIndex.get(projectId);
@@ -336,7 +387,7 @@ export function saveProject(project) {
   else config.projects.push(normalized);
   config.hiddenProjects = config.hiddenProjects.filter((id) => id !== normalized.id);
   writeJson(configPath, config);
-  scanCache.at = 0;
+  invalidateScanCache();
   return normalized;
 }
 
@@ -345,6 +396,7 @@ export function hideProject(id) {
   config.projects = config.projects.filter((item) => item.id !== id);
   config.hiddenProjects = [...new Set([...config.hiddenProjects, id])];
   writeJson(configPath, config);
+  invalidateScanCache();
 }
 
 export function safeTagName(tag) {
@@ -410,7 +462,8 @@ export function versionPaths(tag) {
 }
 
 export function invalidateScanCache() {
-  scanCache.at = 0;
+  scanCache = { rootPath: '', projects: null };
+  projectIndex = new Map();
 }
 
 export function assertInside(parent, candidate) {

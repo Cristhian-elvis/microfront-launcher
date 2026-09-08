@@ -8,12 +8,14 @@ export function InitialSetup({ config, onCompleted }) {
   const [form, setForm] = useState(JSON.parse(JSON.stringify(config)));
   const [error, setError] = useState("");
   const [selecting, setSelecting] = useState("");
+  const [saving, setSaving] = useState(false);
   const update = (section, key) => (event) =>
     setForm({
       ...form,
       [section]: { ...form[section], [key]: event.target.value },
     });
   const selectDirectory = async (target) => {
+    if (saving) return;
     setError("");
     setSelecting(target);
     try {
@@ -33,12 +35,17 @@ export function InitialSetup({ config, onCompleted }) {
   };
   const save = async (event) => {
     event.preventDefault();
+    if (saving || selecting) return;
+
     setError("");
+    setSaving(true);
     try {
       await api("/api/config", { method: "PUT", body: JSON.stringify(form) });
       await onCompleted();
     } catch (exception) {
       setError(exception.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -65,13 +72,14 @@ export function InitialSetup({ config, onCompleted }) {
                 }
                 placeholder="Ej.: D:\\proyectos"
                 required
+                disabled={saving}
                 hint="Carpeta que contiene los proyectos de shell; elige la carpeta padre común."
               />
               <Button
                 className="init-directory-button"
                 type="button"
                 variant="outlined"
-                disabled={Boolean(selecting)}
+                disabled={Boolean(selecting) || saving}
                 onClick={() => selectDirectory("shells")}
                 startIcon={
                   selecting === "shells" ? (
@@ -91,13 +99,14 @@ export function InitialSetup({ config, onCompleted }) {
                 onChange={update("mova", "sourcePath")}
                 placeholder="Ej.: D:\\repos\\mova3_lib_ui_components"
                 required
+                disabled={saving}
                 hint="Carpeta local del repositorio MOVA, la que contiene su carpeta .git."
               />
               <Button
                 className="init-directory-button"
                 type="button"
                 variant="outlined"
-                disabled={Boolean(selecting)}
+                disabled={Boolean(selecting) || saving}
                 onClick={() => selectDirectory("mova")}
                 startIcon={
                   selecting === "mova" ? (
@@ -118,6 +127,7 @@ export function InitialSetup({ config, onCompleted }) {
               value={form.shellDefaults.serverPort}
               onChange={update("shellDefaults", "serverPort")}
               required
+              disabled={saving}
               hint="Se usará para la shell y MOVA Components."
             />
           </div>
@@ -138,9 +148,12 @@ export function InitialSetup({ config, onCompleted }) {
               className="init-submit-button"
               type="submit"
               variant="contained"
-              startIcon={<Icon name="check" />}
+              disabled={saving || Boolean(selecting)}
+              startIcon={
+                saving ? <span className="trace-spinner" /> : <Icon name="check" />
+              }
             >
-              Guardar y continuar
+              {saving ? "Guardando…" : "Guardar y continuar"}
             </Button>
           </footer>
         </form>
