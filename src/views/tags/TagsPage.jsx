@@ -3,6 +3,7 @@ import Button from "@mui/material/Button";
 import { Icon } from "../../shared/components/Icon.jsx";
 import { TagsTable } from "./components/TagsTable.jsx";
 import { useTagsActions } from "./hooks/useTagsActions.js";
+import "./TagsPage.css";
 
 export function TagsPage({
   versions,
