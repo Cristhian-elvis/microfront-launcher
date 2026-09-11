@@ -32,17 +32,15 @@ export function ShellDetailView({
       </div>
     );
   const webappName = project.appName || "Sin configurar";
-  const webappPath =
-    project.appName && project.serverPath
-      ? `${project.serverPath}\\${project.appName}`
-      : "No disponible";
-  const anotherShellRunning =
-    state.shell.status !== "stopped" && state.shell.projectId !== project.id;
+  const webappPath = project.path || "No disponible";
   const rebuildInProgress =
     rebuilding ||
     (state.execution?.status === "running" &&
       state.execution.projectId === project.id);
-  const cannotRebuild = state.busy || anotherShellRunning || rebuildInProgress;
+  const cannotRebuild =
+    rebuildInProgress ||
+    (state.shell.status !== "stopped" &&
+      state.shell.projectId === project.id);
   const interactionsDisabled = refreshing || rebuildInProgress;
   return (
     <div className="view-panel shell-detail-view">
@@ -93,9 +91,7 @@ export function ShellDetailView({
             <code>{webappPath}</code>
             <button
               className="button ghost shell-detail-open"
-              disabled={
-                interactionsDisabled || !project.appName || !project.serverPath
-              }
+              disabled={interactionsDisabled || !project.path}
               onClick={() => onOpenWebapp(project)}
             >
               <Icon name="vscode" size={15} />

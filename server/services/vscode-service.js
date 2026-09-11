@@ -41,10 +41,10 @@ export function createVsCodeService({ findProject, addLog }) {
     },
     async openProjectWebapp(projectId) {
       const project = await findProject(projectId);
-      if (!project?.appName || !project?.serverPath) throw new Error('La shell no tiene una webapp asociada configurada.');
-      const webappPath = path.join(project.serverPath, project.appName);
+      const webappPath = project?.path;
+      if (!webappPath) throw new Error('La shell no tiene una ruta local configurada.');
       if (!fs.existsSync(webappPath)) throw new Error('No se encontró la ubicación local de la webapp asociada.');
-      await openPath(project, webappPath, `VS Code abierto para la webapp ${project.appName}.`);
+      await openPath(project, webappPath, `VS Code abierto para la shell ${project.name}.`);
     },
   };
 }

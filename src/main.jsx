@@ -180,9 +180,7 @@ function AppContent() {
   );
 
   const componentVersion =
-    versions.find((item) => item.tag === state?.preferences?.preferredTag) ||
-    versions.find((item) => item.cached) ||
-    versions[0];
+    versions.find((item) => item.tag === state?.preferences?.preferredTag);
 
   const componentsActive = state?.components?.status === "running";
 

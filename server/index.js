@@ -409,13 +409,8 @@ async function stopEnvironmentProcesses() {
 
 function selectedVersion() {
   const preferences = readPreferences();
-  const versions = getVersions();
-  return (
-    versions.find((item) => item.tag === preferences.preferredTag) ||
-    versions.find((item) => item.cached) ||
-    versions[0] ||
-    null
-  );
+  if (!preferences.preferredTag) return null;
+  return getVersions().find((item) => item.tag === preferences.preferredTag) || null;
 }
 
 function beginOperation(type, details = {}) {
@@ -622,21 +617,14 @@ async function ensureComponents(project, version, signal) {
       "Selecciona una versión de MOVA Components antes de iniciar la shell.",
     );
   const paths = await buildComponents(version, signal);
-  const link = path.join(
-    project.serverPath,
-    "cudc-lib-componentes-stencil-VAL",
-  );
+  const link = componentsLinkPath(project);
   assertInside(project.serverPath, link);
   addLog(
     "MOVA Components",
     "stage",
     `Verificando asociación para ${version.tag}.`,
   );
-  if (fs.existsSync(link)) {
-    const info = fs.lstatSync(link);
-    if (info.isSymbolicLink() || info.isDirectory())
-      fs.rmSync(link, { recursive: true, force: true });
-  }
+  replaceManagedComponentsLink(link);
   assertNotCancelled(signal);
   addLog(
     "MOVA Components",
@@ -654,6 +642,62 @@ async function ensureComponents(project, version, signal) {
   };
   addLog("MOVA Components", "success", "Asociación creada correctamente.");
   emitState();
+}
+
+function componentsLinkPath(project) {
+  return path.join(project.serverPath, "cudc-lib-componentes-stencil-VAL");
+}
+
+function isPathInside(parent, candidate) {
+  const relative = path.relative(path.resolve(parent), path.resolve(candidate));
+  return !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
+function resolveLinkTarget(link) {
+  try {
+    return fs.realpathSync.native(link);
+  } catch {
+    return path.resolve(path.dirname(link), fs.readlinkSync(link));
+  }
+}
+
+function inspectComponentsLink(link) {
+  try {
+    const info = fs.lstatSync(link);
+    if (!info.isSymbolicLink()) {
+      return { kind: info.isDirectory() ? "directory" : "file" };
+    }
+    const target = resolveLinkTarget(link);
+    return {
+      kind: "link",
+      target,
+      managed:
+        path.basename(target).toLowerCase() === "dist" &&
+        isPathInside(versionsRoot, target),
+    };
+  } catch (error) {
+    if (error.code === "ENOENT") return { kind: "missing" };
+    throw error;
+  }
+}
+
+function replaceManagedComponentsLink(link) {
+  const existing = inspectComponentsLink(link);
+  if (existing.kind === "missing") return;
+  if (existing.kind === "link" && existing.managed) {
+    addLog(
+      "MOVA Components",
+      "system",
+      `Reemplazando asociación administrada: ${existing.target}`,
+    );
+    fs.rmSync(link, { recursive: true, force: true });
+    return;
+  }
+
+  const detail = existing.target ? ` (${existing.target})` : "";
+  throw new Error(
+    `La ruta de MOVA Components ya existe como ${existing.kind}${detail} y no fue creada por el launcher.`,
+  );
 }
 
 async function startComponentsStandalone() {
@@ -1146,7 +1190,9 @@ async function runEnvironment(projectId, options = {}) {
     includeComponents = true;
     version = includeComponents ? selectedVersion() : null;
     if (includeComponents && !version)
-      throw new Error("No hay versiones de MOVA UI Components disponibles.");
+      throw new Error(
+        "Selecciona una versión de MOVA Components antes de iniciar la shell.",
+      );
     microfrontend = options.microfrontendId
       ? project.microfrontends?.find(
           (item) => item.id === options.microfrontendId,
@@ -1429,7 +1475,10 @@ async function rebuildShellServer(projectId) {
   // AÑADIDO: await
   const project = (await getProjects()).find((item) => item.id === projectId);
   if (!project) throw new Error("Shell no encontrada.");
-  if (state.shell.status !== "stopped")
+  if (
+    state.shell.status !== "stopped" &&
+    state.shell.projectId === projectId
+  )
     throw new Error("Detén la shell antes de reconstruir su servidor.");
   if (!project.workflow?.prepareServer || !project.workflow?.buildLocal)
     throw new Error(

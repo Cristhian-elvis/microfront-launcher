@@ -27,6 +27,7 @@ export function ShellDetailPage({
   }, [refreshProjects]);
 
   const {
+    onOpenWebapp,
     onStart,
     onStop,
     onRebuild,
@@ -66,6 +67,7 @@ export function ShellDetailPage({
       state={state}
       refreshing={refreshing}
       rebuilding={isRebuilding}
+      onOpenWebapp={onOpenWebapp}
       onStart={onStart}
       isStartingShell={isStartingShell}
       onStop={onStop}

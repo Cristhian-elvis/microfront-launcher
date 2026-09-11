@@ -6,6 +6,39 @@ import { useActions } from "../../shared/hooks/useActions.js";
 import { ProcessConsole } from "./components/ProcessConsole.jsx";
 import "./HomePage.css";
 
+function VersionStatusIcon({ cached }) {
+  const message = cached
+    ? "Versión compilada"
+    : "Esta versión se compilará automáticamente al iniciar la shell";
+
+  return (
+    <span
+      className={`home-version-status ${cached ? "cached" : "pending"}`}
+      title={message}
+      aria-label={message}
+    >
+      <Icon name={cached ? "check" : "package"} size={15} />
+    </span>
+  );
+}
+
+function VersionReadiness({ version }) {
+  if (!version) return null;
+
+  const ready = version.cached;
+  const message = ready ? "Lista para usar" : "Se compilará al iniciar";
+
+  return (
+    <div
+      className={`home-version-readiness ${ready ? "ready" : "pending"}`}
+      aria-live="polite"
+    >
+      <Icon name={ready ? "check" : "package"} size={15} />
+      <span>{message}</span>
+    </div>
+  );
+}
+
 export function HomePage({
   state,
   buildLogs,
@@ -33,22 +66,22 @@ export function HomePage({
   const [selectedShellId, setSelectedShellId] = useState(
     () => localStorage.getItem("microfront-last-shell-id") || "",
   );
-  const compiledVersions = useMemo(
-    () => versions.filter((version) => version.cached),
-    [versions],
-  );
   const [selectedVersionTag, setSelectedVersionTag] = useState(preferredTag || "");
 
   useEffect(() => {
-    const preferredVersionAvailable = compiledVersions.some(
+    const preferredVersionAvailable = versions.some(
       (version) => version.tag === preferredTag,
     );
     if (preferredVersionAvailable) {
       setSelectedVersionTag(preferredTag);
-    } else if (!compiledVersions.some((version) => version.tag === selectedVersionTag)) {
-      setSelectedVersionTag(compiledVersions[0]?.tag || "");
+    } else if (!versions.some((version) => version.tag === selectedVersionTag)) {
+      setSelectedVersionTag("");
     }
-  }, [compiledVersions, preferredTag, selectedVersionTag]);
+  }, [preferredTag, selectedVersionTag, versions]);
+
+  const selectedVersion = versions.find(
+    (version) => version.tag === selectedVersionTag,
+  );
 
   const displayLogs = consoleTab === "build" ? buildLogs : environmentLogs;
   const selectableProjects = useMemo(
@@ -59,6 +92,8 @@ export function HomePage({
     (project) => project.id === selectedShellId,
   );
   const shellRunning = state.shell.status !== "stopped";
+  const shellReady = state.shell.status === "running";
+  const shellStarting = state.shell.status === "starting";
 
   useEffect(() => {
     const activeShellId = state.shell.projectId;
@@ -80,7 +115,7 @@ export function HomePage({
   const handleVersionChange = (event) => {
     const nextVersionTag = event.target.value;
     setSelectedVersionTag(nextVersionTag);
-    if (nextVersionTag && nextVersionTag !== preferredTag) {
+    if (nextVersionTag !== preferredTag) {
       onSelectVersion(nextVersionTag);
     }
   };
@@ -118,7 +153,7 @@ export function HomePage({
           </div>
           <div>
             <strong title={state.shell.name || ""}>
-              {state.shell.name || "Ninguna"}
+              {(state.shell.name || "Ninguna").toUpperCase()}
             </strong>
             <span>Shell activa</span>
           </div>
@@ -126,7 +161,7 @@ export function HomePage({
       </section>
 
       <section className="home-operation-cards" aria-label="Operaciones">
-        <article className="home-operation-card">
+        <article className="home-operation-card components-operation-card">
           <div className="home-operation-icon components">
             <Icon name="package" size={23} />
           </div>
@@ -137,12 +172,13 @@ export function HomePage({
               <span>Componentes disponibles para la shell.</span>
             )}
           </div>
+          <VersionReadiness version={selectedVersion} />
           <div className="home-version-control">
             <FormControl
               className="home-version-select"
               size="small"
               fullWidth
-              disabled={!compiledVersions.length || state.busy || shellRunning}
+              disabled={!versions.length || state.busy || shellRunning}
             >
               <InputLabel id="home-mova-version-label">
                 Versión para la shell
@@ -153,18 +189,30 @@ export function HomePage({
                 label="Versión para la shell"
                 value={selectedVersionTag}
                 onChange={handleVersionChange}
+                renderValue={(tag) => {
+                  const version = versions.find((item) => item.tag === tag);
+                  return version ? (
+                    <span className="home-version-option">
+                      <VersionStatusIcon cached={version.cached} />
+                      {version.tag}
+                    </span>
+                  ) : "";
+                }}
                 MenuProps={{
                   PaperProps: {
                     className: "home-version-menu",
                   },
                 }}
               >
-                {!compiledVersions.length && (
-                  <MenuItem value="">No hay versiones compiladas</MenuItem>
+                {!versions.length && (
+                  <MenuItem value="">No hay tags disponibles</MenuItem>
                 )}
-                {compiledVersions.map((version) => (
+                {versions.map((version) => (
                   <MenuItem key={version.tag} value={version.tag}>
-                    {version.tag}
+                    <span className="home-version-option">
+                      <VersionStatusIcon cached={version.cached} />
+                      {version.tag}
+                    </span>
                   </MenuItem>
                 ))}
               </Select>
@@ -185,7 +233,7 @@ export function HomePage({
               !shellRunning && (
                 <button
                   className="button primary"
-                  disabled={!componentVersion?.cached}
+                  disabled={!componentVersion}
                   onClick={onComponentStart}
                 >
                   <Icon name="play" size={14} />
@@ -197,7 +245,7 @@ export function HomePage({
         </article>
 
         <article
-          className={`home-operation-card ${shellRunning ? "running without-control" : ""}`}
+          className={`home-operation-card ${shellReady ? "running without-control" : ""}`}
         >
           <div className="home-operation-icon shell">
             <Icon name="terminal" size={23} />
@@ -206,17 +254,21 @@ export function HomePage({
             <small>ENTORNO DE TRABAJO</small>
             <strong>Shell</strong>
             <span>
-              {shellRunning
+              {shellReady
                 ? `${state.shell.name || "Shell"} se encuentra en ejecución.`
-                : "Selecciona una shell configurada para iniciar."}
+                : shellStarting
+                  ? `${state.shell.name || "Shell"} se está iniciando.`
+                  : "Selecciona una shell configurada para iniciar."}
             </span>
           </div>
-          {!shellRunning && (
+          {!shellReady && (
             <FormControl
               className="home-shell-control"
               size="small"
               fullWidth
-              disabled={state.busy || !selectableProjects.length}
+              disabled={
+                state.busy || shellStarting || !selectableProjects.length
+              }
             >
               <InputLabel id="home-shell-label">Shell a iniciar</InputLabel>
               <Select
@@ -243,7 +295,7 @@ export function HomePage({
             </FormControl>
           )}
           <div className="home-operation-actions">
-            {shellRunning ? (
+            {shellReady ? (
               <>
                 <button
                   className="button ghost"
@@ -273,11 +325,16 @@ export function HomePage({
             ) : (
               <button
                 className="button primary"
-                disabled={state.busy || !selectedShell}
+                disabled={
+                  state.busy ||
+                  shellStarting ||
+                  !selectedShell ||
+                  !selectedVersion
+                }
                 onClick={() => onStartShell(selectedShell)}
               >
                 <Icon name="play" size={14} />
-                Iniciar
+                {shellStarting ? "Iniciando..." : "Iniciar"}
               </button>
             )}
           </div>
