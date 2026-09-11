@@ -30,7 +30,7 @@ export function EnvironmentSummary({
         </div>
         <div>
           <strong title={shellName || ""}>
-            {shellName || "Ninguna"}
+            {shellName || "-"}
           </strong>
           <span>Shell</span>
         </div>

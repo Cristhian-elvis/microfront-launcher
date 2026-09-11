@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Icon } from "../../../shared/components/Icon.jsx";
+import { projectDisplayName } from "../../../lib/projects.js";
 
 function shellStatus(project, state) {
   const execution = state.execution || {};
@@ -81,7 +82,7 @@ export function ShellsView({
                     </td>
                     <td>
                       <div className="shell-table-name">
-                        <strong>{project.name.toUpperCase()}</strong>
+                        <strong>{projectDisplayName(project.name)}</strong>
                       </div>
                     </td>
                     <td>

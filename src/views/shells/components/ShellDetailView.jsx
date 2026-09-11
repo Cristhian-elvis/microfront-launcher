@@ -1,4 +1,5 @@
 import { Icon } from "../../../shared/components/Icon.jsx";
+import { projectDisplayName } from "../../../lib/projects.js";
 import { ShellMicrofrontList } from "./ShellMicrofrontList.jsx";
 
 export function ShellDetailView({
@@ -31,8 +32,8 @@ export function ShellDetailView({
         </section>
       </div>
     );
-  const webappName = project.appName || "Sin configurar";
-  const webappPath = project.path || "No disponible";
+  const webappName = project.name || "Sin configurar";
+  const webappPath = project.webappPath || "No disponible";
   const rebuildInProgress =
     rebuilding ||
     (state.execution?.status === "running" &&
@@ -48,7 +49,7 @@ export function ShellDetailView({
         <div className="section-head">
           <div>
             <div className="shell-detail-title">
-              <h2>Proyecto: {project.name.toUpperCase()}</h2>
+              <h2>Proyecto: {projectDisplayName(project.name)}</h2>
               <button
                 className={`icon-button ${favorite ? "favorite" : ""}`}
                 title={favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
@@ -91,7 +92,7 @@ export function ShellDetailView({
             <code>{webappPath}</code>
             <button
               className="button ghost shell-detail-open"
-              disabled={interactionsDisabled || !project.path}
+              disabled={interactionsDisabled || !project.webappPath}
               onClick={() => onOpenWebapp(project)}
             >
               <Icon name="vscode" size={15} />

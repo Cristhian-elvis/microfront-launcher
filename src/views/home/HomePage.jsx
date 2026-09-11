@@ -1,43 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { FormControl, InputLabel, MenuItem, Select } from "@mui/material";
+import {
+  Button,
+  FormControl,
+  InputLabel,
+  ListSubheader,
+  MenuItem,
+  Select,
+} from "@mui/material";
 import { Icon } from "../../shared/components/Icon.jsx";
 import { useHomeActions } from "./hooks/useHomeActions.js";
 import { useActions } from "../../shared/hooks/useActions.js";
 import { ProcessConsole } from "./components/ProcessConsole.jsx";
+import { projectDisplayName } from "../../lib/projects.js";
 import "./HomePage.css";
-
-function VersionStatusIcon({ cached }) {
-  const message = cached
-    ? "Versión compilada"
-    : "Esta versión se compilará automáticamente al iniciar la shell";
-
-  return (
-    <span
-      className={`home-version-status ${cached ? "cached" : "pending"}`}
-      title={message}
-      aria-label={message}
-    >
-      <Icon name={cached ? "check" : "package"} size={15} />
-    </span>
-  );
-}
-
-function VersionReadiness({ version }) {
-  if (!version) return null;
-
-  const ready = version.cached;
-  const message = ready ? "Lista para usar" : "Se compilará al iniciar";
-
-  return (
-    <div
-      className={`home-version-readiness ${ready ? "ready" : "pending"}`}
-      aria-live="polite"
-    >
-      <Icon name={ready ? "check" : "package"} size={15} />
-      <span>{message}</span>
-    </div>
-  );
-}
 
 export function HomePage({
   state,
@@ -82,6 +57,8 @@ export function HomePage({
   const selectedVersion = versions.find(
     (version) => version.tag === selectedVersionTag,
   );
+  const compiledVersions = versions.filter((version) => version.cached);
+  const pendingVersions = versions.filter((version) => !version.cached);
 
   const displayLogs = consoleTab === "build" ? buildLogs : environmentLogs;
   const selectableProjects = useMemo(
@@ -153,7 +130,7 @@ export function HomePage({
           </div>
           <div>
             <strong title={state.shell.name || ""}>
-              {(state.shell.name || "Ninguna").toUpperCase()}
+              {projectDisplayName(state.shell.name)}
             </strong>
             <span>Shell activa</span>
           </div>
@@ -161,7 +138,7 @@ export function HomePage({
       </section>
 
       <section className="home-operation-cards" aria-label="Operaciones">
-        <article className="home-operation-card components-operation-card">
+        <article className="home-operation-card">
           <div className="home-operation-icon components">
             <Icon name="package" size={23} />
           </div>
@@ -172,7 +149,6 @@ export function HomePage({
               <span>Componentes disponibles para la shell.</span>
             )}
           </div>
-          <VersionReadiness version={selectedVersion} />
           <div className="home-version-control">
             <FormControl
               className="home-version-select"
@@ -181,23 +157,14 @@ export function HomePage({
               disabled={!versions.length || state.busy || shellRunning}
             >
               <InputLabel id="home-mova-version-label">
-                Versión para la shell
+                Versión
               </InputLabel>
               <Select
                 labelId="home-mova-version-label"
                 id="home-mova-version"
-                label="Versión para la shell"
+                label="Versión"
                 value={selectedVersionTag}
                 onChange={handleVersionChange}
-                renderValue={(tag) => {
-                  const version = versions.find((item) => item.tag === tag);
-                  return version ? (
-                    <span className="home-version-option">
-                      <VersionStatusIcon cached={version.cached} />
-                      {version.tag}
-                    </span>
-                  ) : "";
-                }}
                 MenuProps={{
                   PaperProps: {
                     className: "home-version-menu",
@@ -207,19 +174,27 @@ export function HomePage({
                 {!versions.length && (
                   <MenuItem value="">No hay tags disponibles</MenuItem>
                 )}
-                {versions.map((version) => (
+                {compiledVersions.length > 0 && (
+                  <ListSubheader>Versiones compiladas</ListSubheader>
+                )}
+                {compiledVersions.map((version) => (
                   <MenuItem key={version.tag} value={version.tag}>
-                    <span className="home-version-option">
-                      <VersionStatusIcon cached={version.cached} />
-                      {version.tag}
-                    </span>
+                    {version.tag}
+                  </MenuItem>
+                ))}
+                {pendingVersions.length > 0 && (
+                  <ListSubheader>Versiones por compilar</ListSubheader>
+                )}
+                {pendingVersions.map((version) => (
+                  <MenuItem key={version.tag} value={version.tag}>
+                    {version.tag}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
           </div>
           <div className="home-operation-actions">
-            {componentsActive && !state.busy && !shellRunning ? (
+            {componentsActive && !shellRunning ? (
               <button
                 className="button stop"
                 disabled={state.components.external}
@@ -229,16 +204,18 @@ export function HomePage({
                 {state.components.external ? "Externo" : "Detener"}
               </button>
             ) : (
-              !state.busy &&
               !shellRunning && (
-                <button
+                <Button
+                  variant="contained"
+                  disableElevation
+                  size="small"
                   className="button primary"
                   disabled={!componentVersion}
                   onClick={onComponentStart}
+                  startIcon={<Icon name="play" size={14} />}
                 >
-                  <Icon name="play" size={14} />
                   Iniciar
-                </button>
+                </Button>
               )
             )}
           </div>
@@ -255,10 +232,10 @@ export function HomePage({
             <strong>Shell</strong>
             <span>
               {shellReady
-                ? `${state.shell.name || "Shell"} se encuentra en ejecución.`
+                ? `${projectDisplayName(state.shell.name)} se encuentra en ejecución.`
                 : shellStarting
-                  ? `${state.shell.name || "Shell"} se está iniciando.`
-                  : "Selecciona una shell configurada para iniciar."}
+                  ? `${projectDisplayName(state.shell.name)} se está iniciando.`
+                  : "Selecciona un proyecto configurado para iniciar."}
             </span>
           </div>
           {!shellReady && (
@@ -270,11 +247,11 @@ export function HomePage({
                 state.busy || shellStarting || !selectableProjects.length
               }
             >
-              <InputLabel id="home-shell-label">Shell a iniciar</InputLabel>
+              <InputLabel id="home-shell-label">Proyecto</InputLabel>
               <Select
                 labelId="home-shell-label"
                 id="home-shell"
-                label="Shell a iniciar"
+                label="Proyecto"
                 value={selectedShellId}
                 onChange={(event) => {
                   setSelectedShellId(event.target.value);
@@ -285,10 +262,10 @@ export function HomePage({
                   },
                 }}
               >
-                <MenuItem value="">Seleccionar shell…</MenuItem>
+                <MenuItem value="">Seleccionar proyecto…</MenuItem>
                 {selectableProjects.map((project) => (
                   <MenuItem key={project.id} value={project.id}>
-                    {project.name.toUpperCase()}
+                    {projectDisplayName(project.name)}
                   </MenuItem>
                 ))}
               </Select>
@@ -323,19 +300,19 @@ export function HomePage({
                 </button>
               </>
             ) : (
-              <button
+              <Button
+                variant="contained"
+                disableElevation
+                size="small"
                 className="button primary"
                 disabled={
-                  state.busy ||
-                  shellStarting ||
-                  !selectedShell ||
-                  !selectedVersion
+                  !selectedShell || !selectedVersion
                 }
                 onClick={() => onStartShell(selectedShell)}
+                startIcon={<Icon name="play" size={14} />}
               >
-                <Icon name="play" size={14} />
                 {shellStarting ? "Iniciando..." : "Iniciar"}
-              </button>
+              </Button>
             )}
           </div>
         </article>

@@ -75,10 +75,6 @@
   background: linear-gradient(110deg, rgba(15, 45, 61, 0.92), #091725);
 }
 
-.home-operation-card.components-operation-card {
-  grid-template-columns: 48px minmax(195px, 1fr) auto 220px auto;
-}
-
 .home-operation-card.running {
   border-color: rgba(85, 230, 158, 0.34);
   background: linear-gradient(110deg, rgba(24, 65, 60, 0.58), #091725);
@@ -159,24 +155,6 @@
 .home-version-control,
 .home-shell-control {
   width: 220px !important;
-}
-
-.home-version-readiness {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #8ea7b8;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.home-version-readiness.ready {
-  color: var(--green);
-}
-
-.home-version-readiness.pending {
-  color: #f0b35d;
 }
 
 .home-version-select,
@@ -261,23 +239,13 @@
   font-size: 12px;
 }
 
-.home-version-option {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.home-version-status {
-  display: inline-flex;
-  align-items: center;
-}
-
-.home-version-status.cached {
-  color: var(--green);
-}
-
-.home-version-status.pending {
-  color: #f0b35d;
+.home-version-menu .MuiListSubheader-root {
+  color: #79ddd7;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  line-height: 30px;
+  text-transform: uppercase;
 }
 
 .home-version-menu .MuiMenuItem-root.Mui-selected,
@@ -295,6 +263,20 @@
 .home-operation-actions .button {
   min-width: 98px;
   height: 34px;
+}
+
+.home-operation-actions .MuiButton-root.button {
+  text-transform: none;
+}
+
+.home-operation-actions .MuiButton-root.button.primary.Mui-disabled {
+  background: rgba(53, 214, 207, 0.14);
+  color: #78a7aa;
+  opacity: 1;
+}
+
+.home-operation-actions .MuiButton-root.button.primary.Mui-disabled .icon {
+  color: #78a7aa;
 }
 
 .home-operation-actions .button.stop {
@@ -350,14 +332,6 @@
 
   .home-operation-card {
     grid-template-columns: 48px minmax(0, 1fr) auto;
-  }
-
-  .home-operation-card.components-operation-card {
-    grid-template-columns: 48px minmax(0, 1fr) auto;
-  }
-
-  .components-operation-card .home-version-readiness {
-    grid-column: 2;
   }
 
   .home-operation-value,

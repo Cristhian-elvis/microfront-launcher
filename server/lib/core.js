@@ -150,32 +150,69 @@ export async function gitBranchInfo(projectPath) {
   }
 }
 
-async function shellProfile(shellPath, pkg, defaults, { syncGit = false } = {}) {
-  const projectRoot = path.dirname(shellPath);
-  const configRoot = path.join(shellPath, 'config');
-  let appConfig = null;
-  let configFolder = null;
-  
-  if (fs.existsSync(configRoot)) {
-    const candidates = fs.readdirSync(configRoot, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory() && !['des', 'val', 'prod'].includes(entry.name.toLowerCase()))
-      .map((entry) => ({ folder: entry.name, file: path.join(configRoot, entry.name, 'app-config.json') }))
-      .filter((item) => fs.existsSync(item.file));
-    const preferred = candidates.find((item) => /webapp|local/i.test(item.folder)) || candidates[0];
-    if (preferred) {
-      appConfig = readJson(preferred.file, null);
-      configFolder = preferred.folder;
-    }
+async function exactGitTag(repositoryPath) {
+  try {
+    const { stdout } = await execFileAsync(
+      'git',
+      ['-C', repositoryPath, 'describe', '--tags', '--exact-match'],
+      { encoding: 'utf8', windowsHide: true },
+    );
+    return stdout.trim() || null;
+  } catch {
+    return null;
   }
+}
+
+function normalizeFrameworkVersion(version) {
+  return String(version || '').trim().replace(/^v/i, '');
+}
+
+function shellMatchesFrameworkVersion(frameworkVersion, shellTag, packageVersion) {
+  const expected = normalizeFrameworkVersion(frameworkVersion);
+  return Boolean(
+    expected &&
+    normalizeFrameworkVersion(shellTag) === expected &&
+    normalizeFrameworkVersion(packageVersion) === expected,
+  );
+}
+
+function isWebappDirectory(directory) {
+  return /^[a-z0-9]{4}_webapp_.+$/i.test(path.basename(directory));
+}
+
+function localAppConfigPath(webappPath) {
+  return path.join(
+    webappPath,
+    'config',
+    path.basename(webappPath),
+    'app-config.json',
+  );
+}
+
+function readLocalAppConfig(webappPath) {
+  const configFolder = path.basename(webappPath);
+  const configPath = localAppConfigPath(webappPath);
+  return fs.existsSync(configPath)
+    ? { appConfig: readJson(configPath, null), configFolder }
+    : { appConfig: null, configFolder: null };
+}
+
+function webappWorkspacePath(webappPath) {
+  return path.dirname(webappPath);
+}
+
+async function shellProfile(shellPath, webappPath, pkg, defaults, { syncGit = false } = {}) {
+  const { appConfig, configFolder } = readLocalAppConfig(webappPath);
+  const workspacePath = webappWorkspacePath(webappPath);
 
   const appName = appConfig?.app || configFolder || null;
-  const serverPath = path.join(projectRoot, 'server');
+  const serverPath = path.join(workspacePath, 'server');
   
   // AHORA PROCESAMOS LOS MICROFRONTENDS EN PARALELO
   const microfrontendsRaw = await Promise.all(
     Object.entries(appConfig?.remotes || {}).map(async ([name, remote]) => {
       if (!String(remote?.remoteEntry || '').includes('localhost:8080')) return null;
-      const microfrontendPath = path.join(projectRoot, name);
+      const microfrontendPath = path.join(workspacePath, name);
       const packagePath = path.join(microfrontendPath, 'package.json');
       if (!fs.existsSync(packagePath)) return null;
       
@@ -209,12 +246,25 @@ async function shellProfile(shellPath, pkg, defaults, { syncGit = false } = {}) 
   
   const microfrontends = microfrontendsRaw.filter(Boolean); // Limpiamos los nulls
   const serverPort = Number(defaults.serverPort || 8080);
+  const frameworkVersion = appConfig?.frameworkVersion || null;
+  const shellTag = await exactGitTag(shellPath);
+  const shellPackageVersion = pkg.version || null;
+  const shellDependenciesReady = fs.existsSync(path.join(shellPath, 'node_modules'));
   
   return {
     command: pkg.scripts?.['local-server'] ? 'npm run local-server' : defaults.command,
     url: appName ? `http://127.0.0.1:${serverPort}/${appName}/` : defaults.url.replace('localhost', '127.0.0.1'),
     serverUrl: `http://localhost:${serverPort}`, serverPort, serverPath,
-    appName, configFolder, configured: Boolean(appName && fs.existsSync(serverPath)),
+    appName, configFolder, frameworkVersion, shellTag, shellPackageVersion, shellDependenciesReady,
+    configured: Boolean(
+      appName &&
+      shellDependenciesReady &&
+      shellMatchesFrameworkVersion(
+        frameworkVersion,
+        shellTag,
+        shellPackageVersion,
+      ),
+    ),
     workflow: {
       scaffolding: Boolean(pkg.scripts?.scaffolding),
       prepareServer: Boolean(pkg.scripts?.['prepare-server']),
@@ -232,27 +282,20 @@ export async function scanShells(rootPath, defaults) {
   
   const ignored = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.angular', '.nx', '.next']);
   const pending = [{ directory: rootPath, depth: 0 }];
-  const shellsToProcess = []; // Guardamos los detectados para procesarlos en paralelo
+  const webappsToProcess = [];
 
   while (pending.length) {
     const { directory: current, depth } = pending.pop();
+    if (isWebappDirectory(current)) {
+      const shellPath = path.join(path.dirname(current), 'mova3_shell');
+      const packagePath = path.join(shellPath, 'package.json');
+      const pkg = fs.existsSync(packagePath) ? readJson(packagePath, {}) : {};
+      webappsToProcess.push({ shellPath, webappPath: current, pkg });
+      continue;
+    }
     let entries;
     try { entries = fs.readdirSync(current, { withFileTypes: true }); }
     catch { continue; }
-
-    if (path.basename(current).toLowerCase() === 'mova3_shell') {
-      const packagePath = path.join(current, 'package.json');
-      if (fs.existsSync(packagePath)) {
-        try {
-          const pkg = readJson(packagePath);
-          if (pkg.scripts?.['local-server'] || pkg.scripts?.start) {
-            const segments = path.relative(rootPath, current).split(path.sep).filter((part) => part !== 'mova3_shell');
-            shellsToProcess.push({ current, pkg, segments });
-          }
-        } catch { /* Continue discovering other shells. */ }
-      }
-      continue;
-    }
 
     if (depth < 6) {
       for (const entry of entries) {
@@ -263,14 +306,14 @@ export async function scanShells(rootPath, defaults) {
     }
   }
 
-  // PROCESAMOS TODOS LOS SHELLS DETECTADOS EN PARALELO
   const found = await Promise.all(
-    shellsToProcess.map(async ({ current, pkg, segments }) => {
-      const profile = await shellProfile(current, pkg, defaults);
+    webappsToProcess.map(async ({ shellPath, webappPath, pkg }) => {
+      const profile = await shellProfile(shellPath, webappPath, pkg, defaults);
       return {
-        id: projectId(current),
-        name: segments[0] || 'mova3_shell',
-        path: current,
+        id: projectId(webappPath),
+        name: path.basename(webappPath),
+        path: shellPath,
+        webappPath,
         ...profile,
         detected: true
       };
@@ -327,6 +370,7 @@ export async function syncProject(projectId) {
 
   const profile = await shellProfile(
     currentProject.path,
+    currentProject.webappPath || path.dirname(currentProject.path),
     readJson(packagePath, {}),
     config.shellDefaults,
     { syncGit: true },
