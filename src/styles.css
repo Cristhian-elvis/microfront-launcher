@@ -201,42 +201,6 @@ button {
   letter-spacing: 1px;
   word-spacing: 72px;
 }
-.shells-view .project-card {
-  display: grid;
-  grid-template-columns: 42px minmax(180px, 1fr) minmax(170px, 1fr) 132px;
-  align-items: center;
-  gap: 14px;
-  padding: 13px 15px;
-}
-.shells-view .project-head { display: contents; }
-.shells-view .project-title { grid-column: 2; }
-.shells-view .project-head .card-menu { grid-column: 4; grid-row: 1; justify-content: flex-end; }
-.shells-view .project-app { grid-column: 3; grid-row: 1; margin: 0; padding: 0; border: 0; }
-.shells-view .project-app .config-state { display: none; }
-.shells-view .project-details, .shells-view .microfront-count { display: none; }
-.shells-view .project-actions { grid-column: 4; grid-row: 1; display: flex; flex-wrap: nowrap; justify-content: flex-end; margin-top: 40px; padding: 0; border: 0; }
-.shells-view .project-actions .button { position: relative; flex: 0 0 32px; width: 32px; height: 30px; min-width: 0; padding: 0; font-size: 0; }
-.shells-view .project-actions .button .icon { width: 15px; height: 15px; }
-.shells-view .project-actions .button:hover::after {
-  position: absolute;
-  z-index: 5;
-  right: 0;
-  bottom: calc(100% + 6px);
-  padding: 5px 7px;
-  border: 1px solid #31536b;
-  border-radius: 5px;
-  background: #07111f;
-  color: #dbeaf5;
-  font-size: 8px;
-  line-height: 1;
-  white-space: nowrap;
-}
-.shells-view .project-actions .microfronts-button:hover::after { content: "Ver microfronts"; }
-.shells-view .project-actions .primary:hover::after { content: "Iniciar shell"; }
-.shells-view .project-actions .secondary:hover::after { content: "Abrir webapp"; }
-.shells-view .project-actions .stop:hover::after { content: "Detener entorno"; }
-.shells-view .project-actions .ghost:not(.microfronts-button):hover::after { content: "Reconstruir servidor"; }
-.shells-view .icon-button.danger { display: none; }
 .topbar {
   height: 72px;
   display: flex;
@@ -563,126 +527,10 @@ h1 em {
   background: #17293b;
   color: #d6e7f5;
 }
-.icon-button.danger:hover {
-  color: var(--red);
-  background: rgba(255, 107, 115, 0.08);
-}
-.projects-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(285px, 1fr));
-  gap: 14px;
-}
-.project-card {
-  min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 13px;
-  background: linear-gradient(
-    145deg,
-    rgba(14, 31, 48, 0.92),
-    rgba(10, 23, 37, 0.96)
-  );
-  padding: 17px;
-  transition: 0.2s ease;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
-}
-.project-card:hover {
-  border-color: #2b4b61;
-  transform: translateY(-2px);
-}
-.project-card.is-running {
-  border-color: rgba(85, 230, 158, 0.28);
-  box-shadow:
-    inset 0 1px rgba(85, 230, 158, 0.05),
-    0 10px 30px rgba(0, 0, 0, 0.14);
-}
-.project-head {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-.project-mark {
-  width: 38px;
-  height: 38px;
-  border-radius: 9px;
-  background: #14293b;
-  color: #5ddfd8;
-  display: grid;
-  place-items: center;
-}
-.project-title {
-  min-width: 0;
-  flex: 1;
-}
-.project-title h3 {
-  font-size: 13px;
-  margin: 0 0 3px;
-  color: #edf7ff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.status {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 8px;
-  color: #6d8296;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-}
-.status i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #53697c;
-}
-.status.online {
-  color: var(--green);
-}
-.status.online i {
-  background: var(--green);
-  box-shadow: 0 0 7px var(--green);
-}
-.card-menu {
-  display: flex;
-}
-.project-details {
-  margin: 15px 0 14px;
-  padding: 12px;
-  background: #081521;
-  border: 1px solid #162b3e;
-  border-radius: 8px;
-  display: grid;
-  gap: 10px;
-}
-.project-details span {
-  display: block;
-  color: #546c81;
-  font-size: 7px;
-  font-weight: 800;
-  letter-spacing: 1.1px;
-  margin-bottom: 3px;
-}
-.project-details code {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #91a8bb;
-  font: 9px "DM Mono";
-}
 .detail-row {
   display: grid;
   grid-template-columns: 1fr 1.25fr;
   gap: 12px;
-}
-.project-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.project-actions .microfronts-button {
-  width: 100%;
 }
 .console-panel {
   margin-top: 35px;
@@ -2368,54 +2216,6 @@ h1 em {
   align-items: center;
   gap: 5px;
 }
-.project-app {
-  margin: 14px 0 8px;
-  padding: 10px 11px;
-  border: 1px solid #173044;
-  border-radius: 8px;
-  background: #0a1927;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.project-app span:first-child {
-  display: block;
-  color: #536c81;
-  font-size: 7px;
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-.project-app strong {
-  display: block;
-  color: #cfdeea;
-  font-size: 10px;
-  margin-top: 3px;
-}
-.config-state {
-  font-size: 7px;
-  color: #d5a96a;
-  border: 1px solid #725732;
-  background: rgba(207, 151, 70, 0.08);
-  padding: 4px 7px;
-  border-radius: 10px;
-}
-.config-state.ready {
-  color: #76e2aa;
-  border-color: #32674c;
-  background: rgba(85, 230, 158, 0.07);
-}
-.microfront-count {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #6f879b;
-  font-size: 8px;
-  margin: -3px 0 12px;
-}
-.microfront-count strong {
-  color: #84dcd6;
-}
 .todo-note.complete {
   border-style: solid;
   border-color: rgba(85, 230, 158, 0.18);
@@ -2631,9 +2431,6 @@ h1 em {
   }
   .operational-summary strong {
     font-size: 10px;
-  }
-  .project-app {
-    margin-top: 12px;
   }
 }
 
@@ -3255,8 +3052,7 @@ h1 em {
 }
 .app-shell.light .summary-card,
 .app-shell.light .mova-panel,
-.app-shell.light .service-card,
-.app-shell.light .project-card {
+.app-shell.light .service-card {
   background: linear-gradient(145deg, #fff, #edf4f8);
   border-color: #c6d6e3;
   box-shadow: 0 12px 35px rgba(45, 76, 101, 0.1);
@@ -3448,10 +3244,6 @@ body:has(.app-shell.light) {
 }
 .summary-session .summary-actions button {
   min-width: 0;
-}
-.card-menu .icon-button.favorite {
-  color: #f5c46a;
-  background: rgba(245, 196, 106, 0.1);
 }
 .favorites-panel {
   margin: -5px 0 22px;

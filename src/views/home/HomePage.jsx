@@ -71,6 +71,8 @@ export function HomePage({
   const shellRunning = state.shell.status !== "stopped";
   const shellReady = state.shell.status === "running";
   const shellStarting = state.shell.status === "starting";
+  const versionSelectionDisabled =
+    !versions.length || state.busy || componentsActive || shellRunning;
 
   useEffect(() => {
     const activeShellId = state.shell.projectId;
@@ -154,7 +156,7 @@ export function HomePage({
               className="home-version-select"
               size="small"
               fullWidth
-              disabled={!versions.length || state.busy || shellRunning}
+              disabled={versionSelectionDisabled}
             >
               <InputLabel id="home-mova-version-label">
                 Versión
@@ -262,7 +264,6 @@ export function HomePage({
                   },
                 }}
               >
-                <MenuItem value="">Seleccionar proyecto…</MenuItem>
                 {selectableProjects.map((project) => (
                   <MenuItem key={project.id} value={project.id}>
                     {projectDisplayName(project.name)}
