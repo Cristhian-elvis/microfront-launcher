@@ -6,12 +6,15 @@ import { AppBreadcrumbs } from "./AppBreadcrumbs.jsx";
 import { ProjectEditor } from "./ProjectEditor.jsx";
 import { BrowserOpenModal } from "./BrowserOpenModal.jsx";
 import { GlobalSettings } from "../../views/settings/components/GlobalSettings.jsx";
+import { ProcessConsole } from "../../views/home/components/ProcessConsole.jsx";
 
 export function AppLayout({
   theme,
   onThemeToggle,
   state,
   onOpenBrowser,
+  onOpenProfessionalDesktop,
+  onOpenConsole,
   onOpenSettings,
   activeView,
   projects,
@@ -28,6 +31,13 @@ export function AppLayout({
   showSettings,
   onCloseSettings,
   onSavedSettings,
+  showConsole,
+  onCloseConsole,
+  consoleLogs,
+  consoleTab,
+  onConsoleTab,
+  onClearConsole,
+  consoleLogEnd,
   onDismissBrowserPrompt,
   onOpenBrowserPrompt,
 }) {
@@ -40,6 +50,8 @@ export function AppLayout({
         onThemeToggle={onThemeToggle}
         state={state}
         onOpenBrowser={onOpenBrowser}
+        onOpenProfessionalDesktop={onOpenProfessionalDesktop}
+        onOpenConsole={onOpenConsole}
         onOpenSettings={onOpenSettings}
       />
       <div
@@ -85,10 +97,39 @@ export function AppLayout({
       )}
       {showSettings && (
         <GlobalSettings
-          config={config}
+          config={{
+            ...config,
+            preferences: {
+              ...(config.preferences || {}),
+              ...(state?.preferences || {}),
+            },
+          }}
           onClose={onCloseSettings}
           onSaved={onSavedSettings}
         />
+      )}
+      {showConsole && (
+        <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onCloseConsole()}>
+          <section className="modal" style={{ maxWidth: 980 }}>
+            <header className="modal-header">
+              <div>
+                <h2>Consola de proceso</h2>
+                <p>Estado del entorno y eventos recientes</p>
+              </div>
+              <button className="icon-button" onClick={onCloseConsole} aria-label="Cerrar">
+                <Icon name="close" />
+              </button>
+            </header>
+            <ProcessConsole
+              logs={consoleLogs}
+              state={state}
+              tab={consoleTab}
+              onTab={onConsoleTab}
+              onClear={onClearConsole}
+              logEnd={consoleLogEnd}
+            />
+          </section>
+        </div>
       )}
       {state.browserPrompt && (
         <BrowserOpenModal

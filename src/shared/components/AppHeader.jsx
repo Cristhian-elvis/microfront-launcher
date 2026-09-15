@@ -6,6 +6,8 @@ export function AppHeader({
   onThemeToggle,
   state,
   onOpenBrowser,
+  onOpenProfessionalDesktop,
+  onOpenConsole,
   onOpenSettings,
 }) {
   return (
@@ -36,6 +38,20 @@ export function AppHeader({
         </button>
         <button
           className="button ghost"
+          onClick={onOpenConsole}
+        >
+          <Icon name="terminal" />
+          Visualizar consola
+        </button>
+        <button
+          className="button ghost"
+          onClick={onOpenProfessionalDesktop}
+        >
+          <Icon name="external" />
+          Abrir escritorio profesional
+        </button>
+        <button
+          className="button ghost"
           disabled={state.busy || state.shell.status !== "stopped"}
           title={
             state.busy || state.shell.status !== "stopped"
@@ -47,7 +63,9 @@ export function AppHeader({
           <Icon name="settings" />
           Configuración
         </button>
-        <button className="avatar">CV</button>
+        <button className="avatar">
+          {(state?.preferences?.avatarLetters || "ML").slice(0, 2).toUpperCase()}
+        </button>
       </div>
     </header>
   );

@@ -14,6 +14,14 @@ export function createBrowserHandler({ state, reopenChrome, openEmptyBrowser, re
       json(response, 200, { ok: true, message: 'Navegador abierto.' });
       return true;
     }
+
+    if (url.pathname === '/api/chrome/open-professional') {
+      const { mode } = await readBody(request);
+      if (!['tab', 'window'].includes(mode)) { json(response, 400, { error: 'Indica si deseas abrir una pestaña o una ventana.' }); return true; }
+      await openEmptyBrowser({ newWindow: mode === 'window', url: 'https://gestiona.val.comunidad.madrid/hsta_webapp_profesional/inicio' });
+      json(response, 200, { ok: true, message: 'Navegador abierto.' });
+      return true;
+    }
     if (url.pathname === '/api/chrome/open-empty') { await openEmptyBrowser(); json(response, 200, { ok: true }); return true; }
     if (url.pathname === '/api/chrome/dismiss') { state.browserPrompt = null; emitState(); json(response, 200, { ok: true }); return true; }
     return false;
