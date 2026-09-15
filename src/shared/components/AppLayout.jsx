@@ -97,7 +97,13 @@ export function AppLayout({
       )}
       {showSettings && (
         <GlobalSettings
-          config={config}
+          config={{
+            ...config,
+            preferences: {
+              ...(config.preferences || {}),
+              ...(state?.preferences || {}),
+            },
+          }}
           onClose={onCloseSettings}
           onSaved={onSavedSettings}
         />

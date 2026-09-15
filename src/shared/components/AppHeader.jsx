@@ -63,7 +63,9 @@ export function AppHeader({
           <Icon name="settings" />
           Configuración
         </button>
-        <button className="avatar">CV</button>
+        <button className="avatar">
+          {(state?.preferences?.avatarLetters || "ML").slice(0, 2).toUpperCase()}
+        </button>
       </div>
     </header>
   );

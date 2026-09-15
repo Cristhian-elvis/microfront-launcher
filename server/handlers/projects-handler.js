@@ -61,6 +61,7 @@ export function createProjectsHandler({
       const current = readConfig();
       const next = { ...current, ...body, mova: { ...current.mova, ...(body.mova || {}) }, projects: current.projects, hiddenProjects: current.hiddenProjects };
       delete next.mova.componentPort;
+      delete next.preferences;
       writeJson(configPath, next);
       invalidateScanCache();
       completeInitialSetup();

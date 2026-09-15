@@ -1,22 +1,52 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Tooltip from "@mui/material/Tooltip";
 import { api } from "../../../lib/api.js";
 import { Icon } from "../../../shared/components/Icon.jsx";
 import { Field, Modal } from "../../../shared/components/Modal.jsx";
 
 export function GlobalSettings({ config, onClose, onSaved }) {
-  const [form, setForm] = useState(JSON.parse(JSON.stringify(config)));
+  const [form, setForm] = useState({
+    ...JSON.parse(JSON.stringify(config)),
+    preferences: {
+      avatarLetters: config?.preferences?.avatarLetters || "ML",
+      ...(config?.preferences || {}),
+    },
+  });
+
+  const initialAvatarLetters = useRef(form.preferences.avatarLetters);
   const [error, setError] = useState("");
   const update = (section, key) => (event) =>
     setForm({
       ...form,
       [section]: { ...form[section], [key]: event.target.value },
     });
+
+  const updateAvatarLetters = (event) => {
+    const value = String(event.target.value || "")
+      .replace(/[^a-zA-Z]/g, "")
+      .slice(0, 2)
+      .toUpperCase();
+
+    setForm({
+      ...form,
+      preferences: { ...(form.preferences || {}), avatarLetters: value },
+    });
+  };
   const save = async (event) => {
     event.preventDefault();
     setError("");
     try {
+      const avatarLetters = form.preferences.avatarLetters;
+
       await api("/api/config", { method: "PUT", body: JSON.stringify(form) });
+
+      if (avatarLetters !== initialAvatarLetters.current) {
+        await api("/api/mova/preferences", {
+          method: "PUT",
+          body: JSON.stringify({ avatarLetters }),
+        });
+      }
+
       onSaved();
       onClose();
     } catch (exception) {
@@ -108,6 +138,14 @@ export function GlobalSettings({ config, onClose, onSaved }) {
                 <option value="127.0.0.1">127.0.0.1</option>
               </select>
             </label>
+          </div>
+          <div className="setting-group">
+            <h3>Avatar</h3>
+            <Field
+              label="Iniciales"
+              value={form.preferences.avatarLetters}
+              onChange={updateAvatarLetters}
+            />
           </div>
           {error && (
             <div className="form-error">
