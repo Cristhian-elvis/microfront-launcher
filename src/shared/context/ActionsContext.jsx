@@ -54,6 +54,11 @@ export function ActionsProvider({ children, onRefreshState }) {
     [action],
   );
 
+  const onOpenProfessionalDesktop = useCallback(
+    (mode) => action('/api/chrome/open-professional', { mode }),
+    [action],
+  );
+
   const onEnvironmentStop = useCallback(
     () => action('/api/environment/stop'),
     [action],
@@ -80,6 +85,7 @@ export function ActionsProvider({ children, onRefreshState }) {
     onComponentStop,
     onComponentStart,
     onOpenBrowser,
+    onOpenProfessionalDesktop,
     onEnvironmentStop,
     onChromeDismiss,
     onChromeOpen,

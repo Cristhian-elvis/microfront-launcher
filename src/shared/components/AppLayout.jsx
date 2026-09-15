@@ -12,6 +12,7 @@ export function AppLayout({
   onThemeToggle,
   state,
   onOpenBrowser,
+  onOpenProfessionalDesktop,
   onOpenSettings,
   activeView,
   projects,
@@ -40,6 +41,7 @@ export function AppLayout({
         onThemeToggle={onThemeToggle}
         state={state}
         onOpenBrowser={onOpenBrowser}
+        onOpenProfessionalDesktop={onOpenProfessionalDesktop}
         onOpenSettings={onOpenSettings}
       />
       <div

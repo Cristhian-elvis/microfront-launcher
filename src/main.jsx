@@ -261,6 +261,9 @@ function AppContent() {
                 { mode: "tab" },
               )
             }
+            onOpenProfessionalDesktop={() =>
+              action("/api/chrome/open-professional", { mode: "tab" })
+            }
             onOpenSettings={() => setShowSettings(true)}
             activeView={activeView}
             projects={projects}

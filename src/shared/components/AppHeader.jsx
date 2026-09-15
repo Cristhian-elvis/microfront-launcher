@@ -6,6 +6,7 @@ export function AppHeader({
   onThemeToggle,
   state,
   onOpenBrowser,
+  onOpenProfessionalDesktop,
   onOpenSettings,
 }) {
   return (
@@ -33,6 +34,13 @@ export function AppHeader({
         >
           <Icon name="external" />
           Abrir navegador
+        </button>
+        <button
+          className="button ghost"
+          onClick={onOpenProfessionalDesktop}
+        >
+          <Icon name="external" />
+          Abrir escritorio profesional
         </button>
         <button
           className="button ghost"

@@ -1107,15 +1107,17 @@ function hasBrowserProfileOpen(browser) {
   );
 }
 
-async function openChrome(project, { newWindow = true } = {}) {
+async function openChrome(project, { newWindow = true, url = null } = {}) {
   const config = readConfig();
   const browser = browserSettings(config);
   if (!fs.existsSync(browser.path))
     throw new Error(`No se encontró ${browser.name}: ${browser.path}`);
-  const chromeUrl = project
-    ? new URL(project.url)
-    : new URL("chrome://newtab/");
-  if (project) {
+  const chromeUrl = url
+    ? new URL(url)
+    : project
+      ? new URL(project.url)
+      : new URL("chrome://newtab/");
+  if (!url && project) {
     chromeUrl.hostname = config.chrome.openHost;
     chromeUrl.port = String(config.shellDefaults.serverPort || 8080);
   }
@@ -1618,7 +1620,7 @@ async function openScaffolding(projectId) {
   );
 }
 
-async function reopenChrome({ newWindow = true } = {}) {
+async function reopenChrome({ newWindow = true, url = null } = {}) {
   if (state.shell.status !== "running" || !state.shell.projectId)
     throw new Error("No hay una shell activa para abrir en Chrome.");
   // AÑADIDO: await
@@ -1627,11 +1629,11 @@ async function reopenChrome({ newWindow = true } = {}) {
   );
   if (!project)
     throw new Error("No se encontró la configuración de la shell activa.");
-  await openChrome(project, { newWindow });
+  await openChrome(project, { newWindow, url });
 }
 
-async function openEmptyBrowser() {
-  await openChrome(null, { newWindow: true });
+async function openEmptyBrowser({ newWindow = true, url = null } = {}) {
+  await openChrome(null, { newWindow, url });
 }
 
 function runGit(args, cwd) {
