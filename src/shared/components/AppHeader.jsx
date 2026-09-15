@@ -7,6 +7,7 @@ export function AppHeader({
   state,
   onOpenBrowser,
   onOpenProfessionalDesktop,
+  onOpenConsole,
   onOpenSettings,
 }) {
   return (
@@ -34,6 +35,13 @@ export function AppHeader({
         >
           <Icon name="external" />
           Abrir navegador
+        </button>
+        <button
+          className="button ghost"
+          onClick={onOpenConsole}
+        >
+          <Icon name="terminal" />
+          Visualizar consola
         </button>
         <button
           className="button ghost"

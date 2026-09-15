@@ -42,6 +42,7 @@ function AppContent() {
   const [notice, setNotice] = useState(null);
   const [editor, setEditor] = useState(undefined);
   const [showSettings, setShowSettings] = useState(false);
+  const [showConsole, setShowConsole] = useState(false);
   const [consoleTab, setConsoleTab] = useState("environment");
   const [theme, setTheme] = useState(
     () => localStorage.getItem("microfront-theme") || "dark",
@@ -179,6 +180,8 @@ function AppContent() {
     (log) => !["Versiones", "Build MOVA"].includes(log.source),
   );
 
+  const consoleLogs = consoleTab === "build" ? buildLogs : environmentLogs;
+
   const componentVersion =
     versions.find((item) => item.tag === state?.preferences?.preferredTag);
 
@@ -264,6 +267,7 @@ function AppContent() {
             onOpenProfessionalDesktop={() =>
               action("/api/chrome/open-professional", { mode: "tab" })
             }
+            onOpenConsole={() => setShowConsole(true)}
             onOpenSettings={() => setShowSettings(true)}
             activeView={activeView}
             projects={projects}
@@ -280,6 +284,13 @@ function AppContent() {
             showSettings={showSettings}
             onCloseSettings={() => setShowSettings(false)}
             onSavedSettings={refreshBootstrap}
+            showConsole={showConsole}
+            onCloseConsole={() => setShowConsole(false)}
+            consoleLogs={consoleLogs}
+            consoleTab={consoleTab}
+            onConsoleTab={setConsoleTab}
+            onClearConsole={clearLogs}
+            consoleLogEnd={logEnd}
             onDismissBrowserPrompt={() => action("/api/chrome/dismiss")}
             onOpenBrowserPrompt={(mode, remember) =>
               action("/api/chrome/open", { mode, remember })
