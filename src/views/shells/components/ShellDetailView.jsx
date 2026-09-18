@@ -16,6 +16,7 @@ export function ShellDetailView({
   onBuildMicrofrontBatch,
   onRefresh,
   onMicrofrontDetail,
+  onViewVersionsStatus,
   favorite,
   onFavorite,
 }) {
@@ -62,6 +63,15 @@ export function ShellDetailView({
             <p>Configuración y vínculos locales del proyecto.</p>
           </div>
           <div className="toolbar shell-detail-actions">
+            <button
+              className="button ghost"
+              title="Ver estado versiones"
+              disabled={interactionsDisabled}
+              onClick={() => onViewVersionsStatus?.(project)}
+            >
+              <Icon name="search" />
+              Ver estado versiones
+            </button>
             <button
               className="button ghost"
               title="Sincronizar información del proyecto"
