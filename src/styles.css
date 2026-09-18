@@ -3556,6 +3556,8 @@ body:has(.app-shell.light) {
 .shell-detail-actions { flex-wrap: nowrap; }
 .shell-start-status { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: pulse-dot 1.2s infinite; }
 .shell-start-button.is-starting { opacity: 0.78; }
+
+
 main > .hero { display: none; }
 body.launcher-home-view main > .hero { display: grid; }
 .shells-table-wrapper .workspace, .microfronts-view .workspace { padding-top: 0; border-top: 0; }

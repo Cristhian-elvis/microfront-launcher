@@ -13,6 +13,7 @@ import { MicrofrontsPage } from "./views/microfronts/MicrofrontsPage.jsx";
 import { ShellsPage } from "./views/shells/ShellsPage.jsx";
 import { ShellDetailPage } from "./views/shells/ShellDetailPage.jsx";
 import { MicrofrontDetailPage } from "./views/shells/MicrofrontDetailPage.jsx";
+import { VersionsAuditPage } from "./views/shells/VersionsAuditPage.jsx";
 import { TagsPage } from "./views/tags/TagsPage.jsx";
 import { InitialSetup } from "./views/setup/components/InitialSetup.jsx";
 import { AppLayout } from "./shared/components/AppLayout.jsx";
@@ -394,6 +395,14 @@ function AppContent() {
           element={
             <div className="microfront-detail-wrapper">
               <MicrofrontDetailPage state={state} />
+            </div>
+          }
+        />
+        <Route
+          path="shells/:shellId/versions"
+          element={
+            <div className="versions-audit-wrapper">
+              <VersionsAuditPage />
             </div>
           }
         />

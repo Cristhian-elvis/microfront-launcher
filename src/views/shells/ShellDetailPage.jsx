@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { ShellDetailView } from './components/ShellDetailView.jsx';
 import { useShellDetailActions } from './hooks/useShellDetailActions.js';
 import { useFlash } from '../../shared/hooks/useFlash.js';
@@ -10,6 +10,7 @@ export function ShellDetailPage({
   state,
   onMicrofrontDetail,
 }) {
+  const navigate = useNavigate();
   const { shellId } = useParams();
   const decodedShellId = decodeURIComponent(shellId || '');
   const { projects, refreshProjects, replaceProject } = useProjects();
@@ -77,6 +78,9 @@ export function ShellDetailPage({
       onBuildMicrofront={onBuildMicrofront}
       onBuildMicrofrontBatch={onBuildMicrofrontBatch}
       onRefresh={onRefresh}
+      onViewVersionsStatus={() =>
+        navigate(`/shells/${encodeURIComponent(project.id)}/versions`)
+      }
       onMicrofrontDetail={onMicrofrontDetail}
       favorite={favorite}
       onFavorite={onFavorite}

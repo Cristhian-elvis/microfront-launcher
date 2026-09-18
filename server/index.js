@@ -54,6 +54,7 @@ import { createStateHandler } from "./handlers/state-handler.js";
 import { createMovaHandler } from "./handlers/mova-handler.js";
 import { createComponentsHandler } from "./handlers/components-handler.js";
 import { createEnvironmentHandler } from "./handlers/environment-handler.js";
+import { createVersionsAuditHandler } from "./handlers/versions-audit-handler.js";
 import { createApiRouter } from "./routes/api-router.js";
 import { createVsCodeService } from "./services/vscode-service.js";
 import { json, readBody } from "./lib/http.js";
@@ -1888,6 +1889,10 @@ const handleEnvironmentRequest = createEnvironmentHandler({
   readBody,
   json,
 });
+const handleVersionsAuditRequest = createVersionsAuditHandler({
+  json,
+  readBody,
+});
 const routeApi = createApiRouter([
   handleStateRequest,
   handleProjectsRequest,
@@ -1896,6 +1901,7 @@ const routeApi = createApiRouter([
   handleBrowserRequest,
   handleMicrofrontendRequest,
   handleEnvironmentRequest,
+  handleVersionsAuditRequest,
 ]);
 
 async function handleApi(request, response, url) {
