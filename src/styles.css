@@ -3557,47 +3557,6 @@ body:has(.app-shell.light) {
 .shell-start-status { width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: pulse-dot 1.2s infinite; }
 .shell-start-button.is-starting { opacity: 0.78; }
 
-/* Versions audit view */
-.versions-audit-summary { display: flex; gap: 12px; align-items: center; margin: 10px 0 18px; flex-wrap: wrap; }
-.pill { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid #263c51; background: rgba(15, 31, 47, 0.7); color: #a8bacb; }
-.pill.ok { border-color: rgba(85, 230, 158, 0.25); background: rgba(85, 230, 158, 0.06); color: #8edeb4; }
-.pill.warn { border-color: rgba(240, 195, 109, 0.28); background: rgba(240, 195, 109, 0.08); color: #f0c36d; }
-.versions-audit-paths { color: #7891a5; font-size: 10px; display: flex; gap: 8px; align-items: center; }
-.versions-audit-paths code { color: #a7bac9; font: 9px "Cascadia Code", Consolas, monospace; }
-
-.versions-audit-table { margin-top: 10px; }
-.versions-audit-columns,
-.versions-audit-row { display: grid; grid-template-columns: minmax(240px, 1.35fr) minmax(110px, .55fr) minmax(140px, .6fr) repeat(4, minmax(110px, .55fr)); align-items: center; gap: 10px; }
-.versions-audit-columns { padding: 0 12px 6px; color: #718ca1; font-size: 8px; letter-spacing: 1px; text-align: left; text-transform: uppercase; font-weight: 800; }
-.versions-audit-rows { display: grid; gap: 7px; }
-.versions-audit-row { padding: 11px 12px; border-top: 1px solid #1d394e; border-bottom: 1px solid #1d394e; background: #091725; border-left: 1px solid #1d394e; border-right: 1px solid #1d394e; border-radius: 9px; }
-.versions-audit-row.warn { box-shadow: inset 0 0 0 1px rgba(240, 195, 109, 0.18); }
-.versions-audit-row.ok { box-shadow: inset 0 0 0 1px rgba(85, 230, 158, 0.12); }
-
-.versions-audit-mf-title { display: flex; align-items: center; gap: 9px; min-width: 0; }
-.versions-audit-mf-title .icon { color: #7d98ff; }
-.versions-audit-mf-title > div { min-width: 0; }
-.versions-audit-mf-title strong { display: block; color: #d7e5f1; font-size: 10px; }
-.versions-audit-mf-title code { display: block; margin-top: 3px; overflow: hidden; color: #60788d; font: 7px "Cascadia Code", Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
-
-.versions-audit-branch code,
-.versions-audit-pkg code { font: 9px "Cascadia Code", Consolas, monospace; color: #a7bac9; }
-
-.versions-audit-env { display: grid; gap: 3px; min-width: 0; }
-.versions-audit-env-status { font-size: 9px; font-weight: 700; }
-.versions-audit-env-version { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 8px "Cascadia Code", Consolas, monospace; color: #87a3b9; }
-.versions-audit-env.status-ok .versions-audit-env-status { color: #73dcb8; }
-.versions-audit-env.status-bad .versions-audit-env-status { color: #ff949a; }
-
-.versions-audit-footnote { margin-top: 16px; color: #8298ab; font-size: 10px; }
-.versions-audit-footnote code { color: #81dcd7; }
-
-@media (max-width: 1100px) {
-  .versions-audit-columns { display: none; }
-  .versions-audit-row { grid-template-columns: minmax(220px, 1.2fr) minmax(120px, .55fr) 1fr; gap: 12px; }
-  .versions-audit-env { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); background: rgba(4, 17, 28, .18); border-radius: 8px; padding: 8px 9px; border: 1px solid #1d394e; }
-  .versions-audit-env + .versions-audit-env { margin-top: 6px; }
-}
 
 main > .hero { display: none; }
 body.launcher-home-view main > .hero { display: grid; }

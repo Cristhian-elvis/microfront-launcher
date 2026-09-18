@@ -16,6 +16,8 @@
  * - La vista no “deduce” reglas críticas localmente; el backend también valida la regla main/master
  *   para evitar actualizaciones inválidas por manipulación del cliente.
  */
+import "./VersionsAuditPage.css";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../lib/api.js";
