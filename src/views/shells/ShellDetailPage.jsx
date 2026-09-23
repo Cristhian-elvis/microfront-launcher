@@ -5,6 +5,7 @@ import { useShellDetailActions } from './hooks/useShellDetailActions.js';
 import { useFlash } from '../../shared/hooks/useFlash.js';
 import { useProjects } from '../../shared/hooks/useProjects.js';
 import { useAppPreferences } from '../../shared/hooks/useAppPreferences.js';
+import { useProjectGitInfo } from './hooks/useProjectGitInfo.js';
 
 export function ShellDetailPage({
   state,
@@ -23,6 +24,7 @@ export function ShellDetailPage({
   const [refreshing, setRefreshing] = useState(false);
 
   const { flash } = useFlash();
+  const { loading: gitLoading } = useProjectGitInfo(project, replaceProject, flash);
   const refreshState = useCallback(async () => {
     await refreshProjects();
   }, [refreshProjects]);
@@ -66,6 +68,7 @@ export function ShellDetailPage({
     <ShellDetailView
       project={project}
       state={state}
+      gitLoading={gitLoading}
       refreshing={refreshing}
       rebuilding={isRebuilding}
       onOpenWebapp={onOpenWebapp}

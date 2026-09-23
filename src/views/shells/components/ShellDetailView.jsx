@@ -5,6 +5,7 @@ import { ShellMicrofrontList } from "./ShellMicrofrontList.jsx";
 export function ShellDetailView({
   project,
   state,
+  gitLoading,
   refreshing,
   rebuilding,
   onBack,
@@ -117,9 +118,29 @@ export function ShellDetailView({
             <span>Microfronts</span>
             <strong>{String(project.microfrontends?.length || 0)}</strong>
           </article>
+          <article>
+            <span>Git shell</span>
+            <strong>
+              {gitLoading
+                ? "Consultando repositorio..."
+                : project.gitInfo?.shell?.branch || "No disponible"}
+            </strong>
+            {project.gitInfo?.shell?.exactTag && (
+              <code>{project.gitInfo.shell.exactTag}</code>
+            )}
+          </article>
+          <article>
+            <span>Git webapp</span>
+            <strong>
+              {gitLoading
+                ? "Consultando repositorio..."
+                : project.gitInfo?.webapp?.branch || "No disponible"}
+            </strong>
+          </article>
         </div>
         <ShellMicrofrontList
           microfronts={project.microfrontends}
+          gitLoading={gitLoading}
           branchOperation={state.microfrontendBranch}
           buildOperation={state.microfrontendBuild}
           operations={state.microfrontendOperations}

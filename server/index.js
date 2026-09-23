@@ -29,6 +29,7 @@ import {
   completeInitialSetup,
   getIndexedProject,
   gitBranchInfo,
+  exactGitTag,
   updateMicrofrontendGitCache,
 } from "./lib/core.js";
 import {
@@ -57,6 +58,7 @@ import { createEnvironmentHandler } from "./handlers/environment-handler.js";
 import { createVersionsAuditHandler } from "./handlers/versions-audit-handler.js";
 import { createApiRouter } from "./routes/api-router.js";
 import { createVsCodeService } from "./services/vscode-service.js";
+import { createProjectGitService } from "./services/project-git-service.js";
 import { json, readBody } from "./lib/http.js";
 import { state } from "./state.js";
 
@@ -1020,7 +1022,7 @@ async function startShell(project, signal) {
   assertNotCancelled(signal);
   if (state.shell.status !== "stopped")
     throw new Error(`Ya hay una shell activa: ${state.shell.name}`);
-  if (!project.configured || !project.appName)
+  if (!project.appName)
     throw new Error(
       "La shell no tiene una aplicación enlazada. Ejecuta primero scaffolding.",
     );
@@ -1032,7 +1034,7 @@ async function startShell(project, signal) {
     throw new Error(
       `El puerto ${configuredPort} ya está ocupado por otra shell o servicio.`,
     );
-  const appIndex = path.join(project.serverPath, project.appName, "index.html");
+  const appIndex = shellBuildIndex(project);
   addLog(project.name, "system", `Validando build local: ${appIndex}`);
   if (!fs.existsSync(appIndex)) {
     const message = `No existe el build local de ${project.appName}. Usa “Reconstruir antes de iniciar”.`;
@@ -1814,6 +1816,11 @@ const findProject = async (projectId) =>
   getIndexedProject(projectId) ||
   (await getProjects()).find((item) => item.id === projectId);
 const vsCodeService = createVsCodeService({ findProject, addLog });
+const projectGitService = createProjectGitService({
+  findProject,
+  gitBranchInfo,
+  exactGitTag,
+});
 const handleMicrofrontendRequest = createMicrofrontendHandler({
   openMicrofrontend: vsCodeService.openMicrofrontend,
   buildMicrofrontend,
@@ -1827,6 +1834,7 @@ const handleProjectsRequest = createProjectsHandler({
   getProjects,
   refreshProjects,
   syncProject,
+  getProjectGitInfo: projectGitService.getProjectGitInfo,
   invalidateScanCache,
   readConfig,
   saveProject,

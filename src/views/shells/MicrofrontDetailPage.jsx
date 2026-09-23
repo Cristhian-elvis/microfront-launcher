@@ -4,6 +4,7 @@ import { MicrofrontDetailView } from "./components/MicrofrontDetailView.jsx";
 import { useMicrofrontDetailActions } from "./hooks/useMicrofrontDetailActions.js";
 import { useFlash } from "../../shared/hooks/useFlash.js";
 import { useProjects } from "../../shared/hooks/useProjects.js";
+import { useProjectGitInfo } from "./hooks/useProjectGitInfo.js";
 
 export function MicrofrontDetailPage({
   state,
@@ -12,8 +13,9 @@ export function MicrofrontDetailPage({
   const decodedShellId = decodeURIComponent(shellId || "");
   const decodedMicrofrontId = decodeURIComponent(microfrontId || "");
   const { flash } = useFlash();
-  const { projects, refreshProjects } = useProjects();
+  const { projects, refreshProjects, replaceProject } = useProjects();
   const project = projects.find((p) => p.id === decodedShellId);
+  const { loading: gitLoading } = useProjectGitInfo(project, replaceProject, flash);
   const microfront = project?.microfrontends?.find(
     (mf) => mf.id === decodedMicrofrontId,
   );
@@ -61,6 +63,7 @@ export function MicrofrontDetailPage({
       microfront={microfront}
       state={state}
       refreshing={refreshing}
+      gitLoading={gitLoading}
       onOpenFolder={onOpenFolder}
       onOpenVsCode={onOpenVsCode}
       onBuild={onBuild}

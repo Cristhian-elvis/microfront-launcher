@@ -159,7 +159,7 @@ export async function gitBranchInfo(projectPath) {
   }
 }
 
-async function exactGitTag(repositoryPath) {
+export async function exactGitTag(repositoryPath) {
   try {
     const { stdout } = await execFileAsync(
       'git',
@@ -189,30 +189,49 @@ function isWebappDirectory(directory) {
   return /^[a-z0-9]{4}_webapp_.+$/i.test(path.basename(directory));
 }
 
-function localAppConfigPath(webappPath) {
-  return path.join(
-    webappPath,
-    'config',
-    path.basename(webappPath),
-    'app-config.json',
+function isShellDirectory(directory) {
+  return path.basename(directory).toLowerCase() === 'mova3_shell';
+}
+
+// MOVA considera enlazada una aplicación cuando su configuración está expuesta
+// dentro de la shell. Descubrimos ese nombre sin validar el contenido: los
+// scripts oficiales (prepare-server, build:local y local-server) siguen siendo
+// los responsables de aceptar o rechazar la configuración al ejecutarse.
+function linkedWebappInfo(shellPath) {
+  const configRoot = path.join(shellPath, 'config');
+  let entries = [];
+  try {
+    entries = fs.readdirSync(configRoot, { withFileTypes: true });
+  } catch {
+    return { appConfig: null, configFolder: null, webappPath: null };
+  }
+
+  const entry = entries.find(
+    (candidate) => candidate.isDirectory() && isWebappDirectory(candidate.name),
   );
+  if (!entry) return { appConfig: null, configFolder: null, webappPath: null };
+
+  const configFolder = entry.name;
+  const appConfigPath = path.join(configRoot, configFolder, 'app-config.json');
+  const workspacePath = path.dirname(shellPath);
+  const candidateWebappPath = path.join(workspacePath, configFolder);
+  return {
+    appConfig: fs.existsSync(appConfigPath) ? readJson(appConfigPath, null) : null,
+    configFolder,
+    webappPath: fs.existsSync(candidateWebappPath)
+      ? candidateWebappPath
+      : null,
+  };
 }
 
-function readLocalAppConfig(webappPath) {
-  const configFolder = path.basename(webappPath);
-  const configPath = localAppConfigPath(webappPath);
-  return fs.existsSync(configPath)
-    ? { appConfig: readJson(configPath, null), configFolder }
-    : { appConfig: null, configFolder: null };
-}
-
-function webappWorkspacePath(webappPath) {
-  return path.dirname(webappPath);
-}
-
-async function shellProfile(shellPath, webappPath, pkg, defaults, { syncGit = false } = {}) {
-  const { appConfig, configFolder } = readLocalAppConfig(webappPath);
-  const workspacePath = webappWorkspacePath(webappPath);
+async function shellProfile(
+  shellPath,
+  pkg,
+  defaults,
+  { syncGit = false, includeGit = syncGit } = {},
+) {
+  const { appConfig, configFolder, webappPath } = linkedWebappInfo(shellPath);
+  const workspacePath = path.dirname(shellPath);
 
   const appName = appConfig?.app || configFolder || null;
   const serverPath = path.join(workspacePath, 'server');
@@ -237,7 +256,9 @@ async function shellProfile(shellPath, webappPath, pkg, defaults, { syncGit = fa
           // La información local sigue siendo útil si el remoto no está disponible.
         }
       }
-      const git = await gitBranchInfo(microfrontendPath);
+      const git = includeGit
+        ? await gitBranchInfo(microfrontendPath)
+        : { branch: null, branches: [] };
 
       return {
         id: projectId(microfrontendPath), name, path: microfrontendPath,
@@ -256,7 +277,7 @@ async function shellProfile(shellPath, webappPath, pkg, defaults, { syncGit = fa
   const microfrontends = microfrontendsRaw.filter(Boolean); // Limpiamos los nulls
   const serverPort = Number(defaults.serverPort || 8080);
   const frameworkVersion = appConfig?.frameworkVersion || null;
-  const shellTag = await exactGitTag(shellPath);
+  const shellTag = includeGit ? await exactGitTag(shellPath) : null;
   const shellPackageVersion = pkg.version || null;
   const shellDependenciesReady = fs.existsSync(path.join(shellPath, 'node_modules'));
   
@@ -264,16 +285,18 @@ async function shellProfile(shellPath, webappPath, pkg, defaults, { syncGit = fa
     command: pkg.scripts?.['local-server'] ? 'npm run local-server' : defaults.command,
     url: appName ? `http://127.0.0.1:${serverPort}/${appName}/` : defaults.url.replace('localhost', '127.0.0.1'),
     serverUrl: `http://localhost:${serverPort}`, serverPort, serverPath,
-    appName, configFolder, frameworkVersion, shellTag, shellPackageVersion, shellDependenciesReady,
-    configured: Boolean(
-      appName &&
-      shellDependenciesReady &&
-      shellMatchesFrameworkVersion(
-        frameworkVersion,
-        shellTag,
-        shellPackageVersion,
-      ),
-    ),
+    appName, configFolder, webappPath, frameworkVersion, shellTag, shellPackageVersion, shellDependenciesReady,
+    configured: includeGit
+      ? Boolean(
+          appName &&
+          shellDependenciesReady &&
+          shellMatchesFrameworkVersion(
+            frameworkVersion,
+            shellTag,
+            shellPackageVersion,
+          ),
+        )
+      : undefined,
     workflow: {
       scaffolding: Boolean(pkg.scripts?.scaffolding),
       prepareServer: Boolean(pkg.scripts?.['prepare-server']),
@@ -291,17 +314,19 @@ export async function scanShells(rootPath, defaults) {
   
   const ignored = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.angular', '.nx', '.next']);
   const pending = [{ directory: rootPath, depth: 0 }];
-  const webappsToProcess = [];
+  const shellsToProcess = [];
 
   while (pending.length) {
     const { directory: current, depth } = pending.pop();
-    if (isWebappDirectory(current)) {
-      const shellPath = path.join(path.dirname(current), 'mova3_shell');
-      const packagePath = path.join(shellPath, 'package.json');
+    if (isShellDirectory(current)) {
+      const packagePath = path.join(current, 'package.json');
       const pkg = fs.existsSync(packagePath) ? readJson(packagePath, {}) : {};
-      webappsToProcess.push({ shellPath, webappPath: current, pkg });
+      shellsToProcess.push({ shellPath: current, pkg });
       continue;
     }
+    // El webapp no es la unidad que descubrimos, pero tampoco es necesario
+    // recorrer su contenido para encontrar una shell: ambas rutas son hermanas.
+    if (isWebappDirectory(current)) continue;
     let entries;
     try { entries = fs.readdirSync(current, { withFileTypes: true }); }
     catch { continue; }
@@ -316,20 +341,25 @@ export async function scanShells(rootPath, defaults) {
   }
 
   const found = await Promise.all(
-    webappsToProcess.map(async ({ shellPath, webappPath, pkg }) => {
-      const profile = await shellProfile(shellPath, webappPath, pkg, defaults);
+    shellsToProcess.map(async ({ shellPath, pkg }) => {
+      const profile = await shellProfile(shellPath, pkg, defaults);
+      // Una shell aislada no es un proyecto operable para el launcher. La
+      // webapp debe existir físicamente como carpeta hermana y estar asociada
+      // desde config de la shell.
+      if (!profile.webappPath) return null;
       return {
-        id: projectId(webappPath),
-        name: path.basename(webappPath),
+        id: projectId(shellPath),
+        name: profile.configFolder || path.basename(path.dirname(shellPath)),
         path: shellPath,
-        webappPath,
         ...profile,
         detected: true
       };
     })
   );
 
-  const projects = found.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  const projects = found
+    .filter(Boolean)
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'));
   scanCache = { rootPath, projects };
   return projects;
 }
@@ -379,10 +409,9 @@ export async function syncProject(projectId) {
 
   const profile = await shellProfile(
     currentProject.path,
-    currentProject.webappPath || path.dirname(currentProject.path),
     readJson(packagePath, {}),
     config.shellDefaults,
-    { syncGit: true },
+    { syncGit: true, includeGit: true },
   );
   const updatedProject = {
     ...currentProject,

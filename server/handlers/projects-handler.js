@@ -16,6 +16,7 @@ function runGit(args, cwd) {
 
 export function createProjectsHandler({
   getState, getProjects, refreshProjects, syncProject, invalidateScanCache,
+  getProjectGitInfo,
   readConfig, saveProject, hideProject, needsInitialSetup,
   completeInitialSetup, writeJson, configPath, selectLocalDirectory, openScaffolding,
   openProjectWebapp,
@@ -28,6 +29,11 @@ export function createProjectsHandler({
     if (method === 'GET' && pathname === '/api/projects') { json(response, 200, await getProjects()); return true; }
     if (method === 'POST' && pathname === '/api/projects/refresh') {
       json(response, 200, await refreshProjects());
+      return true;
+    }
+    if (method === 'GET' && pathname.startsWith('/api/projects/') && pathname.endsWith('/git-info')) {
+      const projectId = decodeURIComponent(pathname.split('/')[3]);
+      json(response, 200, await getProjectGitInfo(projectId));
       return true;
     }
     if (method === 'GET' && pathname.startsWith('/api/projects/') && !pathname.endsWith('/refresh')) {

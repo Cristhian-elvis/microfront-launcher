@@ -62,7 +62,7 @@ export function HomePage({
 
   const displayLogs = consoleTab === "build" ? buildLogs : environmentLogs;
   const selectableProjects = useMemo(
-    () => projects.filter((project) => project.configured),
+    () => projects,
     [projects],
   );
   const selectedShell = selectableProjects.find(

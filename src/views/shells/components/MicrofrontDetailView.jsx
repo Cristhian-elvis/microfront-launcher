@@ -15,6 +15,7 @@ export function MicrofrontDetailView({
   microfront,
   state,
   refreshing,
+  gitLoading,
   onBack,
   onOpenFolder,
   onOpenVsCode,
@@ -176,7 +177,9 @@ export function MicrofrontDetailView({
 
           <article className="microfront-detail-info">
             <span>Rama actual</span>
-            <strong>{microfront.branch || "No disponible"}</strong>
+            <strong>
+              {gitLoading ? "Consultando..." : microfront.branch || "No disponible"}
+            </strong>
           </article>
 
           <article className="microfront-detail-info">

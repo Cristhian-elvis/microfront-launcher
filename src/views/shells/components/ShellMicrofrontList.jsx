@@ -4,6 +4,7 @@ import { Icon } from "../../../shared/components/Icon.jsx";
 
 export function ShellMicrofrontList({
   microfronts = [],
+  gitLoading = false,
   branchOperation,
   buildOperation,
   operations = {},
@@ -424,7 +425,7 @@ export function ShellMicrofrontList({
               const building = buildIsRunning(microfront);
               const shownBranch =
                 branchOverrides[microfront.id] ||
-                microfront.branch ||
+                (gitLoading ? "Consultando..." : microfront.branch) ||
                 "No disponible";
               const localBuildAvailable =
                 localBuildOverrides[microfront.id] ??
