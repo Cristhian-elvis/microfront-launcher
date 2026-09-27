@@ -1,0 +1,9 @@
+@reference "../../../styles.css";
+
+.nav-link {
+  @apply flex items-center gap-3 rounded-md px-3 py-2.5 text-surface-600 no-underline transition-colors hover:bg-emphasis hover:text-surface-950 dark:text-surface-300 dark:hover:text-surface-0;
+}
+
+.nav-link-active {
+  @apply bg-primary text-primary-contrast hover:bg-primary hover:text-primary-contrast;
+}
