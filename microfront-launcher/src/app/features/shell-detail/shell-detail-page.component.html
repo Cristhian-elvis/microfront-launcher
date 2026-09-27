@@ -1,0 +1,15 @@
+<section class="shell-detail" *ngIf="!loading && project; else loadingState">
+  <header class="detail-header">
+    <div><p-button icon="pi pi-arrow-left" styleClass="p-button-text p-button-rounded" ariaLabel="Volver a shells" (onClick)="back()"></p-button><div><h1>Proyecto: {{ displayName }}</h1><p>Configuración y vínculos locales del proyecto.</p></div></div>
+    <div class="toolbar"><p-button label="Ver estado versiones" icon="pi pi-search" styleClass="p-button-outlined" [disabled]="operating" (onClick)="viewVersions()"></p-button><p-button [label]="pending ? 'Sincronizando…' : 'Sincronizar'" icon="pi pi-refresh" styleClass="p-button-outlined" [loading]="pending" [disabled]="operating" (onClick)="refresh()"></p-button><p-button label="Reconstruir todo" icon="pi pi-refresh" styleClass="p-button-outlined" [disabled]="operating || active" (onClick)="action('/api/shell/rebuild', { projectId: project.id })"></p-button></div>
+  </header>
+  <div class="summary-grid">
+    <article><span>Webapp asociada</span><strong>{{ project.appName || project.name || 'Sin configurar' }}</strong><code>{{ project.webappPath || 'No disponible' }}</code><p-button label="Abrir en VS Code" icon="pi pi-code" styleClass="p-button-outlined" [disabled]="operating || !project.webappPath" (onClick)="action('/api/projects/open-webapp', { projectId: project.id })"></p-button></article>
+    <article><span>Ruta shell</span><strong>{{ project.path || 'No disponible' }}</strong></article>
+    <article><span>Microfronts</span><strong>{{ project.microfrontends?.length || 0 }}</strong></article>
+    <article><span>Git shell</span><strong>{{ project.gitInfo?.shell?.branch || 'No disponible' }}</strong><code *ngIf="project.gitInfo?.shell?.exactTag">{{ project.gitInfo?.shell?.exactTag }}</code></article>
+    <article><span>Git webapp</span><strong>{{ project.gitInfo?.webapp?.branch || 'No disponible' }}</strong></article>
+  </div>
+<section class="microfronts"><header><h2>Microfrontends</h2><span>{{ project.microfrontends?.length || 0 }} registrados</span></header><p-table [value]="project.microfrontends || []" [rowHover]="true"><ng-template pTemplate="header"><tr><th>Microfrontend</th><th>Rama</th><th>Estado</th><th>Acciones</th></tr></ng-template><ng-template pTemplate="body" let-microfront><tr><td><strong>{{ microfront.name }}</strong><code>{{ microfront.path }}</code></td><td>{{ microfront.branch || 'No disponible' }}</td><td><p-tag [value]="microfront.outOfSync ? 'Pendiente de sincronizar' : 'Al día'" [severity]="microfront.outOfSync ? 'warn' : 'success'"></p-tag></td><td><p-button icon="pi pi-cog" styleClass="p-button-rounded p-button-text" ariaLabel="Ver detalle" (onClick)="openMicrofront(microfront.id)"></p-button></td></tr></ng-template></p-table></section>
+</section>
+<ng-template #loadingState><div class="loading"><p-progressSpinner strokeWidth="3"></p-progressSpinner><span>Cargando shell…</span></div></ng-template>

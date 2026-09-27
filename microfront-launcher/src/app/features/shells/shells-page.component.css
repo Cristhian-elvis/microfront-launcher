@@ -1,0 +1,89 @@
+.shells-page {
+  min-width: 0;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  margin: 0;
+  color: #eef8ff;
+  font-size: 30px;
+}
+
+.page-header p {
+  margin: 7px 0 0;
+  color: #8da7bb;
+}
+
+.toolbar,
+.actions {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar {
+  gap: 10px;
+}
+
+.search-field {
+  min-width: 270px;
+}
+
+.search-field input {
+  width: 100%;
+}
+
+.webapp {
+  color: #a6bfd1;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+}
+
+.actions {
+  justify-content: flex-end;
+}
+
+.favorite {
+  color: #6f8ba1;
+}
+
+.favorite.selected {
+  color: #f6c453;
+}
+
+.loading {
+  display: grid;
+  min-height: 260px;
+  place-content: center;
+  justify-items: center;
+  gap: 15px;
+  color: #9eb5c7;
+}
+
+.empty {
+  padding: 28px !important;
+  color: #8da7bb;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .page-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbar,
+  .search-field {
+    width: 100%;
+  }
+
+  .search-field {
+    min-width: 0;
+  }
+}

@@ -66,6 +66,40 @@ npm install --cache .npm-cache
 npm run build
 ```
 
+## Frontend Angular 15
+
+El frontend migrado se encuentra en `frontend-angular` y usa Angular `15.2.10`.
+Para levantarlo en desarrollo se requieren dos terminales: una para la API local
+del launcher y otra para Angular.
+
+Terminal 1, desde la raíz del proyecto:
+
+```powershell
+npm run start
+```
+
+La API queda disponible en `http://127.0.0.1:3187`.
+
+Terminal 2:
+
+```powershell
+cd frontend-angular
+npm install
+npm run start -- --host 127.0.0.1 --port 4200
+```
+
+Abre `http://127.0.0.1:4200/`. Angular redirige las solicitudes `/api` al
+launcher local mediante `frontend-angular/proxy.conf.json`.
+
+Para detener el frontend Angular, presiona `Ctrl + C` en su terminal. Para
+reiniciarlo, vuelve a ejecutar el último comando. Para crear una compilación
+de producción:
+
+```powershell
+cd frontend-angular
+npm run build
+```
+
 ## Pendiente
 
 - Mostrar los microfrontends asociados a cada shell.
