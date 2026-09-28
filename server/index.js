@@ -54,25 +54,36 @@ import { createBrowserHandler } from "./handlers/browser-handler.js";
 import { createStateHandler } from "./handlers/state-handler.js";
 import { createMovaHandler } from "./handlers/mova-handler.js";
 import { createComponentsHandler } from "./handlers/components-handler.js";
-import { createEnvironmentHandler } from "./handlers/environment-handler.js";
+import { createEnvironmentModel } from "./api/environment/model.js";
+import { createEnvironmentHandler } from "./api/environment/handler.js";
+import { createEnvironmentRouter } from "./api/environment/router.js";
+import { createEnvironmentExecutionState } from "./api/environment/execution-state.js";
+import { createEnvironmentLifecycle } from "./api/environment/lifecycle.js";
+import { createEnvironmentOperation } from "./api/environment/operation.js";
+import { createEnvironmentService } from "./api/environment/service.js";
 import { createVersionsAuditHandler } from "./handlers/versions-audit-handler.js";
 import { createApiRouter } from "./routes/api-router.js";
 import { createVsCodeService } from "./services/vscode-service.js";
 import { createProjectGitService } from "./services/project-git-service.js";
+import { createMicrofrontendRuntimeService } from "./services/microfrontend-runtime-service.js";
+import { assertNotCancelled, runProcessStep } from "./services/process-runner-service.js";
+import { createShellRuntimeService } from "./services/shell-runtime-service.js";
+import { selectedVersion } from "./services/components-version-service.js";
+import { createComponentsRuntimeService } from "./services/components-runtime-service.js";
 import { json, readBody } from "./lib/http.js";
 import { state } from "./state.js";
 
 const host = "127.0.0.1";
 const port = Number(process.env.PORT || 3187);
 
-let environmentOperation = null;
 let buildOperation = null;
 let branchOperation = null;
-let microfrontendBatchOperation = null;
 
 function emitState() {
   emit("state", getState());
 }
+
+const environmentOperation = createEnvironmentOperation({ onChange: emitState });
 
 function getState() {
   return {
@@ -80,15 +91,20 @@ function getState() {
     processes: processStatus(),
     servers: serverStatus(),
     preferences: readPreferences(),
-    busy: Boolean(environmentOperation),
+    busy: environmentOperation.isRunning(),
     buildBusy: Boolean(buildOperation),
   };
 }
 
-function updateSession(patch) {
-  state.session = { ...state.session, ...patch };
-  emitState();
-}
+const {
+  updateSession,
+  beginExecution,
+  updateExecution,
+  updateExecutionStep,
+  recordStartValidationError,
+  runTrackedStage,
+  clearExecutionForRestart,
+} = createEnvironmentExecutionState({ emitState });
 
 function updateBuild(patch) {
   state.build = { ...state.build, ...patch };
@@ -120,284 +136,29 @@ function updateMicrofrontendOperation(kind, projectId, microfrontendId, patch) {
   emitState();
 }
 
-function beginExecution(project, steps, kind = "start") {
-  state.execution = {
-    status: "running",
-    kind,
-    projectId: project.id,
-    projectName: project.name,
-    steps: steps.map((step) => ({
-      ...step,
-      status: "pending",
-      message: null,
-      startedAt: null,
-      endedAt: null,
-    })),
-    error: null,
-    startedAt: new Date().toISOString(),
-    endedAt: null,
-  };
-  emitState();
-}
 
-function updateExecution(patch) {
-  state.execution = { ...state.execution, ...patch };
-  emitState();
-}
 
-function updateExecutionStep(id, patch) {
-  state.execution = {
-    ...state.execution,
-    steps: state.execution.steps.map((step) =>
-      step.id === id ? { ...step, ...patch } : step,
-    ),
-  };
-  emitState();
-}
 
-function recordStartValidationError(project, error) {
-  const now = new Date().toISOString();
-  state.execution = {
-    status: "error",
-    kind: "start",
-    projectId: project.id,
-    projectName: project.name,
-    steps: [
-      {
-        id: "validation",
-        label: "Validar inicio",
-        command: "Validar shell y MOVA Components",
-        status: "error",
-        message: error.message,
-        startedAt: now,
-        endedAt: now,
-      },
-    ],
-    error: error.message,
-    startedAt: now,
-    endedAt: now,
-  };
-  emitState();
-}
 
-async function runTrackedStage({ id, message, task }) {
-  const startedAt = new Date().toISOString();
-  const index = state.execution.steps.findIndex((step) => step.id === id);
-  const step = state.execution.steps[index];
-  const label = step?.label || id;
-  const action = step?.command || message;
-  addLog(action, "stage", step?.detail || message);
-  updateSession({ stage: id, message: action });
-  updateExecutionStep(id, { status: "running", startedAt, message: null });
-  try {
-    const result = await task();
-    updateExecutionStep(id, {
-      status: "success",
-      endedAt: new Date().toISOString(),
-    });
-    return result;
-  } catch (error) {
-    updateExecutionStep(id, {
-      status: "error",
-      message: error.message,
-      endedAt: new Date().toISOString(),
-    });
-    addLog(label, "error", error.message);
-    throw error;
-  }
-}
 
-function resetRuntimeState() {
-  state.components = {
-    status: "stopped",
-    url: null,
-    version: null,
-    tag: null,
-    external: false,
-  };
-  state.shell = {
-    status: "stopped",
-    url: null,
-    projectId: null,
-    name: null,
-    appName: null,
-    external: false,
-  };
-  state.microfrontend = {
-    status: "stopped",
-    projectId: null,
-    id: null,
-    name: null,
-    version: null,
-  };
-}
 
-async function cleanupStartedResources() {
-  if (state.shell.status !== "stopped")
-    addLog("Shell", "info", "Deteniendo servidor HTTP de la shell.");
-  await stopEnvironmentProcesses();
-  await stopAllStaticServers();
-  resetRuntimeState();
-  emitState();
-}
 
-async function stopEnvironmentInternals({
-  reason = "Entorno detenido",
-  emitStopExecution = true,
-  emitFinalSession = true,
-  abortOperation = true,
-} = {}) {
-  const operationToStop = environmentOperation;
-  if (abortOperation) operationToStop?.controller.abort();
-  const projectName = state.shell.name || "Shell";
 
-  if (emitStopExecution) {
-    const stopSteps = [
-      ...(state.shell.status !== "stopped"
-        ? [
-            {
-              id: "stopShell",
-              label: projectName,
-              command: "Detener shell",
-              detail: "Cerrar servidor HTTP interno",
-            },
-          ]
-        : []),
-    ];
-    state.execution = {
-      status: "running",
-      kind: "stop",
-      projectId: state.shell.projectId,
-      projectName,
-      steps: stopSteps.map((step) => ({
-        ...step,
-        status: "pending",
-        startedAt: null,
-        endedAt: null,
-      })),
-      error: null,
-      startedAt: new Date().toISOString(),
-      endedAt: null,
-    };
-    updateSession({ status: "stopping", stage: "stopping", message: reason });
-  }
 
-  const stopStep = async (id, message, task) => {
-    if (!emitStopExecution) {
-      await task();
-      return;
-    }
-    const index = state.execution.steps.findIndex((step) => step.id === id);
-    const action = state.execution.steps[index]?.command || message;
-    updateExecutionStep(id, {
-      status: "running",
-      startedAt: new Date().toISOString(),
-    });
-    addLog(action, "stage", message);
-    await task();
-    updateExecutionStep(id, {
-      status: "success",
-      endedAt: new Date().toISOString(),
-    });
-  };
-
-  try {
-    if (state.shell.status !== "stopped")
-      await stopStep(
-        "stopShell",
-        "Deteniendo servidor HTTP de la shell.",
-        async () => {
-          await stopStaticServer("shell");
-          state.shell = {
-            status: "stopped",
-            url: null,
-            projectId: null,
-            name: null,
-            appName: null,
-            external: false,
-          };
-          if (emitStopExecution) emitState();
-        },
-      );
-    if (state.components.status !== "stopped") {
-      await stopStaticServer("components");
-      state.components = {
-        status: "stopped",
-        url: null,
-        version: null,
-        tag: null,
-        external: false,
-      };
-      addLog(
-        "MOVA Components",
-        "success",
-        "Components detenido junto con la shell.",
-      );
-      if (emitStopExecution) emitState();
-    }
-    await stopEnvironmentProcesses();
-    state.microfrontend = {
-      status: "stopped",
-      projectId: null,
-      id: null,
-      name: null,
-      version: null,
-    };
-    if (emitStopExecution) {
-      updateExecution({ status: "success", endedAt: new Date().toISOString() });
-    }
-  } catch (error) {
-    if (emitStopExecution) {
-      updateExecution({
-        status: "error",
-        error: error.message,
-        endedAt: new Date().toISOString(),
-      });
-    }
-    throw error;
-  }
-
-  if (abortOperation && environmentOperation === operationToStop) {
-    environmentOperation = null;
-  }
-
-  if (emitFinalSession) {
-    updateSession({
-      status: "idle",
-      stage: "idle",
-      plan: null,
-      message: reason,
-      projectId: null,
-      projectName: null,
-      startedAt: null,
-    });
-  }
-}
-
-function clearExecutionForRestart() {
-  state.execution = {
-    status: "idle",
-    kind: null,
-    projectId: null,
-    projectName: null,
-    steps: [],
-    error: null,
-    startedAt: null,
-    endedAt: null,
-  };
-  emitState();
-}
-
-async function stopForRestart(reason = "Reiniciando entorno") {
-  await stopEnvironmentInternals({
-    reason,
-    emitStopExecution: false,
-    emitFinalSession: false,
-    abortOperation: false,
-  });
-  clearExecutionForRestart();
-  emitState();
-}
+const {
+  resetRuntimeState,
+  cleanupStartedResources,
+  stopEnvironmentInternals,
+  stopForRestart,
+} = createEnvironmentLifecycle({
+  emitState,
+  updateSession,
+  updateExecution,
+  updateExecutionStep,
+  clearExecutionForRestart,
+  getEnvironmentOperation: environmentOperation.get,
+  clearEnvironmentOperation: environmentOperation.clear,
+});
 
 async function stopEnvironmentProcesses() {
   const records = [...childProcesses.entries()].filter(
@@ -410,59 +171,23 @@ async function stopEnvironmentProcesses() {
   ]);
 }
 
-function selectedVersion() {
-  const preferences = readPreferences();
-  if (!preferences.preferredTag) return null;
-  return getVersions().find((item) => item.tag === preferences.preferredTag) || null;
-}
-
-function beginOperation(type, details = {}) {
-  const key = type === "build" ? "buildOperation" : "environmentOperation";
-  if (key === "buildOperation" ? buildOperation : environmentOperation)
-    throw new Error(
-      type === "build"
-        ? "Ya hay una compilación en curso."
-        : "Ya hay una operación de entorno en curso.",
-    );
+function beginBuildOperation(details = {}) {
+  if (buildOperation)
+    throw new Error("Ya hay una compilación en curso.");
   const controller = new AbortController();
   const next = {
     id: `${Date.now()}-${Math.random()}`,
-    type,
+    type: "build",
     controller,
     ...details,
   };
-  if (key === "buildOperation") buildOperation = next;
-  else environmentOperation = next;
+  buildOperation = next;
   return next;
 }
 
-function endOperation(id) {
-  if (environmentOperation?.id === id) environmentOperation = null;
+function endBuildOperation(id) {
   if (buildOperation?.id === id) buildOperation = null;
   emitState();
-}
-
-function assertNotCancelled(signal) {
-  if (signal?.aborted) throw new Error("Operación cancelada");
-}
-
-async function runProcessStep({ key, label, file, args, cwd, signal }) {
-  assertNotCancelled(signal);
-  const record = spawnManaged({
-    key,
-    label,
-    file,
-    args,
-    cwd,
-    longRunning: false,
-  });
-  const abort = () => stopProcess(key);
-  signal?.addEventListener("abort", abort, { once: true });
-  const result = await record.done;
-  signal?.removeEventListener("abort", abort);
-  assertNotCancelled(signal);
-  if (result.code !== 0)
-    throw new Error(`${label} terminó con código ${result.code}.`);
 }
 
 async function buildComponents(version, signal, { force = false } = {}) {
@@ -570,7 +295,7 @@ async function buildComponents(version, signal, { force = false } = {}) {
 async function compileVersion(tag) {
   const version = getVersions().find((item) => item.tag === tag);
   if (!version) throw new Error("La versión seleccionada no existe.");
-  const current = beginOperation("build", { tag });
+  const current = beginBuildOperation({ tag });
   updateBuild({
     status: "building",
     tag,
@@ -597,7 +322,7 @@ async function compileVersion(tag) {
     });
     throw error;
   } finally {
-    endOperation(current.id);
+    endBuildOperation(current.id);
   }
 }
 
@@ -613,95 +338,11 @@ function cancelBuild() {
   updateBuild({ message: `Cancelando compilación de ${buildOperation.tag}` });
 }
 
-async function ensureComponents(project, version, signal) {
-  assertNotCancelled(signal);
-  if (!version)
-    throw new Error(
-      "Selecciona una versión de MOVA Components antes de iniciar la shell.",
-    );
-  const paths = await buildComponents(version, signal);
-  const link = componentsLinkPath(project);
-  assertInside(project.serverPath, link);
-  addLog(
-    "MOVA Components",
-    "stage",
-    `Verificando asociación para ${version.tag}.`,
-  );
-  replaceManagedComponentsLink(link);
-  assertNotCancelled(signal);
-  addLog(
-    "MOVA Components",
-    "stage",
-    "Creando asociación de Components en server.",
-  );
-  fs.symlinkSync(paths.dist, link, "junction");
-  // La librería queda activa como parte del entorno de la shell.
-  state.components = {
-    status: "running",
-    url: project.url,
-    version: version.version,
-    tag: version.tag,
-    external: false,
-  };
-  addLog("MOVA Components", "success", "Asociación creada correctamente.");
-  emitState();
-}
-
-function componentsLinkPath(project) {
-  return path.join(project.serverPath, "cudc-lib-componentes-stencil-VAL");
-}
-
-function isPathInside(parent, candidate) {
-  const relative = path.relative(path.resolve(parent), path.resolve(candidate));
-  return !relative.startsWith("..") && !path.isAbsolute(relative);
-}
-
-function resolveLinkTarget(link) {
-  try {
-    return fs.realpathSync.native(link);
-  } catch {
-    return path.resolve(path.dirname(link), fs.readlinkSync(link));
-  }
-}
-
-function inspectComponentsLink(link) {
-  try {
-    const info = fs.lstatSync(link);
-    if (!info.isSymbolicLink()) {
-      return { kind: info.isDirectory() ? "directory" : "file" };
-    }
-    const target = resolveLinkTarget(link);
-    return {
-      kind: "link",
-      target,
-      managed:
-        path.basename(target).toLowerCase() === "dist" &&
-        isPathInside(versionsRoot, target),
-    };
-  } catch (error) {
-    if (error.code === "ENOENT") return { kind: "missing" };
-    throw error;
-  }
-}
-
-function replaceManagedComponentsLink(link) {
-  const existing = inspectComponentsLink(link);
-  if (existing.kind === "missing") return;
-  if (existing.kind === "link" && existing.managed) {
-    addLog(
-      "MOVA Components",
-      "system",
-      `Reemplazando asociación administrada: ${existing.target}`,
-    );
-    fs.rmSync(link, { recursive: true, force: true });
-    return;
-  }
-
-  const detail = existing.target ? ` (${existing.target})` : "";
-  throw new Error(
-    `La ruta de MOVA Components ya existe como ${existing.kind}${detail} y no fue creada por el launcher.`,
-  );
-}
+const componentsRuntime = createComponentsRuntimeService({
+  buildComponents,
+  emitState,
+});
+const { ensureComponents } = componentsRuntime;
 
 async function startComponentsStandalone() {
   const version = selectedVersion();
@@ -742,43 +383,10 @@ async function stopComponents() {
   emitState();
 }
 
-function startMicrofrontend(project, microfrontend, signal) {
-  assertNotCancelled(signal);
-  if (!microfrontend?.watchAvailable)
-    throw new Error(
-      `El microfrontend ${microfrontend?.name || ""} no define npm run watch.`,
-    );
-  const key = `microfrontend:${project.id}:${microfrontend.id}`;
-  state.microfrontend = {
-    status: "starting",
-    projectId: project.id,
-    id: microfrontend.id,
-    name: microfrontend.name,
-    version: microfrontend.version,
-  };
-  emitState();
-  const record = spawnManaged({
-    key,
-    label: microfrontend.name,
-    file: process.platform === "win32" ? "npm.cmd" : "npm",
-    args: ["run", "watch"],
-    cwd: microfrontend.path,
-  });
-  record.done.then(() => {
-    if (state.microfrontend.id === microfrontend.id) {
-      state.microfrontend = {
-        status: "stopped",
-        projectId: null,
-        id: null,
-        name: null,
-        version: null,
-      };
-      emitState();
-    }
-  });
-  state.microfrontend = { ...state.microfrontend, status: "running" };
-  emitState();
-}
+const microfrontendRuntime = createMicrofrontendRuntimeService({
+  emitState,
+});
+const { startMicrofrontend } = microfrontendRuntime;
 
 function buildMicrofrontend(project, microfrontend) {
   if (branchOperation || state.microfrontendBuild.status === "running") {
@@ -1018,67 +626,8 @@ async function startMicrofrontendBranchBatch(
     });
 }
 
-async function startShell(project, signal) {
-  assertNotCancelled(signal);
-  if (state.shell.status !== "stopped")
-    throw new Error(`Ya hay una shell activa: ${state.shell.name}`);
-  if (!project.appName)
-    throw new Error(
-      "La shell no tiene una aplicación enlazada. Ejecuta primero scaffolding.",
-    );
-  const configuredPort = Number(readConfig().shellDefaults.serverPort || 8080);
-  const shellUrl = new URL(project.url);
-  shellUrl.port = String(configuredPort);
-  const occupied = await inspectHttp(shellUrl.toString());
-  if (occupied.reachable)
-    throw new Error(
-      `El puerto ${configuredPort} ya está ocupado por otra shell o servicio.`,
-    );
-  const appIndex = shellBuildIndex(project);
-  addLog(project.name, "system", `Validando build local: ${appIndex}`);
-  if (!fs.existsSync(appIndex)) {
-    const message = `No existe el build local de ${project.appName}. Usa “Reconstruir antes de iniciar”.`;
-    addLog(project.name, "error", message);
-    throw new Error(message);
-  }
-  addLog(project.name, "system", "Build local encontrado. Iniciando la shell.");
-  state.shell = {
-    status: "starting",
-    url: shellUrl.toString(),
-    projectId: project.id,
-    name: project.name,
-    appName: project.appName,
-    external: false,
-  };
-  emitState();
-  await startStaticServer({
-    key: "shell",
-    label: project.name,
-    root: project.serverPath,
-    port: configuredPort,
-    fallbackIndex: false,
-    fallbackFile: path.join(project.appName, "index.html"),
-    cors: true,
-  });
-  await waitForUrl(shellUrl.toString(), { signal });
-  state.shell = {
-    status: "running",
-    url: shellUrl.toString(),
-    projectId: project.id,
-    name: project.name,
-    appName: project.appName,
-    external: false,
-  };
-  emitState();
-}
-
-function shellBuildIndex(project) {
-  return path.join(project.serverPath, project.appName || "", "index.html");
-}
-
-function needsShellBuild(project) {
-  return !project.appName || !fs.existsSync(shellBuildIndex(project));
-}
+const shellRuntime = createShellRuntimeService({ emitState });
+const { needsShellBuild, startShell } = shellRuntime;
 
 function browserSettings(config = readConfig()) {
   const mode = config.chrome.browser;
@@ -1174,420 +723,9 @@ async function openOrRequestBrowser(project) {
   emitState();
 }
 
-async function runEnvironment(projectId, options = {}) {
-  clearExecutionForRestart();
-  addLog(
-    "Entorno",
-    "stage",
-    "Iniciando proceso. Validando la shell y MOVA Components…",
-  );
-  // AÑADIDO: await
-  const project = (await getProjects()).find((item) => item.id === projectId);
-  if (!project) throw new Error("Shell no encontrada.");
-  const validationStartedAt = new Date().toISOString();
-  let includeComponents;
-  let version;
-  let microfrontend;
-  let automaticBuild;
-  try {
-    if (state.shell.status !== "stopped")
-      throw new Error(`Ya hay una shell activa: ${state.shell.name}`);
-    includeComponents = true;
-    version = includeComponents ? selectedVersion() : null;
-    if (includeComponents && !version)
-      throw new Error(
-        "Selecciona una versión de MOVA Components antes de iniciar la shell.",
-      );
-    microfrontend = options.microfrontendId
-      ? project.microfrontends?.find(
-          (item) => item.id === options.microfrontendId,
-        )
-      : null;
-    if (options.microfrontendId && !microfrontend)
-      throw new Error(
-        "El microfrontend seleccionado no pertenece a esta shell.",
-      );
-    const buildMode = readConfig().shellDefaults.buildMode;
-    const buildMissing = needsShellBuild(project);
-    if (buildMissing && buildMode === "never") {
-      throw new Error(
-        `No existe el build local de ${project.appName || project.name}. La configuración global indica solo levantar, sin reconstruir.`,
-      );
-    }
-    automaticBuild =
-      buildMode === "always" || (buildMode === "automatic" && buildMissing);
-    if (
-      automaticBuild &&
-      (!project.workflow?.prepareServer || !project.workflow?.buildLocal)
-    ) {
-      throw new Error(
-        `No existe el build local de ${project.appName || project.name} y la shell no define prepare-server y build:local para generarlo automáticamente.`,
-      );
-    }
-    updateExecutionStep("validation", {
-      status: "success",
-      endedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    recordStartValidationError(project, error);
-    throw error;
-  }
-  const current = beginOperation("environment", {
-    projectId,
-    microfrontendId: microfrontend?.id || null,
-  });
-  const signal = current.controller.signal;
-  const plan = [
-    ...(includeComponents ? ["components"] : []),
-    ...(automaticBuild ? ["prepare", "buildShell"] : []),
-    ...(microfrontend ? ["microfrontend"] : []),
-    "shell",
-  ];
-  const steps = [
-    {
-      id: "validation",
-      label: "Validar inicio",
-      command: "Validar shell y MOVA Components",
-      detail: "Comprobando el build local y la configuración requerida.",
-    },
-    ...(includeComponents
-      ? [
-          {
-            id: "components",
-            label: "MOVA Components",
-            command: "Compilar Components en la shell",
-            detail:
-              "Instalando la librería dentro de server/cudc-lib-componentes-stencil-VAL",
-          },
-        ]
-      : []),
-    ...(automaticBuild
-      ? [
-          {
-            id: "prepare",
-            label: "Preparar servidor",
-            command: "Preparar servidor de la shell",
-            detail: "Ejecutando: npm run prepare-server",
-          },
-          {
-            id: "buildShell",
-            label: "Compilar shell",
-            command: "Construir shell local",
-            detail: "Ejecutando: npm run build:local",
-          },
-        ]
-      : []),
-    ...(microfrontend
-      ? [
-          {
-            id: "microfrontend",
-            label: microfrontend.name,
-            command: "Iniciar watch del microfrontend",
-            detail: "Ejecutando: npm run watch",
-          },
-        ]
-      : []),
-    {
-      id: "shell",
-      label: project.appName || project.name,
-      command: "Iniciar shell",
-      detail: "Servidor HTTP interno del launcher (Node.js)",
-    },
-    {
-      id: "chrome",
-      label: "Chrome autorizado",
-      command: "Abrir navegador autorizado",
-      detail: "Ejecutando navegador autorizado",
-    },
-  ];
 
-  beginExecution(project, steps);
-  updateExecutionStep("validation", {
-    status: "running",
-    startedAt: validationStartedAt,
-  });
-  updateSession({
-    status: "starting",
-    stage: "validation",
-    plan,
-    message: "Validando la configuración inicial",
-    projectId,
-    projectName: project.name,
-    startedAt: new Date().toISOString(),
-  });
 
-  try {
-    if (
-      state.shell.status !== "stopped" ||
-      state.components.status !== "stopped" ||
-      state.microfrontend.status !== "stopped"
-    ) {
-      addLog(
-        "Entorno",
-        "stage",
-        "Deteniendo recursos previos antes de iniciar el nuevo entorno.",
-      );
-      await stopForRestart("Reiniciando entorno");
-      updateSession({
-        status: "starting",
-        stage: "validation",
-        plan,
-        message: "Validando la configuración inicial",
-        projectId,
-        projectName: project.name,
-      });
-      beginExecution(project, steps);
-      updateExecutionStep("validation", {
-        status: "running",
-        startedAt: validationStartedAt,
-      });
-    }
 
-    updateExecutionStep("validation", {
-      status: "success",
-      endedAt: new Date().toISOString(),
-    });
-    updateSession({
-      status: "starting",
-      stage: includeComponents ? "components" : "shell",
-      plan,
-      message: includeComponents
-        ? `Iniciando MOVA Components ${version.version}`
-        : `Iniciando ${project.name} sin MOVA Components`,
-      projectId,
-      projectName: project.name,
-    });
-
-    if (includeComponents)
-      await runTrackedStage({
-        id: "components",
-        message: `Compilando MOVA Components ${version.version}`,
-        task: async () => {
-          assertNotCancelled(signal);
-          await ensureComponents(project, version, signal);
-          assertNotCancelled(signal);
-        },
-      });
-    if (automaticBuild) {
-      await runTrackedStage({
-        id: "prepare",
-        message: `Preparando enlaces de ${project.appName || project.name}`,
-        task: () =>
-          runProcessStep({
-            key: `prepare:${project.id}`,
-            label: `${project.name} · prepare-server`,
-            file: process.platform === "win32" ? "npm.cmd" : "npm",
-            args: ["run", "prepare-server"],
-            cwd: project.path,
-            signal,
-          }),
-      });
-      await runTrackedStage({
-        id: "buildShell",
-        message: `Compilando shell local ${project.appName || ""}`,
-        task: () =>
-          runProcessStep({
-            key: `build-shell:${project.id}`,
-            label: `${project.name} · build:local`,
-            file: process.platform === "win32" ? "npm.cmd" : "npm",
-            args: ["run", "build:local"],
-            cwd: project.path,
-            signal,
-          }),
-      });
-    }
-    if (microfrontend) {
-      await runTrackedStage({
-        id: "microfrontend",
-        message: `Iniciando watch de ${microfrontend.name}`,
-        task: async () => {
-          assertNotCancelled(signal);
-          startMicrofrontend(project, microfrontend, signal);
-        },
-      });
-    }
-    await runTrackedStage({
-      id: "shell",
-      message: `Iniciando servidor HTTP de ${project.name}`,
-      task: async () => {
-        assertNotCancelled(signal);
-        await startShell(project, signal);
-        assertNotCancelled(signal);
-      },
-    });
-    await runTrackedStage({
-      id: "chrome",
-      message: "Abriendo navegador autorizado.",
-      task: async () => {
-        assertNotCancelled(signal);
-        await openOrRequestBrowser(project);
-        assertNotCancelled(signal);
-      },
-    });
-    updateExecution({
-      status: "success",
-      error: null,
-      endedAt: new Date().toISOString(),
-    });
-    updateSession({
-      status: "ready",
-      stage: "ready",
-      message: `${project.name} está disponible`,
-      projectId,
-      projectName: project.name,
-    });
-  } catch (error) {
-    const cancelled = signal.aborted;
-    addLog(
-      "Entorno",
-      cancelled ? "system" : "error",
-      cancelled ? "Inicio cancelado por el usuario." : error.message,
-    );
-    const finalStatus = cancelled ? "cancelled" : "error";
-    updateExecution({
-      status: finalStatus,
-      error: cancelled ? "Inicio cancelado" : error.message,
-      endedAt: new Date().toISOString(),
-      steps: state.execution.steps.map((step) => ({
-        ...step,
-        status:
-          step.status === "pending"
-            ? "skipped"
-            : cancelled && ["running", "error"].includes(step.status)
-              ? "cancelled"
-              : step.status,
-        endedAt: ["running", "pending"].includes(step.status)
-          ? new Date().toISOString()
-          : step.endedAt,
-      })),
-    });
-    await cleanupStartedResources();
-    updateSession({
-      status: "idle",
-      stage: "idle",
-      plan: null,
-      message: cancelled ? "Inicio cancelado" : `Error: ${error.message}`,
-      projectId: null,
-      projectName: null,
-      startedAt: null,
-    });
-  } finally {
-    endOperation(current.id);
-  }
-}
-
-async function rebuildShellServer(projectId) {
-  // AÑADIDO: await
-  const project = (await getProjects()).find((item) => item.id === projectId);
-  if (!project) throw new Error("Shell no encontrada.");
-  if (
-    state.shell.status !== "stopped" &&
-    state.shell.projectId === projectId
-  )
-    throw new Error("Detén la shell antes de reconstruir su servidor.");
-  if (!project.workflow?.prepareServer || !project.workflow?.buildLocal)
-    throw new Error(
-      "Esta shell no define npm run prepare-server y npm run build:local.",
-    );
-
-  const current = beginOperation("environment", {
-    projectId,
-    mode: "rebuild-server",
-  });
-  const signal = current.controller.signal;
-  const steps = [
-    {
-      id: "prepare",
-      label: "Preparar servidor",
-      command: "Preparar servidor de la shell",
-      detail: "Ejecutando: npm run prepare-server",
-    },
-    {
-      id: "buildShell",
-      label: "Compilar shell",
-      command: "Construir servidor local",
-      detail: "Ejecutando: npm run build:local",
-    },
-  ];
-  beginExecution(project, steps, "rebuild");
-  updateSession({
-    status: "building",
-    stage: "prepare",
-    plan: ["prepare", "buildShell"],
-    message: "Reconstruyendo servidor local",
-    projectId,
-    projectName: project.name,
-    startedAt: new Date().toISOString(),
-  });
-  try {
-    await runTrackedStage({
-      id: "prepare",
-      message: "Preparar servidor de la shell",
-      task: () =>
-        runProcessStep({
-          key: `prepare:${project.id}`,
-          label: `${project.name} · prepare-server`,
-          file: process.platform === "win32" ? "npm.cmd" : "npm",
-          args: ["run", "prepare-server"],
-          cwd: project.path,
-          signal,
-        }),
-    });
-    await runTrackedStage({
-      id: "buildShell",
-      message: "Construir servidor local",
-      task: () =>
-        runProcessStep({
-          key: `build-shell:${project.id}`,
-          label: `${project.name} · build:local`,
-          file: process.platform === "win32" ? "npm.cmd" : "npm",
-          args: ["run", "build:local"],
-          cwd: project.path,
-          signal,
-        }),
-    });
-    updateExecution({
-      status: "success",
-      error: null,
-      endedAt: new Date().toISOString(),
-    });
-    updateSession({
-      status: "idle",
-      stage: "idle",
-      plan: null,
-      message: `Servidor de ${project.name} reconstruido`,
-      projectId: null,
-      projectName: null,
-      startedAt: null,
-    });
-  } catch (error) {
-    const cancelled = signal.aborted;
-    updateExecution({
-      status: cancelled ? "cancelled" : "error",
-      error: cancelled ? "Reconstrucción cancelada" : error.message,
-      endedAt: new Date().toISOString(),
-    });
-    addLog(
-      "Reconstruir servidor",
-      cancelled ? "system" : "error",
-      cancelled ? "Reconstrucción cancelada." : error.message,
-    );
-    updateSession({
-      status: "idle",
-      stage: "idle",
-      plan: null,
-      message: cancelled
-        ? "Reconstrucción cancelada"
-        : `Error: ${error.message}`,
-      projectId: null,
-      projectName: null,
-      startedAt: null,
-    });
-    throw error;
-  } finally {
-    endOperation(current.id);
-  }
-}
 
 async function cancelAndStopAll(reason = "Entorno detenido") {
   await stopEnvironmentInternals({
@@ -1889,14 +1027,34 @@ const handleComponentsRequest = createComponentsHandler({
   stopEnvironment: cancelAndStopAll,
   json,
 });
-const handleEnvironmentRequest = createEnvironmentHandler({
-  runEnvironment,
-  rebuildShellServer,
+const environmentService = createEnvironmentService({
+  execution: {
+    beginExecution,
+    updateExecution,
+    updateExecutionStep,
+    updateSession,
+    recordStartValidationError,
+    runTrackedStage,
+    clearExecutionForRestart,
+  },
+  lifecycle: { stopForRestart, cleanupStartedResources },
+  operation: environmentOperation,
+  componentsRuntime,
+  shellRuntime,
+  microfrontendRuntime,
+  openOrRequestBrowser,
+});
+const environmentModel = createEnvironmentModel({
+  environmentService,
   cancelAndStopAll,
   addLog,
+});
+const environmentHandler = createEnvironmentHandler({
+  environmentModel,
   readBody,
   json,
 });
+const routeEnvironment = createEnvironmentRouter(environmentHandler);
 const handleVersionsAuditRequest = createVersionsAuditHandler({
   json,
   readBody,
@@ -1908,7 +1066,7 @@ const routeApi = createApiRouter([
   handleComponentsRequest,
   handleBrowserRequest,
   handleMicrofrontendRequest,
-  handleEnvironmentRequest,
+  routeEnvironment,
   handleVersionsAuditRequest,
 ]);
 
