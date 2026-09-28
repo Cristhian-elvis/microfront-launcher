@@ -5,14 +5,13 @@ import { forkJoin } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { ApiMessage, Project } from '../../core/launcher.models';
 import { NgIf } from '@angular/common';
-import { Bind } from 'primeng/bind';
 import { Button } from 'primeng/button';
 import { Select } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 import { ProgressSpinner } from 'primeng/progressspinner';
 @Component({
     selector: 'app-microfront-detail', changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './microfront-detail-page.component.html', styleUrls: ['./microfront-detail-page.component.css'],
-    imports: [NgIf, Bind, Button, Select, FormsModule, ProgressSpinner]
+    imports: [NgIf, Button, Select, FormsModule, ProgressSpinner]
 })
 export class MicrofrontDetailPageComponent implements OnInit {
   private route = inject(ActivatedRoute);

@@ -1,30 +1,88 @@
-<section class="tags-page">
+<section>
+
+  <p-breadcrumb [home]="{ icon: 'pi pi-home', routerLink: '/home' }" [model]="breadCrumbItems"></p-breadcrumb>
+
   <header class="tags-page-header">
     <div>
       <h1>Tags de MOVA</h1>
-      <p>Consulta las versiones disponibles en tu repositorio local y compila la que quieras usar en las shells.</p>
+      <p>
+        Consulta las versiones disponibles en tu repositorio local y compila la que quieras usar en
+        las shells.
+      </p>
     </div>
     <div class="tags-page-actions">
-      <span class="tags-count">{{ versions.length }} {{ versions.length === 1 ? 'tag disponible' : 'tags disponibles' }}</span>
-      <p-button [label]="refreshing ? 'Actualizando…' : 'Actualizar tags'" icon="pi pi-refresh" styleClass="p-button-outlined" [loading]="refreshing" [disabled]="refreshing || pending || (state?.buildBusy ?? false)" (onClick)="refreshTags()"></p-button>
+      <span class="tags-count"
+        >{{ versions().length }}
+        {{ versions().length === 1 ? 'tag disponible' : 'tags disponibles' }}</span
+      >
+      <p-button
+        [label]="refreshing ? 'Actualizando…' : 'Actualizar tags'"
+        icon="pi pi-refresh"
+        styleClass="p-button-outlined"
+        [loading]="refreshing"
+        [disabled]="refreshing || pending || (state?.buildBusy ?? false)"
+        (onClick)="refreshTags()"
+      ></p-button>
     </div>
   </header>
 
-  <div *ngIf="loading" class="loading"><p-progressSpinner strokeWidth="3"></p-progressSpinner><span>Consultando versiones MOVA…</span></div>
-
-  <p-table *ngIf="!loading" [value]="versions" [rowHover]="true" styleClass="tags-table">
-    <ng-template pTemplate="header"><tr><th>Tag</th><th>Fecha</th><th>Estado de compilación</th><th>Chequeo de proceso</th><th class="actions">Acciones</th></tr></ng-template>
+  <p-table [value]="versions()" [rowHover]="true" [paginator]="true" [rows]="10">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Tag</th>
+        <th>Fecha</th>
+        <th>Estado de compilación</th>
+        <th>Chequeo de proceso</th>
+        <th>Acciones</th>
+      </tr>
+    </ng-template>
     <ng-template pTemplate="body" let-version>
       <tr [class.in-use]="version.tag === preferredTag">
-        <td><div class="tag-name"><i class="pi pi-tag"></i><strong>{{ version.tag }}</strong><span *ngIf="version.tag === preferredTag" class="in-use-label">En uso</span></div></td>
+        <td>
+          <div class="tag-name">
+            <i class="pi pi-tag"></i>
+            <strong>{{ version.tag }}</strong>
+            @if (version.tag === preferredTag) {
+              <span class="in-use-label">En uso</span>
+            }
+          </div>
+        </td>
         <td>{{ formatDate(version.date) }}</td>
-        <td><p-tag [value]="compilationLabel(version)" [severity]="compilationSeverity(version)"></p-tag></td>
+        <td>
+          <p-tag
+            [value]="compilationLabel(version)"
+            [severity]="compilationSeverity(version)"
+          ></p-tag>
+        </td>
         <td>{{ processLabel(version) }}</td>
-        <td class="actions"><p-button [label]="buildLabel(version)" icon="pi pi-play" styleClass="p-button-outlined" [disabled]="pending || (state?.buildBusy ?? false)" (onClick)="build(version)"></p-button></td>
+        <td>
+          <p-button
+            [label]="buildLabel(version)"
+            icon="pi pi-play"
+            styleClass="p-button-outlined"
+            [disabled]="pending || (state?.buildBusy ?? false)"
+            (onClick)="build(version)"
+          ></p-button>
+        </td>
       </tr>
     </ng-template>
     <ng-template pTemplate="emptymessage">
-      <tr><td colspan="5" class="empty"><div><i class="pi pi-tag"></i><strong>No hay tags MOVA disponibles</strong><span>Verifica la ruta del repositorio MOVA o sincroniza sus tags desde el remoto.</span><p-button label="Actualizar tags" icon="pi pi-refresh" styleClass="p-button-outlined" [disabled]="refreshing || pending || (state?.buildBusy ?? false)" (onClick)="refreshTags()"></p-button></div></td></tr>
+      <tr>
+        <td colspan="5" class="empty">
+          <div>
+            <i class="pi pi-tag"></i><strong>No hay tags MOVA disponibles</strong
+            ><span
+              >Verifica la ruta del repositorio MOVA o sincroniza sus tags desde el remoto.</span
+            ><p-button
+              label="Actualizar tags"
+              icon="pi pi-refresh"
+              styleClass="p-button-outlined"
+              [disabled]="refreshing || pending || (state?.buildBusy ?? false)"
+              (onClick)="refreshTags()"
+            ></p-button>
+          </div>
+        </td>
+      </tr>
     </ng-template>
   </p-table>
 </section>

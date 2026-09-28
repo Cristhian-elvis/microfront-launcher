@@ -1,68 +1,80 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { MessageService, PrimeTemplate } from 'primeng/api';
-import { Subscription, forkJoin } from 'rxjs';
-import { finalize, tap } from 'rxjs/operators';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MenuItem, MessageService, PrimeTemplate } from 'primeng/api';
+import { finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { ApiService } from '../../core/api.service';
-import { ApiMessage, LauncherState, Project } from '../../core/launcher.models';
-import { LauncherEvent, LauncherEventsService } from '../../core/launcher-events.service';
+import type { LauncherState, Project } from '../../core/launcher.models';
+import type { LauncherEvent } from '../../core/launcher-events.service';
+import { LauncherEventsService } from '../../core/launcher-events.service';
+import { AppBootstrapService } from '../../core/app-bootstrap.service';
+import { LauncherService } from '../../core/launcher.service';
 import { FormsModule } from '@angular/forms';
-import { Bind } from 'primeng/bind';
 import { InputText } from 'primeng/inputtext';
 import { Button } from 'primeng/button';
-import { NgIf } from '@angular/common';
-import { ProgressSpinner } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { BreadcrumbModule } from 'primeng/breadcrumb';
 
 @Component({
-    selector: 'app-shells-page',
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    templateUrl: './shells-page.component.html',
-    styleUrls: ['./shells-page.component.css'],
-    imports: [FormsModule, Bind, InputText, Button, NgIf, ProgressSpinner, TableModule, PrimeTemplate, Tag]
+  selector: 'app-shells-page',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './shells-page.component.html',
+  styleUrls: ['./shells-page.component.css'],
+  imports: [FormsModule, InputText, Button, TableModule, PrimeTemplate, Tag, IconFieldModule, InputIconModule, BreadcrumbModule],
 })
-export class ShellsPageComponent implements OnInit, OnDestroy {
-  private readonly api = inject(ApiService);
+export class ShellsPageComponent {
+  private readonly bootstrap = inject(AppBootstrapService);
+  private readonly launcher = inject(LauncherService);
   private readonly events = inject(LauncherEventsService);
   private readonly messages = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
-  projects: Project[] = [];
-  state: LauncherState | null = null;
+  readonly projects = this.bootstrap.projects.value;
+  readonly state = this.bootstrap.state.value;
   filter = '';
-  loading = true;
   pending = false;
-  private readonly subscriptions = new Subscription();
 
-  ngOnInit(): void {
-    this.load();
-    this.subscriptions.add(this.events.events().subscribe({
-      next: (event) => this.receiveEvent(event),
-      error: () => undefined
-    }));
-  }
+  breadCrumbItems: MenuItem[] = [
+    { label: 'Shells' }
+  ];
 
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
+  constructor() {
+    this.events
+      .events()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (event) => this.receiveEvent(event),
+        error: () => undefined,
+      });
   }
 
   get filteredProjects(): Project[] {
     const query = this.filter.trim().toLocaleLowerCase();
-    if (!query) return this.projects;
-    return this.projects.filter((project) => {
+    if (!query) return this.projects();
+    return this.projects().filter((project) => {
       const microfronts = project.microfrontends?.map((item) => item.name).join(' ') ?? '';
-      return `${project.name} ${project.configFolder ?? ''} ${microfronts}`.toLocaleLowerCase().includes(query);
+      return `${project.name} ${project.configFolder ?? ''} ${microfronts}`
+        .toLocaleLowerCase()
+        .includes(query);
     });
   }
 
   isFavorite(project: Project): boolean {
-    return this.state?.preferences.favoriteShellIds?.includes(project.id) ?? false;
+    return this.state()?.preferences.favoriteShellIds?.includes(project.id) ?? false;
   }
 
   status(project: Project): 'active' | 'starting' | 'stopped' {
-    if (this.state?.execution?.status === 'running' && this.state.execution.kind === 'start' && this.state.execution.projectId === project.id) return 'starting';
-    if (this.state?.shell.status === 'running' && this.state.shell.projectId === project.id) return 'active';
+    const state = this.state();
+    if (
+      state?.execution?.status === 'running' &&
+      state.execution.kind === 'start' &&
+      state.execution.projectId === project.id
+    )
+      return 'starting';
+    if (state?.shell.status === 'running' && state.shell.projectId === project.id) return 'active';
     return 'stopped';
   }
 
@@ -77,34 +89,43 @@ export class ShellsPageComponent implements OnInit, OnDestroy {
     return ((match?.[1] ?? value) || 'Ninguna').toUpperCase();
   }
 
-  load(force = false): void {
-    this.loading = true;
-    const projects = force ? this.api.post<Project[]>('/api/projects/refresh') : this.api.get<Project[]>('/api/projects');
-    this.subscriptions.add(forkJoin({ projects, state: this.api.get<LauncherState>('/api/state') }).pipe(
-      tap(({ projects: nextProjects, state }) => {
-        this.projects = nextProjects;
-        this.state = state;
-      }),
-      finalize(() => this.loading = false)
-    ).subscribe({ error: (error: unknown) => this.notifyError(error) }));
+  refreshProjects(): void {
+    this.pending = true;
+    this.launcher
+      .refreshProjects()
+      .pipe(
+        finalize(() => (this.pending = false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (projects) => this.projects.set(projects),
+        error: (error: unknown) => this.notifyError(error),
+      });
   }
 
   toggleFavorite(project: Project): void {
-    if (!this.state) return;
-    const currentState = this.state;
+    const currentState = this.state();
+    if (!currentState) return;
     const previous = currentState.preferences.favoriteShellIds ?? [];
     const favoriteShellIds = previous.includes(project.id)
       ? previous.filter((id) => id !== project.id)
       : [...previous, project.id];
     this.pending = true;
-    this.subscriptions.add(this.api.put<ApiMessage>('/api/mova/preferences', { favoriteShellIds }).pipe(
-      finalize(() => this.pending = false)
-    ).subscribe({
-      next: () => {
-        this.state = { ...currentState, preferences: { ...currentState.preferences, favoriteShellIds } };
-      },
-      error: (error: unknown) => this.notifyError(error)
-    }));
+    this.launcher
+      .saveFavoriteShells(favoriteShellIds)
+      .pipe(
+        finalize(() => (this.pending = false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.state.set({
+            ...currentState,
+            preferences: { ...currentState.preferences, favoriteShellIds },
+          });
+        },
+        error: (error: unknown) => this.notifyError(error),
+      });
   }
 
   openDetail(project: Project): void {
@@ -112,18 +133,20 @@ export class ShellsPageComponent implements OnInit, OnDestroy {
   }
 
   private receiveEvent(event: LauncherEvent): void {
-    if (event.type === 'state' && this.isState(event.payload)) this.state = event.payload;
+    if (event.type === 'state' && this.isState(event.payload)) this.state.set(event.payload);
   }
 
   private isState(value: unknown): value is LauncherState {
-    return typeof value === 'object' && value !== null && 'shell' in value && 'preferences' in value;
+    return (
+      typeof value === 'object' && value !== null && 'shell' in value && 'preferences' in value
+    );
   }
 
   private notifyError(error: unknown): void {
     this.messages.add({
       severity: 'error',
       summary: 'Error',
-      detail: error instanceof Error ? error.message : 'No se pudo completar la operación.'
+      detail: error instanceof Error ? error.message : 'No se pudo completar la operación.',
     });
   }
 }

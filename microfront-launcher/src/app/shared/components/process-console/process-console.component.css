@@ -1,0 +1,79 @@
+:host {
+  display: block;
+}
+
+.console-panel {
+  overflow: hidden;
+  border: 1px solid #284861;
+  border-radius: 12px;
+  background: #091725;
+}
+
+.console-panel header,
+.console-panel header div {
+  display: flex;
+  align-items: center;
+}
+
+.console-panel header {
+  justify-content: space-between;
+  padding: 13px 16px;
+  border-bottom: 1px solid #284861;
+}
+
+.console-panel header div {
+  gap: 10px;
+}
+
+.console-icon,
+.log-line b {
+  color: #55ddd6;
+}
+
+.console-icon {
+  flex: 0 0 auto;
+}
+
+.console-panel header span {
+  color: #7894aa;
+  font-size: 12px;
+}
+
+.console-body {
+  max-height: 330px;
+  overflow: auto;
+  padding: 8px 16px;
+}
+
+.log-line {
+  display: grid;
+  grid-template-columns: 78px 120px 1fr;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(40, 72, 97, 0.48);
+  color: #abc1d3;
+  font-size: 12px;
+}
+
+.log-line.error {
+  color: #ff9ba1;
+}
+
+.log-line time {
+  color: #708ba1;
+}
+
+.empty {
+  color: #7894aa;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .log-line {
+    grid-template-columns: 70px 1fr;
+  }
+
+  .log-line span {
+    grid-column: 2;
+  }
+}

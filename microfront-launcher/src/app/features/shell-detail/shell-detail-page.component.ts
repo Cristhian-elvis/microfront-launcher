@@ -7,7 +7,6 @@ import { ApiService } from '../../core/api.service';
 import { ApiMessage, LauncherState, Project } from '../../core/launcher.models';
 import { LauncherEvent, LauncherEventsService } from '../../core/launcher-events.service';
 import { NgIf } from '@angular/common';
-import { Bind } from 'primeng/bind';
 import { Button } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
@@ -15,7 +14,7 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 
 @Component({
     selector: 'app-shell-detail-page', changeDetection: ChangeDetectionStrategy.OnPush, templateUrl: './shell-detail-page.component.html', styleUrls: ['./shell-detail-page.component.css'],
-    imports: [NgIf, Bind, Button, TableModule, PrimeTemplate, Tag, ProgressSpinner]
+    imports: [NgIf, Button, TableModule, PrimeTemplate, Tag, ProgressSpinner]
 })
 export class ShellDetailPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);

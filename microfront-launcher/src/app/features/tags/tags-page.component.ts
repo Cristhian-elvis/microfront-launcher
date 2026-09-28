@@ -1,50 +1,52 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { MessageService, PrimeTemplate } from 'primeng/api';
-import { Subscription, forkJoin } from 'rxjs';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
+import { MenuItem, MessageService, PrimeTemplate } from 'primeng/api';
+import { forkJoin } from 'rxjs';
 import { finalize, tap } from 'rxjs/operators';
 import { ApiService } from '../../core/api.service';
 import { ApiMessage, LauncherState, MovaVersion } from '../../core/launcher.models';
 import { LauncherEvent, LauncherEventsService } from '../../core/launcher-events.service';
-import { Bind } from 'primeng/bind';
 import { Button } from 'primeng/button';
-import { NgIf } from '@angular/common';
-import { ProgressSpinner } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { AppBootstrapService } from '../../core/app-bootstrap.service';
+import { BreadcrumbModule } from 'primeng/breadcrumb';
 
 @Component({
     selector: 'app-tags-page',
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './tags-page.component.html',
     styleUrls: ['./tags-page.component.css'],
-    imports: [Bind, Button, NgIf, ProgressSpinner, TableModule, PrimeTemplate, Tag]
+    imports: [Button, TableModule, PrimeTemplate, Tag, BreadcrumbModule]
 })
-export class TagsPageComponent implements OnInit, OnDestroy {
+export class TagsPageComponent {
+  private readonly bootstrap = inject(AppBootstrapService);
   private readonly api = inject(ApiService);
   private readonly events = inject(LauncherEventsService);
   private readonly messages = inject(MessageService);
+  private readonly destroyRef = inject(DestroyRef);
 
-  versions: MovaVersion[] = [];
+  protected readonly versions = this.bootstrap.versions.value;
+
   state: LauncherState | null = null;
-  loading = true;
   refreshing = false;
   pending = false;
-  private readonly subscriptions = new Subscription();
 
-  ngOnInit(): void {
-    this.load();
-    this.subscriptions.add(this.events.events().subscribe({
-      next: (event) => this.receiveEvent(event),
-      error: () => undefined
-    }));
-  }
-
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
-  }
+  breadCrumbItems: MenuItem[] = [
+    { label: 'Tags de MOVA' }
+  ];
 
   get preferredTag(): string {
     return this.state?.preferences.preferredTag ?? '';
+  }
+
+  constructor() {
+    this.events.events()
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: (event) => this.receiveEvent(event),
+      error: () => undefined
+    });
   }
 
   buildLabel(version: MovaVersion): string {
@@ -76,8 +78,7 @@ export class TagsPageComponent implements OnInit, OnDestroy {
   }
 
   load(): void {
-    this.loading = true;
-    this.subscriptions.add(forkJoin({
+    /*forkJoin({
       versions: this.api.get<MovaVersion[]>('/api/mova/versions'),
       state: this.api.get<LauncherState>('/api/state')
     }).pipe(
@@ -85,34 +86,36 @@ export class TagsPageComponent implements OnInit, OnDestroy {
         this.versions = versions;
         this.state = state;
       }),
-      finalize(() => this.loading = false)
-    ).subscribe({ error: (error: unknown) => this.notifyError(error) }));
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({ error: (error: unknown) => this.notifyError(error) })*/
   }
 
   refreshTags(): void {
     this.refreshing = true;
-    this.subscriptions.add(this.api.post<ApiMessage>('/api/mova/tags/refresh').pipe(
-      finalize(() => this.refreshing = false)
+    this.api.post<ApiMessage>('/api/mova/tags/refresh').pipe(
+      finalize(() => this.refreshing = false),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (result) => {
         this.messages.add({ severity: 'success', summary: 'Tags actualizados', detail: result.message ?? 'Tags actualizados.' });
         this.load();
       },
       error: (error: unknown) => this.notifyError(error)
-    }));
+    })
   }
 
   build(version: MovaVersion): void {
     this.pending = true;
-    this.subscriptions.add(this.api.post<ApiMessage>('/api/mova/build', { tag: version.tag }).pipe(
-      finalize(() => this.pending = false)
+    this.api.post<ApiMessage>('/api/mova/build', { tag: version.tag }).pipe(
+      finalize(() => this.pending = false),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (result) => {
         this.messages.add({ severity: 'success', summary: 'Compilación iniciada', detail: result.message ?? `Compilación de ${version.tag} iniciada.` });
         this.load();
       },
       error: (error: unknown) => this.notifyError(error)
-    }));
+    })
   }
 
   private isBuilding(version: MovaVersion): boolean {
@@ -135,7 +138,9 @@ export class TagsPageComponent implements OnInit, OnDestroy {
   }
 
   private receiveEvent(event: LauncherEvent): void {
-    if (event.type === 'state' && this.isState(event.payload)) this.state = event.payload;
+    if (event.type === 'state' && this.isState(event.payload)) {
+      this.state = event.payload;
+    }
   }
 
   private isState(value: unknown): value is LauncherState {

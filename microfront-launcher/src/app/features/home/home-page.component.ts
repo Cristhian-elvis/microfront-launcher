@@ -1,19 +1,32 @@
-import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
-import { Bind } from 'primeng/bind';
 import { Button } from 'primeng/button';
 import { FloatLabel } from 'primeng/floatlabel';
-import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
-import { Observable, forkJoin } from 'rxjs';
-import { finalize, map, tap } from 'rxjs/operators';
-import { ApiService } from '../../core/api.service';
-import type { ApiMessage, LauncherLog, LauncherState, MovaVersion, Project } from '../../core/launcher.models';
+import { Observable } from 'rxjs';
+import { finalize, tap } from 'rxjs/operators';
+import type {
+  ApiMessage,
+  LauncherLog,
+  LauncherState,
+  MovaVersion,
+  Project,
+} from '../../core/launcher.models';
 import type { LauncherEvent } from '../../core/launcher-events.service';
 import { LauncherEventsService } from '../../core/launcher-events.service';
+import { AppBootstrapService } from '../../core/app-bootstrap.service';
+import { LauncherService } from '../../core/launcher.service';
+import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
 
 interface VersionOption {
   label: string;
@@ -30,35 +43,49 @@ interface VersionGroup {
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.css',
-  imports: [Bind, ProgressSpinner, FloatLabel, Select, FormsModule, Button, DatePipe]
+  imports: [FloatLabel, Select, FormsModule, Button, ProcessConsoleComponent],
 })
 export class HomePageComponent {
-  private readonly api = inject(ApiService);
+  private readonly bootstrap = inject(AppBootstrapService);
+  private readonly launcher = inject(LauncherService);
   private readonly events = inject(LauncherEventsService);
   private readonly messages = inject(MessageService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly state = signal<LauncherState | null>(null);
-  protected readonly projects = signal<Project[]>([]);
-  protected readonly versions = signal<MovaVersion[]>([]);
-  protected readonly logs = signal<LauncherLog[]>([]);
+  protected readonly state = this.bootstrap.state.value;
+  protected readonly projects = this.bootstrap.projects.value;
+  protected readonly versions = this.bootstrap.versions.value;
+  protected readonly logs = this.bootstrap.logs.value;
   protected readonly selectedVersionTag = signal('');
-  protected readonly selectedProjectId = signal(localStorage.getItem('microfront-last-shell-id') ?? '');
-  protected readonly loading = signal(true);
+  protected readonly selectedProjectId = signal(
+    localStorage.getItem('microfront-last-shell-id') ?? '',
+  );
   protected readonly actionPending = signal(false);
 
   protected readonly selectedProject = computed(() =>
-    this.projects().find((project) => project.id === this.selectedProjectId())
+    this.projects().find((project) => project.id === this.selectedProjectId()),
   );
-  protected readonly componentsActive = computed(() => this.state()?.components.status === 'running');
-  protected readonly shellReady = computed(() => this.state()?.shell.status === 'running');
-  protected readonly shellStarting = computed(() => this.state()?.shell.status === 'starting');
+  protected readonly componentsActive = computed(
+    () => this.state()?.components.status === 'running',
+  );
+  protected readonly shellReady = computed(() => {
+    console.log('shellReady', this.state());
+    return this.state()?.shell.status === 'running';
+  });
+  protected readonly shellStarting = computed(() => {
+    console.log('shellStarting', this.state());
+    return this.state()?.shell.status === 'starting';
+  });
   protected readonly shellRunning = computed(() => {
     const currentState = this.state();
-    return currentState !== null && currentState.shell.status !== 'stopped';
+    return currentState !== undefined && currentState.shell.status !== 'stopped';
   });
-  protected readonly versionSelectionDisabled = computed(() =>
-    !this.versions().length || Boolean(this.state()?.busy) || this.componentsActive() || this.shellRunning()
+  protected readonly versionSelectionDisabled = computed(
+    () =>
+      !this.versions().length ||
+      Boolean(this.state()?.busy) ||
+      this.componentsActive() ||
+      this.shellRunning(),
   );
   protected readonly environmentLabel = computed(() => {
     const currentState = this.state();
@@ -68,84 +95,71 @@ export class HomePageComponent {
     if (currentState?.session.status === 'starting') return 'Iniciando';
     return 'Detenido';
   });
-  protected readonly activeShellName = computed(() => this.projectDisplayName(this.state()?.shell.name));
+  protected readonly activeShellName = computed(() =>
+    this.projectDisplayName(this.state()?.shell.name),
+  );
   protected readonly versionGroups = computed<VersionGroup[]>(() => {
     const compiled = this.toVersionOptions(this.versions().filter((version) => version.cached));
     const pending = this.toVersionOptions(this.versions().filter((version) => !version.cached));
     return [
       ...(compiled.length ? [{ label: 'Versiones compiladas', items: compiled }] : []),
-      ...(pending.length ? [{ label: 'Versiones por compilar', items: pending }] : [])
+      ...(pending.length ? [{ label: 'Versiones por compilar', items: pending }] : []),
     ];
   });
 
   constructor() {
-    this.load();
-    this.events.events()
+    effect(() => {
+      const state = this.state();
+      if (!state) return;
+
+      this.selectedVersionTag.set(state.preferences.preferredTag ?? this.selectedVersionTag());
+      if (state.shell.projectId) this.selectedProjectId.set(state.shell.projectId);
+    });
+
+    this.events
+      .events()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (event) => this.receiveEvent(event),
-        error: () => this.messages.add({ severity: 'warn', summary: 'Conexión', detail: 'No se pudo mantener la conexión de eventos.' })
-      });
-  }
-
-  protected load(): void {
-    this.loading.set(true);
-    this.snapshot()
-      .pipe(
-        finalize(() => this.loading.set(false)),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe({
-        error: (error: unknown) => this.notifyError(error)
+        error: () =>
+          this.messages.add({
+            severity: 'warn',
+            summary: 'Conexión',
+            detail: 'No se pudo mantener la conexión de eventos.',
+          }),
       });
   }
 
   protected saveVersion(): void {
     const tag = this.selectedVersionTag();
     if (!tag) return;
-    this.run(this.api.put<ApiMessage>('/api/mova/preferences', { preferredTag: tag }), 'Versión preferida actualizada.');
+    this.run(
+      this.launcher.savePreferredVersion(tag).pipe(tap(() => this.bootstrap.reloadState())),
+      'Versión preferida actualizada.',
+    );
   }
 
   protected startComponents(): void {
-    this.run(this.api.post<ApiMessage>('/api/components/start'), 'MOVA Components se está iniciando.');
+    this.run(this.launcher.startComponents(), 'MOVA Components se está iniciando.');
   }
 
   protected stopComponents(): void {
-    this.run(this.api.post<ApiMessage>('/api/components/stop'), 'Components detenido.');
+    this.run(this.launcher.stopComponents(), 'Components detenido.');
   }
 
   protected startShell(): void {
     const project = this.selectedProject();
     if (!project) return;
     localStorage.setItem('microfront-last-shell-id', project.id);
-    this.run(this.api.post<ApiMessage>('/api/environment/start', { projectId: project.id }), 'La shell se está iniciando.');
+    this.run(this.launcher.startEnvironment(project.id), 'La shell se está iniciando.');
   }
 
   protected stopEnvironment(): void {
-    this.run(this.api.post<ApiMessage>('/api/environment/stop'), 'El entorno se está deteniendo.');
+    this.run(this.launcher.stopEnvironment(), 'El entorno se está deteniendo.');
   }
 
   protected openBrowser(mode: 'tab' | 'window'): void {
-    this.run(this.api.post<ApiMessage>('/api/chrome/open', { mode }), 'Navegador abierto.');
-  }
-
-  private snapshot(): Observable<void> {
-    return forkJoin({
-      state: this.api.get<LauncherState>('/api/state'),
-      projects: this.api.get<Project[]>('/api/projects'),
-      versions: this.api.get<MovaVersion[]>('/api/mova/versions'),
-      logs: this.api.get<LauncherLog[]>('/api/logs')
-    }).pipe(
-      tap(({ state, projects, versions, logs }) => {
-        this.state.set(state);
-        this.projects.set(projects);
-        this.versions.set(versions);
-        this.logs.set(logs);
-        this.selectedVersionTag.set(state.preferences.preferredTag ?? this.selectedVersionTag());
-        if (state.shell.projectId) this.selectedProjectId.set(state.shell.projectId);
-      }),
-      map(() => undefined)
-    );
+    this.run(this.launcher.openBrowser(mode), 'Navegador abierto.');
   }
 
   private run(request: Observable<ApiMessage>, success: string): void {
@@ -153,19 +167,24 @@ export class HomePageComponent {
     request
       .pipe(
         finalize(() => this.actionPending.set(false)),
-        takeUntilDestroyed(this.destroyRef)
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
         next: (result) => {
-          this.messages.add({ severity: 'success', summary: 'Operación enviada', detail: result.message ?? success });
-          this.load();
+          this.messages.add({
+            severity: 'success',
+            summary: 'Operación enviada',
+            detail: result.message ?? success,
+          });
         },
-        error: (error: unknown) => this.notifyError(error)
+        error: (error: unknown) => this.notifyError(error),
       });
   }
 
   private receiveEvent(event: LauncherEvent): void {
-    if (event.type === 'state' && this.isState(event.payload)) this.state.set(event.payload);
+    if (event.type === 'state' && this.isState(event.payload)) {
+      this.state.set(event.payload);
+    }
     const log = event.payload;
     if (event.type === 'log' && this.isLog(log)) {
       this.logs.update((logs) => [...logs, log].slice(-250));
@@ -177,7 +196,13 @@ export class HomePageComponent {
   }
 
   private isState(value: unknown): value is LauncherState {
-    return typeof value === 'object' && value !== null && 'session' in value && 'shell' in value && 'components' in value;
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'session' in value &&
+      'shell' in value &&
+      'components' in value
+    );
   }
 
   private isLog(value: unknown): value is LauncherLog {

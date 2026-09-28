@@ -1,0 +1,13 @@
+:host {
+  display: block;
+}
+
+.app-loading {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  justify-items: center;
+  gap: 16px;
+  background: #091725;
+  color: #aac2d7;
+}

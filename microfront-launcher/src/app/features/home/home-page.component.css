@@ -4,15 +4,6 @@
   --home-dropdown-width: 200px;
 }
 
-.loading-state {
-  display: grid;
-  min-height: 55vh;
-  place-content: center;
-  justify-items: center;
-  gap: 16px;
-  color: #aac2d7;
-}
-
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(290px, 420px);
@@ -25,7 +16,7 @@
   color: #53d4cd;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: .1em;
+  letter-spacing: 0.1em;
 }
 
 h1 {
@@ -54,13 +45,13 @@ h1 em {
   background: linear-gradient(145deg, #10263a, #091725);
 }
 
-.status-summary>div {
+.status-summary > div {
   min-width: 0;
   padding: 21px 14px;
   text-align: center;
 }
 
-.status-summary>div+div {
+.status-summary > div + div {
   border-left: 1px solid #284861;
 }
 
@@ -103,13 +94,13 @@ h1 em {
   gap: 14px;
   align-items: center;
   padding: 16px;
-  border: 1px solid rgba(79, 209, 197, .3);
+  border: 1px solid rgba(79, 209, 197, 0.3);
   border-radius: 12px;
   background: linear-gradient(110deg, #0f2d3d, #091725);
 }
 
 .operation-card.running {
-  border-color: rgba(88, 220, 154, .35);
+  border-color: rgba(88, 220, 154, 0.35);
 }
 
 .operation-card.without-control {
@@ -125,9 +116,9 @@ h1 em {
   width: 48px;
   height: 48px;
   place-items: center;
-  border: 1px solid rgba(79, 209, 197, .3);
+  border: 1px solid rgba(79, 209, 197, 0.3);
   border-radius: 11px;
-  background: rgba(79, 209, 197, .1);
+  background: rgba(79, 209, 197, 0.1);
   color: #55ddd6;
   font-size: 21px;
 }
@@ -150,7 +141,7 @@ h1 em {
   color: #7795a9;
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 
 .operation-copy strong {
@@ -172,7 +163,6 @@ h1 em {
   min-width: 0;
   width: var(--home-dropdown-width);
 }
-
 
 .operation-actions {
   display: flex;
@@ -226,7 +216,7 @@ h1 em {
   grid-template-columns: 78px 120px 1fr;
   gap: 10px;
   padding: 7px 0;
-  border-bottom: 1px solid rgba(40, 72, 97, .48);
+  border-bottom: 1px solid rgba(40, 72, 97, 0.48);
   color: #abc1d3;
   font-size: 12px;
 }

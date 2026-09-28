@@ -1,28 +1,89 @@
-<section class="shells-page">
-  <header class="page-header">
+<section class="shells-page min-w-0">
+
+  <p-breadcrumb [home]="{ icon: 'pi pi-home', routerLink: '/home' }" [model]="breadCrumbItems"></p-breadcrumb>
+
+  <header class="page-header flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
     <div>
-      <h1>Shells disponibles</h1>
+      <h1 class="text-xl font-semibold tracking-tight">Shells disponibles</h1>
       <p>Solo puede estar ejecutándose una shell a la vez.</p>
     </div>
-    <div class="toolbar">
-      <span class="p-input-icon-left search-field"><i class="pi pi-search"></i><input pInputText [(ngModel)]="filter" placeholder="Buscar shell o microfrontend..."></span>
-      <p-button label="Actualizar" icon="pi pi-refresh" styleClass="p-button-outlined" [loading]="loading" [disabled]="pending" (onClick)="load(true)"></p-button>
+    <div class="toolbar flex w-full md:w-auto">
+      <div class="flex">
+        <p-iconfield iconPosition="left">
+          <p-inputicon>
+            <i class="pi pi-search"></i>
+          </p-inputicon>
+          <input pInputText [(ngModel)]="filter" placeholder="Buscar shell o microfrontend..." />
+        </p-iconfield>
+      </div>
+      <p-button
+        label="Actualizar"
+        icon="pi pi-refresh"
+        styleClass="p-button-outlined"
+        [loading]="pending"
+        [disabled]="pending"
+        (onClick)="refreshProjects()"
+      ></p-button>
     </div>
   </header>
 
-  <div *ngIf="loading" class="loading"><p-progressSpinner strokeWidth="3"></p-progressSpinner><span>Buscando shells locales…</span></div>
-
-  <p-table *ngIf="!loading" [value]="filteredProjects" [rowHover]="true" styleClass="shell-table">
-    <ng-template pTemplate="header"><tr><th>Favorito</th><th>Proyecto</th><th>Webapp</th><th>Estado de shell</th><th class="actions">Acciones</th></tr></ng-template>
+  <p-table [value]="filteredProjects" [rowHover]="true" styleClass="shell-table">
+    <ng-template pTemplate="header"
+      ><tr>
+        <th>Favorito</th>
+        <th>Proyecto</th>
+        <th>Webapp</th>
+        <th>Estado de shell</th>
+        <th>Acciones</th>
+      </tr></ng-template
+    >
     <ng-template pTemplate="body" let-project>
       <tr>
-        <td><p-button [icon]="isFavorite(project) ? 'pi pi-star-fill' : 'pi pi-star'" [styleClass]="isFavorite(project) ? 'p-button-rounded p-button-text favorite selected' : 'p-button-rounded p-button-text favorite'" [disabled]="pending" [attr.aria-label]="isFavorite(project) ? 'Quitar de favoritos' : 'Agregar a favoritos'" (onClick)="toggleFavorite(project)"></p-button></td>
-        <td><strong>{{ projectDisplayName(project.name) }}</strong></td>
-        <td><span class="webapp">{{ project.configFolder || '—' }}</span></td>
-        <td><p-tag [value]="statusLabel(project)" [severity]="status(project) === 'active' ? 'success' : status(project) === 'starting' ? 'warn' : 'info'"></p-tag></td>
-        <td class="actions"><p-button icon="pi pi-cog" styleClass="p-button-rounded p-button-text" ariaLabel="Ver detalle" (onClick)="openDetail(project)"></p-button></td>
+        <td>
+          <p-button
+            [icon]="isFavorite(project) ? 'pi pi-star-fill' : 'pi pi-star'"
+            [styleClass]="
+              isFavorite(project)
+                ? 'p-button-rounded p-button-text favorite selected'
+                : 'p-button-rounded p-button-text favorite'
+            "
+            [disabled]="pending"
+            [attr.aria-label]="isFavorite(project) ? 'Quitar de favoritos' : 'Agregar a favoritos'"
+            (onClick)="toggleFavorite(project)"
+          ></p-button>
+        </td>
+        <td>
+          <strong>{{ projectDisplayName(project.name) }}</strong>
+        </td>
+        <td>
+          <span class="webapp">{{ project.configFolder || '—' }}</span>
+        </td>
+        <td>
+          <p-tag
+            [value]="statusLabel(project)"
+            [severity]="
+              status(project) === 'active'
+                ? 'success'
+                : status(project) === 'starting'
+                  ? 'warn'
+                  : 'info'
+            "
+          ></p-tag>
+        </td>
+        <td>
+          <p-button
+            icon="pi pi-cog"
+            styleClass="p-button-rounded p-button-text"
+            ariaLabel="Ver detalle"
+            (onClick)="openDetail(project)"
+          ></p-button>
+        </td>
       </tr>
     </ng-template>
-    <ng-template pTemplate="emptymessage"><tr><td colspan="5" class="empty">No hay shells que coincidan con la búsqueda.</td></tr></ng-template>
+    <ng-template pTemplate="emptymessage"
+      ><tr>
+        <td colspan="5" class="empty">No hay shells que coincidan con la búsqueda.</td>
+      </tr></ng-template
+    >
   </p-table>
 </section>

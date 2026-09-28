@@ -6,7 +6,15 @@ export interface Project {
   path?: string;
   webappPath?: string;
   gitInfo?: { shell?: { branch?: string; exactTag?: string }; webapp?: { branch?: string } };
-  microfrontends?: Array<{ id: string; name: string; path?: string; branch?: string; branches?: string[]; outOfSync?: boolean; localBuildAvailable?: boolean }>;
+  microfrontends?: Array<{
+    id: string;
+    name: string;
+    path?: string;
+    branch?: string;
+    branches?: string[];
+    outOfSync?: boolean;
+    localBuildAvailable?: boolean;
+  }>;
 }
 
 export interface MovaVersion {
@@ -39,4 +47,8 @@ export interface LauncherLog {
 export interface ApiMessage {
   ok?: boolean;
   message?: string;
+}
+
+export interface SetupStatus {
+  required: boolean;
 }

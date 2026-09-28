@@ -1,2 +1,11 @@
-<p-toast position="top-right" />
-<app-shell-layout />
+@if (bootstrap.isBooting()) {
+  <main class="app-loading" aria-live="polite" aria-busy="true">
+    <p-progressSpinner strokeWidth="3" aria-label="Cargando aplicación" />
+    <p>Preparando Microfront Launcher…</p>
+  </main>
+} @else if (bootstrap.bootstrapError()) {
+  <app-bootstrap-error-page />
+} @else {
+  <p-toast position="top-right" />
+  <app-shell-layout />
+}
