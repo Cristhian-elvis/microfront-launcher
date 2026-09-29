@@ -1,4 +1,11 @@
-export function createBrowserHandler({ state, reopenChrome, openEmptyBrowser, readConfig, writeJson, configPath, emitState, readBody, json }) {
+import {
+  readConfig,
+  writeJson,
+  configPath
+} from "./lib/core.js";
+import { json, readBody } from "./lib/http.js";
+
+export function createBrowserHandler({ state, reopenChrome, openEmptyBrowser, emitState }) {
   return async function handleBrowserRequest(request, response, url) {
     if (request.method !== 'POST' || !url.pathname.startsWith('/api/chrome/')) return false;
     if (url.pathname === '/api/chrome/open') {

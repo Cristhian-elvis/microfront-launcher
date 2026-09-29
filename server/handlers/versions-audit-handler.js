@@ -86,7 +86,7 @@ function isRemoteLinkedToLocal(remoteEntry) {
   return String(remoteEntry || "").includes("localhost:8080");
 }
 
-function buildAuditRows({ project, microfrontendsByName, environments }) {
+function buildAuditRows({ microfrontendsByName, environments }) {
   const rows = [];
 
   for (const [name, mf] of microfrontendsByName.entries()) {
@@ -200,7 +200,6 @@ export function createVersionsAuditHandler({ json, readBody }) {
 
       const microfrontendsByName = await buildMicrofrontendsIndex(project);
       const rows = buildAuditRows({
-        project,
         microfrontendsByName,
         environments,
       });
@@ -258,7 +257,6 @@ export function createVersionsAuditHandler({ json, readBody }) {
       );
 
       const rows = buildAuditRows({
-        project,
         microfrontendsByName,
         environments,
       });

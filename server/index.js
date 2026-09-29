@@ -3,29 +3,19 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn, execFile } from "node:child_process";
 import {
-  appRoot,
   distRoot,
   configPath,
-  preferencesPath,
   versionsRoot,
   workRoot,
   readConfig,
   readPreferences,
-  writePreferences,
   writeJson,
   getProjects,
-  refreshProjects,
-  syncProject,
-  invalidateScanCache,
-  saveProject,
-  hideProject,
   getVersions,
   getTags,
-  refreshTags,
   versionPaths,
   safeTagName,
   assertInside,
-  needsInitialSetup,
   completeInitialSetup,
   getIndexedProject,
   gitBranchInfo,
@@ -34,18 +24,13 @@ import {
 } from "./lib/core.js";
 import {
   childProcesses,
-  eventClients,
-  logs,
   emit,
   addLog,
   processStatus,
   spawnManaged,
   stopProcess,
-  waitForUrl,
-  inspectHttp,
   startStaticServer,
   stopStaticServer,
-  stopAllStaticServers,
   serverStatus,
 } from "./lib/runtime.js";
 import { createMicrofrontendHandler } from "./handlers/microfrontend-handler.js";
@@ -135,15 +120,6 @@ function updateMicrofrontendOperation(kind, projectId, microfrontendId, patch) {
   };
   emitState();
 }
-
-
-
-
-
-
-
-
-
 
 const {
   resetRuntimeState,
@@ -968,64 +944,31 @@ const handleMicrofrontendRequest = createMicrofrontendHandler({
   startWatch: startMicrofrontend,
 });
 const handleProjectsRequest = createProjectsHandler({
-  getState,
-  getProjects,
-  refreshProjects,
-  syncProject,
   getProjectGitInfo: projectGitService.getProjectGitInfo,
-  invalidateScanCache,
-  readConfig,
-  saveProject,
-  hideProject,
-  needsInitialSetup,
-  completeInitialSetup,
-  writeJson,
-  configPath,
   selectLocalDirectory,
   openScaffolding,
-  openProjectWebapp: vsCodeService.openProjectWebapp,
-  gitBranchInfo,
-  readBody,
-  json,
+  openProjectWebapp: vsCodeService.openProjectWebapp
 });
 const handleBrowserRequest = createBrowserHandler({
   state,
   reopenChrome,
   openEmptyBrowser,
-  readConfig,
-  writeJson,
-  configPath,
-  emitState,
-  readBody,
-  json,
+  emitState
 });
 const handleStateRequest = createStateHandler({
   getState,
-  readConfig,
-  needsInitialSetup,
-  getProjects,
-  logs,
-  eventClients,
   json,
 });
 const handleMovaRequest = createMovaHandler({
-  getVersions,
-  getTags,
-  refreshTags,
-  writePreferences,
   emitState,
-  addLog,
   compileVersion,
-  cancelBuild,
-  readBody,
-  json,
+  cancelBuild
 });
 const handleComponentsRequest = createComponentsHandler({
   state,
   startComponents: startComponentsStandalone,
   stopComponents,
   stopEnvironment: cancelAndStopAll,
-  json,
 });
 const environmentService = createEnvironmentService({
   execution: {

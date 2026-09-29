@@ -1,4 +1,14 @@
-export function createMovaHandler({ getVersions, getTags, refreshTags, writePreferences, emitState, addLog, compileVersion, cancelBuild, readBody, json }) {
+import {
+  getVersions,
+  refreshTags,
+  writePreferences
+} from "./lib/core.js";
+import {
+  addLog
+} from "./lib/runtime.js";
+import { json, readBody } from "./lib/http.js";
+
+export function createMovaHandler({ emitState, compileVersion, cancelBuild }) {
   return async function handleMovaRequest(request, response, url) {
     const { method, pathname } = { method: request.method, pathname: url.pathname };
     if (method === 'GET' && pathname === '/api/mova/versions') {

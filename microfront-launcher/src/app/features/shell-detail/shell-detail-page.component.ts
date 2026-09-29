@@ -56,7 +56,6 @@ export class ShellDetailPageComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly bootstrap = inject(AppBootstrapService);
   
-  readonly state = signal<LauncherState | null>(null);
   readonly loading = signal(false);
   readonly pending = signal(false);
   readonly search = signal('');
@@ -64,6 +63,7 @@ export class ShellDetailPageComponent {
   readonly bulkAction = signal<BulkAction>('');
   readonly targetBranch = signal('');
 
+  readonly state = this.bootstrap.state.value;
   readonly infoBranches = this.launcher.getInfoBranchesByShellId(this.shellId);
   protected readonly projects = this.bootstrap.projects.value;
   

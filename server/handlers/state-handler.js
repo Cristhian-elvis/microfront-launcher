@@ -1,4 +1,14 @@
-export function createStateHandler({ getState, readConfig, needsInitialSetup, getProjects, logs, eventClients, json }) {
+import {
+  readConfig,
+  needsInitialSetup,
+  getProjects,
+} from "./lib/core.js";
+import {
+  eventClients,
+  logs
+} from "./lib/runtime.js";
+
+export function createStateHandler({ getState, json }) {
   return async function handleStateRequest(request, response, url) {
     const { method, pathname } = { method: request.method, pathname: url.pathname };
     

@@ -1,4 +1,18 @@
 import { execFile } from 'node:child_process';
+import {
+  getProjects,
+  refreshProjects,
+  syncProject,
+  invalidateScanCache,
+  readConfig,
+  saveProject,
+  hideProject,
+  needsInitialSetup,
+  completeInitialSetup,
+  writeJson,
+  configPath
+} from "./lib/core.js";
+import { json, readBody } from "./lib/http.js";
 
 function runGit(args, cwd) {
   return new Promise((resolve, reject) => {
@@ -15,12 +29,9 @@ function runGit(args, cwd) {
 }
 
 export function createProjectsHandler({
-  getState, getProjects, refreshProjects, syncProject, invalidateScanCache,
   getProjectGitInfo,
-  readConfig, saveProject, hideProject, needsInitialSetup,
-  completeInitialSetup, writeJson, configPath, selectLocalDirectory, openScaffolding,
+  selectLocalDirectory, openScaffolding,
   openProjectWebapp,
-  readBody, json,
 }) {
   return async function handleProjectsRequest(request, response, url) {
     const { method, pathname } = request.method === 'OPTIONS' ? request : { method: request.method, pathname: url.pathname };
