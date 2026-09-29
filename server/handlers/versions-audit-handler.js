@@ -31,6 +31,7 @@ import {
   getIndexedProject,
   getProjects,
 } from "../lib/core.js";
+import { json, readBody } from "./lib/http.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -159,7 +160,7 @@ async function buildMicrofrontendsIndex(project) {
   return byName;
 }
 
-export function createVersionsAuditHandler({ json, readBody }) {
+export function createVersionsAuditHandler() {
   return async function handleVersionsAuditRequest(request, response, url) {
     const { method, pathname } =
       request.method === "OPTIONS"

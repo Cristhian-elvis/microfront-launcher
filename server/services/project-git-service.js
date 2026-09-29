@@ -1,3 +1,8 @@
+import {
+  gitBranchInfo,
+  exactGitTag
+} from "./lib/core.js";
+
 async function repositoryGitInfo(
   repositoryPath,
   gitBranchInfo,
@@ -19,9 +24,7 @@ async function repositoryGitInfo(
 // Servicio de solo lectura: concentra las consultas Git de un proyecto ya
 // detectado y no modifica su árbol de trabajo ni sus referencias remotas.
 export function createProjectGitService({
-  findProject,
-  gitBranchInfo,
-  exactGitTag,
+  findProject
 }) {
   async function getProjectGitInfo(projectId) {
     const project = await findProject(projectId);

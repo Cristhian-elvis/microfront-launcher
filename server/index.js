@@ -4,7 +4,6 @@ import path from "node:path";
 import { spawn, execFile } from "node:child_process";
 import {
   distRoot,
-  configPath,
   versionsRoot,
   workRoot,
   readConfig,
@@ -16,7 +15,6 @@ import {
   versionPaths,
   safeTagName,
   assertInside,
-  completeInitialSetup,
   getIndexedProject,
   gitBranchInfo,
   exactGitTag,
@@ -318,7 +316,6 @@ const componentsRuntime = createComponentsRuntimeService({
   buildComponents,
   emitState,
 });
-const { ensureComponents } = componentsRuntime;
 
 async function startComponentsStandalone() {
   const version = selectedVersion();
@@ -931,9 +928,7 @@ const findProject = async (projectId) =>
   (await getProjects()).find((item) => item.id === projectId);
 const vsCodeService = createVsCodeService({ findProject, addLog });
 const projectGitService = createProjectGitService({
-  findProject,
-  gitBranchInfo,
-  exactGitTag,
+  findProject
 });
 const handleMicrofrontendRequest = createMicrofrontendHandler({
   openMicrofrontend: vsCodeService.openMicrofrontend,
@@ -956,8 +951,7 @@ const handleBrowserRequest = createBrowserHandler({
   emitState
 });
 const handleStateRequest = createStateHandler({
-  getState,
-  json,
+  getState
 });
 const handleMovaRequest = createMovaHandler({
   emitState,
@@ -998,10 +992,7 @@ const environmentHandler = createEnvironmentHandler({
   json,
 });
 const routeEnvironment = createEnvironmentRouter(environmentHandler);
-const handleVersionsAuditRequest = createVersionsAuditHandler({
-  json,
-  readBody,
-});
+const handleVersionsAuditRequest = createVersionsAuditHandler();
 const routeApi = createApiRouter([
   handleStateRequest,
   handleProjectsRequest,

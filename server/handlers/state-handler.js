@@ -7,8 +7,9 @@ import {
   eventClients,
   logs
 } from "./lib/runtime.js";
+import { json } from "./lib/http.js";
 
-export function createStateHandler({ getState, json }) {
+export function createStateHandler({ getState }) {
   return async function handleStateRequest(request, response, url) {
     const { method, pathname } = { method: request.method, pathname: url.pathname };
     
