@@ -110,6 +110,6 @@ export class MicrofrontsPageComponent {
     this.api
       .post<ApiMessage>(url, { projectId: item.project.id, microfrontendId: item.id })
       .pipe(finalize(() => this.pending.set(false)))
-      .subscribe({ next: () => this.bootstrap.projects.reload() });
+      .subscribe();
   }
 }

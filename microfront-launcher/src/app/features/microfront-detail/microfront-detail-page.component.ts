@@ -37,6 +37,8 @@ type DetailAction = '' | 'build' | 'refresh' | 'branch';
   imports: [FormsModule, BreadcrumbModule, Button, Select, Tag, ProgressSpinner],
 })
 export class MicrofrontDetailPageComponent {
+  
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(ApiService);

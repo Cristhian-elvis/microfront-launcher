@@ -1,5 +1,5 @@
 @if (!loading() && project() && microfront(); as currentMicrofront) {
-  <section class="grid gap-6">
+  <section class="">
     <p-breadcrumb
       [home]="{ icon: 'pi pi-home', routerLink: '/home' }"
       [model]="breadCrumbItems()"
@@ -33,6 +33,7 @@
         }
       </div>
     </header>
+
     @if (currentMicrofront.outOfSync) {
       <p-tag
         value="Cambios pendientes por descargar"
@@ -40,10 +41,12 @@
         icon="pi pi-exclamation-triangle"
       />
     }
+    
     <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <article class="detail-card">
-        <span>Ruta local</span><code class="block truncate">{{ currentMicrofront.path }}</code
-        ><p-button
+        <span>Ruta local</span>
+        <code class="block truncate">{{ currentMicrofront.path }}</code>
+        <p-button
           label="Abrir explorador"
           icon="pi pi-folder-open"
           styleClass="p-button-outlined mt-4"
@@ -52,8 +55,9 @@
         />
       </article>
       <article class="detail-card">
-        <span>Editor</span><strong>VS Code</strong
-        ><p-button
+        <span>Editor</span>
+        <strong>VS Code</strong>
+        <p-button
           label="Abrir en VS Code"
           icon="pi pi-code"
           styleClass="p-button-outlined mt-4"
@@ -62,15 +66,17 @@
         />
       </article>
       <article class="detail-card">
-        <span>Rama actual</span><strong>{{ currentMicrofront.branch || 'No disponible' }}</strong>
+        <span>Rama actual</span>
+        <strong>{{ currentMicrofront.branch || 'No disponible' }}</strong>
       </article>
       <article class="detail-card">
-        <span>Build local</span
-        ><strong>{{
-          currentMicrofront.localBuildAvailable ? 'Disponible' : 'No disponible'
-        }}</strong>
+        <span>Build local</span>
+        <strong>
+          {{ currentMicrofront.localBuildAvailable ? 'Disponible' : 'No disponible' }}
+        </strong>
       </article>
     </div>
+
     @if (operation(); as currentOperation) {
       <section class="rounded-xl border border-surface-200 p-4 dark:border-surface-700">
         <h2 class="m-0 text-base">Estado de la operación</h2>
