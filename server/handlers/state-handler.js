@@ -2,12 +2,12 @@ import {
   readConfig,
   needsInitialSetup,
   getProjects,
-} from "./lib/core.js";
+} from "./../lib/core.js";
 import {
   eventClients,
   logs
-} from "./lib/runtime.js";
-import { json } from "./lib/http.js";
+} from "./../lib/runtime.js";
+import { json } from "./../lib/http.js";
 
 export function createStateHandler({ getState }) {
   return async function handleStateRequest(request, response, url) {

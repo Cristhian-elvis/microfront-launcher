@@ -1,7 +1,7 @@
 import {
   gitBranchInfo,
   exactGitTag
-} from "./lib/core.js";
+} from "../lib/core.js";
 
 async function repositoryGitInfo(
   repositoryPath,

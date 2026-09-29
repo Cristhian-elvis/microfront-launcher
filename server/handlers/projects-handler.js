@@ -11,8 +11,8 @@ import {
   completeInitialSetup,
   writeJson,
   configPath
-} from "./lib/core.js";
-import { json, readBody } from "./lib/http.js";
+} from "./../lib/core.js";
+import { json, readBody } from "./../lib/http.js";
 
 function runGit(args, cwd) {
   return new Promise((resolve, reject) => {

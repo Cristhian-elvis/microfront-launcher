@@ -2,11 +2,11 @@ import {
   getVersions,
   refreshTags,
   writePreferences
-} from "./lib/core.js";
+} from "./../lib/core.js";
 import {
   addLog
-} from "./lib/runtime.js";
-import { json, readBody } from "./lib/http.js";
+} from "./../lib/runtime.js";
+import { json, readBody } from "./../lib/http.js";
 
 export function createMovaHandler({ emitState, compileVersion, cancelBuild }) {
   return async function handleMovaRequest(request, response, url) {

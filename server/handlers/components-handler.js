@@ -1,4 +1,4 @@
-import { json } from "./lib/http.js";
+import { json } from "./../lib/http.js";
 
 export function createComponentsHandler({ state, startComponents, stopComponents, stopEnvironment }) {
   return async function handleComponentsRequest(request, response, url) {

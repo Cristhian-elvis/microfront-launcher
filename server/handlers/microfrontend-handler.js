@@ -1,5 +1,5 @@
-import { getProjects } from "../lib/core.js";
-import { json, readBody } from "../lib/http.js";
+import { getProjects } from "./../lib/core.js";
+import { json, readBody } from "./../lib/http.js";
 import { openMicrofrontendFolder, stopMicrofrontendWatch } from "../operations/microfrontend-ops.js";
 
 export function createMicrofrontendHandler({

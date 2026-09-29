@@ -31,7 +31,7 @@ import {
   getIndexedProject,
   getProjects,
 } from "../lib/core.js";
-import { json, readBody } from "./lib/http.js";
+import { json, readBody } from "./../lib/http.js";
 
 const execFileAsync = promisify(execFile);
 

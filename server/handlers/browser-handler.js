@@ -2,8 +2,8 @@ import {
   readConfig,
   writeJson,
   configPath
-} from "./lib/core.js";
-import { json, readBody } from "./lib/http.js";
+} from "./../lib/core.js";
+import { json, readBody } from "./../lib/http.js";
 
 export function createBrowserHandler({ state, reopenChrome, openEmptyBrowser, emitState }) {
   return async function handleBrowserRequest(request, response, url) {
