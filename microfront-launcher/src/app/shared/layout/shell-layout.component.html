@@ -1,42 +1,22 @@
-<div class="grid min-h-screen grid-cols-[254px_minmax(0,1fr)] max-md:grid-cols-1">
-  <aside
-    class="flex flex-col gap-6 border-r border-surface-200 bg-surface-0 px-4 py-6 dark:border-surface-700 dark:bg-surface-900 max-md:hidden"
-  >
-    <a
-      class="flex items-center gap-2.5 font-bold text-surface-950 no-underline dark:text-surface-0"
-      routerLink="/home"
-    >
-      <i class="pi pi-th-large text-primary"></i><span>Microfront Launcher</span>
-    </a>
-    <nav class="grid gap-1" aria-label="Navegación principal">
-      <a class="nav-link" routerLink="/home" routerLinkActive="nav-link-active"
-        ><i class="pi pi-home"></i>Inicio</a
-      >
-      <a class="nav-link" routerLink="/shells" routerLinkActive="nav-link-active"
-        ><i class="pi pi-desktop"></i>Shells</a
-      >
-      <a class="nav-link" routerLink="/microfronts" routerLinkActive="nav-link-active"
-        ><i class="pi pi-box"></i>Microfrontends</a
-      >
-      <a class="nav-link" routerLink="/tags" routerLinkActive="nav-link-active"
-        ><i class="pi pi-tags"></i>Versiones</a
-      >
-    </nav>
-    <a class="nav-link mt-auto" routerLink="/setup"><i class="pi pi-cog"></i>Configuración</a>
-  </aside>
-
-  <main class="min-w-0">
+<div class="flex min-h-screen">
+  <app-sidebar (settingsRequested)="openSettings()" />
+  <main class="min-w-0 flex-1">
     <header
-      class="flex items-center justify-between gap-4 border-b border-surface-200 bg-surface-0 px-7 py-4 text-sm text-surface-500 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-400 max-md:px-4 max-md:py-3"
+      class="flex items-center justify-between gap-4 border-b border-surface-200 bg-surface-0 px-7 py-4 text-sm text-surface-500 dark:border-surface-700 dark:bg-surface-900 max-md:px-4"
     >
-      <span>Angular 21 · PrimeNG 21</span>
+      <div class="flex items-center gap-2 text-surface-900 dark:text-surface-0">
+        <i class="pi pi-terminal text-primary"></i>
+        <span>
+          <strong class="block">Microfront</strong>
+          <small>Launcher V2</small>
+        </span>
+      </div>
       <div class="flex items-center gap-2">
         <button
           pButton
           type="button"
           [icon]="theme.isDark() ? 'pi pi-sun' : 'pi pi-moon'"
-          [label]="theme.isDark() ? 'Modo claro' : 'Modo oscuro'"
-          [attr.aria-pressed]="theme.isDark()"
+          [label]="theme.isDark() ? 'Claro' : 'Oscuro'"
           class="p-button-sm p-button-outlined"
           (click)="theme.toggle()"
         ></button>
@@ -46,6 +26,7 @@
           label="Abrir navegador"
           icon="pi pi-external-link"
           class="p-button-sm p-button-outlined"
+          (click)="openBrowser()"
         ></button>
         <button
           pButton
@@ -57,17 +38,50 @@
         ></button>
       </div>
     </header>
-    <section class="p-7 max-md:p-4"><router-outlet></router-outlet></section>
+    <section class="p-7 max-md:p-4"><router-outlet /></section>
   </main>
 </div>
-
 <p-dialog
   header="Consola de proceso"
   [modal]="true"
   [visible]="consoleVisible()"
-  [style]="{ width: 'min(980px, calc(100vw - 2rem))' }"
   [draggable]="false"
   (visibleChange)="consoleVisible.set($event)"
 >
   <app-process-console [logs]="bootstrap.logs.value()" />
+</p-dialog>
+<p-dialog
+  header="Configuración"
+  [modal]="true"
+  [visible]="settingsVisible()"
+  [draggable]="false"
+  (visibleChange)="settingsVisible.set($event)"
+>
+  <div class="grid gap-4">
+    <label class="grid gap-1">
+      Raíz de shells
+      <input
+        pInputText
+        [value]="settings().rootPath || ''"
+        (input)="updateSetting('rootPath', '', $any($event.target).value)"
+      />
+    </label>
+    <label class="grid gap-1">
+      Iniciales
+      <input
+        pInputText
+        maxlength="2"
+        [value]="settings().preferences?.avatarLetters || ''"
+        (input)="updateSetting('preferences', 'avatarLetters', $any($event.target).value)"
+      />
+    </label>
+    <div class="flex justify-end gap-2">
+      <p-button
+        label="Cancelar"
+        styleClass="p-button-outlined"
+        (onClick)="settingsVisible.set(false)"
+      />
+      <p-button label="Guardar" (onClick)="saveSettings()" />
+    </div>
+  </div>
 </p-dialog>

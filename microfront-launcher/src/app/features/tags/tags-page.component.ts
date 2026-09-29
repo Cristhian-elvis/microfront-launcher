@@ -1,10 +1,9 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, inject } from '@angular/core';
-import { MenuItem, MessageService, PrimeTemplate } from 'primeng/api';
-import { forkJoin } from 'rxjs';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
+import { MessageService, PrimeTemplate } from 'primeng/api';
+import type { MenuItem } from 'primeng/api';
 import { finalize, tap } from 'rxjs/operators';
 import { ApiService } from '../../core/api.service';
-import { ApiMessage, LauncherState, MovaVersion } from '../../core/launcher.models';
-import { LauncherEvent, LauncherEventsService } from '../../core/launcher-events.service';
+import type { ApiMessage, LauncherState, MovaVersion } from '../../core/launcher.models';
 import { Button } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
@@ -22,13 +21,12 @@ import { BreadcrumbModule } from 'primeng/breadcrumb';
 export class TagsPageComponent {
   private readonly bootstrap = inject(AppBootstrapService);
   private readonly api = inject(ApiService);
-  private readonly events = inject(LauncherEventsService);
   private readonly messages = inject(MessageService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly versions = this.bootstrap.versions.value;
 
-  state: LauncherState | null = null;
+  state: LauncherState | null = this.bootstrap.state.value() ?? null;
   refreshing = false;
   pending = false;
 
@@ -38,15 +36,6 @@ export class TagsPageComponent {
 
   get preferredTag(): string {
     return this.state?.preferences.preferredTag ?? '';
-  }
-
-  constructor() {
-    this.events.events()
-    .pipe(takeUntilDestroyed(this.destroyRef))
-    .subscribe({
-      next: (event) => this.receiveEvent(event),
-      error: () => undefined
-    });
   }
 
   buildLabel(version: MovaVersion): string {
@@ -135,16 +124,6 @@ export class TagsPageComponent {
       'build:compile': 'Compilando librería'
     };
     return (key && steps[key]) || this.state?.build?.message || 'Preparando compilación';
-  }
-
-  private receiveEvent(event: LauncherEvent): void {
-    if (event.type === 'state' && this.isState(event.payload)) {
-      this.state = event.payload;
-    }
-  }
-
-  private isState(value: unknown): value is LauncherState {
-    return typeof value === 'object' && value !== null && 'preferences' in value && 'build' in value;
   }
 
   private notifyError(error: unknown): void {

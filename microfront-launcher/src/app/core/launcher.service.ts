@@ -1,5 +1,6 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, httpResource } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import type { Signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import type { ApiMessage, Project } from './launcher.models';
 
@@ -7,6 +8,10 @@ import type { ApiMessage, Project } from './launcher.models';
 @Injectable({ providedIn: 'root' })
 export class LauncherService {
   private readonly http = inject(HttpClient);
+
+  getInfoBranchesByShellId(shellId: Signal<string>) {
+    return  httpResource(() => `/api/projects/${shellId()}/git-info`);
+  }
 
   savePreferredVersion(preferredTag: string): Observable<ApiMessage> {
     return this.http.put<ApiMessage>('/api/mova/preferences', { preferredTag });
@@ -38,5 +43,9 @@ export class LauncherService {
 
   saveFavoriteShells(favoriteShellIds: string[]): Observable<ApiMessage> {
     return this.http.put<ApiMessage>('/api/mova/preferences', { favoriteShellIds });
+  }
+
+  savePreferences(preferences: { favoriteShellIds?: string[]; favoriteMicrofrontIds?: string[]; avatarLetters?: string }): Observable<ApiMessage> {
+    return this.http.put<ApiMessage>('/api/mova/preferences', preferences);
   }
 }

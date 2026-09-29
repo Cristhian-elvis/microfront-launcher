@@ -1,0 +1,120 @@
+<aside class="sidebar" [class.sidebar-collapsed]="collapsed()" [class.scrollable]="!collapsed()" [class.not-scrollable]="collapsed()">
+  <div class="flex sticky top-0 left-0">
+    <p-button
+      [icon]="collapsed() ? 'pi pi-angle-right' : 'pi pi-angle-left'"
+      styleClass="p-button-rounded p-button-text sidebar-toggle"
+      [ariaLabel]="collapsed() ? 'Expandir barra lateral' : 'Recoger barra lateral'"
+      (onClick)="toggle()"
+    />
+    @if (!collapsed()) {
+      <a class="brand">
+        <span>Microfront Launcher</span>
+      </a>
+    }
+  </div>
+
+  <nav aria-label="Navegación principal">
+    <a
+      pButton
+      class="nav-link"
+      routerLink="/home"
+      routerLinkActive="nav-link-active"
+      [attr.aria-label]="collapsed() ? 'Inicio' : null"
+    >
+      <i class="pi pi-home"></i>
+      @if (!collapsed()) {
+        <span>Inicio</span>
+      }
+    </a>
+    <a
+      pButton
+      class="nav-link"
+      routerLink="/shells"
+      routerLinkActive="nav-link-active"
+      [attr.aria-label]="collapsed() ? 'Shells' : null"
+    >
+      <i class="pi pi-desktop"></i>
+      @if (!collapsed()) {
+        <span>Shells</span>
+        <p-badge [value]="projects().length" severity="secondary" />
+      }
+    </a>
+    <a
+      pButton
+      class="nav-link"
+      routerLink="/microfronts"
+      routerLinkActive="nav-link-active"
+      [attr.aria-label]="collapsed() ? 'Microfrontends' : null"
+    >
+      <i class="pi pi-box"></i>
+      @if (!collapsed()) {
+        <span>Microfrontends</span>
+        <p-badge [value]="microfrontCount()" severity="secondary" />
+      }
+    </a>
+    <a
+      pButton
+      class="nav-link"
+      routerLink="/tags"
+      routerLinkActive="nav-link-active"
+      [attr.aria-label]="collapsed() ? 'Versiones' : null"
+    >
+      <i class="pi pi-tags"></i>
+      @if (!collapsed()) {
+        <span>Versiones</span>
+      }
+    </a>
+  </nav>
+
+  @if (!collapsed()) {
+    <section>
+      <header>
+        <span>
+          <i class="pi pi-star-fill text-amber-400"></i>
+          Shells favoritas
+        </span>
+        <p-badge [value]="favoriteShells().length" severity="secondary" />
+      </header>
+      @if (favoriteShells().length) {
+        @for (project of favoriteShells(); track project.id) {
+          <a class="favorite-link" [routerLink]="['/shells', project.id]">{{ project.name }}</a>
+        }
+      } @else {
+        <p>Aún no hay favoritas.</p>
+      }
+    </section>
+    <section>
+      <header>
+        <span>
+          <i class="pi pi-star-fill text-amber-400"></i>
+          Microfronts favoritos
+        </span>
+        <p-badge [value]="favoriteMicrofronts().length" severity="secondary" />
+      </header>
+      @if (favoriteMicrofronts().length) {
+        @for (
+          favorite of favoriteMicrofronts();
+          track microfrontKey(favorite.project, favorite.microfront)
+        ) {
+          <a
+            class="favorite-link"
+            [routerLink]="['/shells', favorite.project.id, favorite.microfront.id]"
+          >
+            {{ favorite.microfront.name }}
+          </a>
+        }
+      } @else {
+        <p>Aún no hay favoritos.</p>
+      }
+    </section>
+  }
+
+  <footer>
+    <p-button
+      icon="pi pi-cog"
+      [label]="collapsed() ? undefined : 'Configuración'"
+      styleClass="p-button-text w-full justify-start"
+      (onClick)="settingsRequested.emit()"
+    />
+  </footer>
+</aside>

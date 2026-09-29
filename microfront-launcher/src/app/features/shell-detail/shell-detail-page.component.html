@@ -1,15 +1,266 @@
-<section class="shell-detail" *ngIf="!loading && project; else loadingState">
-  <header class="detail-header">
-    <div><p-button icon="pi pi-arrow-left" styleClass="p-button-text p-button-rounded" ariaLabel="Volver a shells" (onClick)="back()"></p-button><div><h1>Proyecto: {{ displayName }}</h1><p>Configuración y vínculos locales del proyecto.</p></div></div>
-    <div class="toolbar"><p-button label="Ver estado versiones" icon="pi pi-search" styleClass="p-button-outlined" [disabled]="operating" (onClick)="viewVersions()"></p-button><p-button [label]="pending ? 'Sincronizando…' : 'Sincronizar'" icon="pi pi-refresh" styleClass="p-button-outlined" [loading]="pending" [disabled]="operating" (onClick)="refresh()"></p-button><p-button label="Reconstruir todo" icon="pi pi-refresh" styleClass="p-button-outlined" [disabled]="operating || active" (onClick)="action('/api/shell/rebuild', { projectId: project.id })"></p-button></div>
+<section class="grid min-w-0 gap-6">
+  <p-breadcrumb [home]="{ icon: 'pi pi-home', routerLink: '/home' }" [model]="breadCrumbItems" />
+
+  <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2">
+        <h1 class="m-0 text-xl font-semibold tracking-tight text-slate-100">
+          Proyecto: {{ displayName() }}
+        </h1>
+        <p-button
+          [icon]="favorite() ? 'pi pi-star-fill' : 'pi pi-star'"
+          [styleClass]="
+            favorite()
+              ? 'p-button-rounded p-button-text detail-favorite is-selected'
+              : 'p-button-rounded p-button-text detail-favorite'
+          "
+          [disabled]="operating()"
+          [ariaLabel]="favorite() ? 'Quitar de favoritos' : 'Agregar a favoritos'"
+          (onClick)="toggleFavorite()"
+        />
+      </div>
+      <p class="mb-0 mt-1 text-sm text-slate-400">Configuración y vínculos locales del proyecto.</p>
+    </div>
+    <div class="flex flex-wrap gap-2 lg:justify-end">
+      <p-button
+        label="Ver estado versiones"
+        icon="pi pi-search"
+        styleClass="p-button-outlined"
+        [disabled]="operating()"
+        (onClick)="viewVersions()"
+      />
+      <p-button
+        [label]="pending() ? 'Sincronizando…' : 'Sincronizar'"
+        icon="pi pi-refresh"
+        styleClass="p-button-outlined"
+        [loading]="pending()"
+        [disabled]="operating()"
+        (onClick)="refresh()"
+      />
+      <p-button
+        [label]="operating() ? 'Reconstruyendo…' : 'Reconstruir todo'"
+        icon="pi pi-refresh"
+        styleClass="p-button-outlined"
+        [disabled]="operating() || active()"
+        (onClick)="rebuild()"
+      />
+    </div>
   </header>
-  <div class="summary-grid">
-    <article><span>Webapp asociada</span><strong>{{ project.appName || project.name || 'Sin configurar' }}</strong><code>{{ project.webappPath || 'No disponible' }}</code><p-button label="Abrir en VS Code" icon="pi pi-code" styleClass="p-button-outlined" [disabled]="operating || !project.webappPath" (onClick)="action('/api/projects/open-webapp', { projectId: project.id })"></p-button></article>
-    <article><span>Ruta shell</span><strong>{{ project.path || 'No disponible' }}</strong></article>
-    <article><span>Microfronts</span><strong>{{ project.microfrontends?.length || 0 }}</strong></article>
-    <article><span>Git shell</span><strong>{{ project.gitInfo?.shell?.branch || 'No disponible' }}</strong><code *ngIf="project.gitInfo?.shell?.exactTag">{{ project.gitInfo?.shell?.exactTag }}</code></article>
-    <article><span>Git webapp</span><strong>{{ project.gitInfo?.webapp?.branch || 'No disponible' }}</strong></article>
+
+  <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <article class="detail-card row-span-2 grid content-start gap-2">
+      <span class="detail-label">Webapp asociada</span>
+      <strong class="truncate text-slate-100">
+        {{ project()?.appName || project()?.name || 'Sin configurar' }}
+      </strong>
+      <span class="detail-label mt-3">Ubicación de la webapp</span>
+      <code class="truncate text-xs text-slate-400">
+        {{ project()?.webappPath || 'No disponible' }}
+      </code>
+      <p-button
+        label="Abrir en VS Code"
+        icon="pi pi-code"
+        styleClass="p-button-outlined mt-2"
+        [disabled]="operating() || !project()?.webappPath"
+        (onClick)="openWebapp()"
+      />
+    </article>
+    <article class="detail-card">
+      <span class="detail-label">Ruta shell</span>
+      <strong class="mt-2 block truncate text-slate-100">
+        {{ project()?.path || 'No disponible' }}
+      </strong>
+    </article>
+    <article class="detail-card">
+      <span class="detail-label">Git shell</span>
+      <strong class="mt-2 block truncate text-slate-100">
+        {{ project()?.gitInfo?.shell?.branch || 'No disponible' }}
+      </strong>
+      @if (project()?.gitInfo?.shell?.exactTag) {
+        <code class="mt-1 block truncate text-xs text-slate-400">
+          {{ project()?.gitInfo?.shell?.exactTag }}
+        </code>
+      }
+    </article>
+    <article class="detail-card">
+      <span class="detail-label">Git webapp</span>
+      <strong class="mt-2 block truncate text-slate-100">
+        {{ project()?.gitInfo?.webapp?.branch || 'No disponible' }}
+      </strong>
+    </article>
   </div>
-<section class="microfronts"><header><h2>Microfrontends</h2><span>{{ project.microfrontends?.length || 0 }} registrados</span></header><p-table [value]="project.microfrontends || []" [rowHover]="true"><ng-template pTemplate="header"><tr><th>Microfrontend</th><th>Rama</th><th>Estado</th><th>Acciones</th></tr></ng-template><ng-template pTemplate="body" let-microfront><tr><td><strong>{{ microfront.name }}</strong><code>{{ microfront.path }}</code></td><td>{{ microfront.branch || 'No disponible' }}</td><td><p-tag [value]="microfront.outOfSync ? 'Pendiente de sincronizar' : 'Al día'" [severity]="microfront.outOfSync ? 'warn' : 'success'"></p-tag></td><td><p-button icon="pi pi-cog" styleClass="p-button-rounded p-button-text" ariaLabel="Ver detalle" (onClick)="openMicrofront(microfront.id)"></p-button></td></tr></ng-template></p-table></section>
+
+  <section
+    class="rounded-xl border border-slate-700 bg-slate-950/40 p-4"
+    aria-labelledby="microfronts-title"
+  >
+    <header class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h2 id="microfronts-title" class="m-0 text-base font-semibold text-slate-100">
+          Microfronts locales
+        </h2>
+        <p class="mb-0 mt-1 text-sm text-slate-400">
+          {{ microfronts().length }} detectados para esta shell.
+        </p>
+      </div>
+      @if (selectedMicrofronts().length) {
+        <div
+          class="flex flex-wrap items-center gap-2 rounded-lg border border-teal-700/60 bg-teal-950/30 p-2"
+        >
+          <strong class="text-sm text-teal-100">
+            {{ selectedMicrofronts().length }} seleccionados
+          </strong>
+          <p-select
+            [options]="bulkActionOptions"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="bulkAction()"
+            (ngModelChange)="chooseBulkAction($event)"
+            class="detail-select"
+            [disabled]="operating()"
+            aria-label="Acción masiva"
+            (change)="chooseBulkAction($any($event.target).value)"
+          >
+            <option value="">Acciones masivas…</option>
+            <option value="build">Compilar seleccionados</option>
+            <option value="branch">Cambiar a rama…</option>
+          </p-select>
+          @if (bulkAction() === 'branch') {
+            <p-select
+              [options]="commonBranches()"
+              [ngModel]="targetBranch()"
+              (ngModelChange)="targetBranch.set($event)"
+              class="detail-select"
+              [disabled]="operating() || !commonBranches().length"
+              aria-label="Rama destino"
+              (change)="targetBranch.set($any($event.target).value)"
+            >
+              <option value="">
+                {{ commonBranches().length ? 'Seleccionar rama…' : 'Sin ramas comunes' }}
+              </option>
+              @for (branch of commonBranches(); track branch) {
+                <option [value]="branch">{{ branch }}</option>
+              }
+            </p-select>
+          }
+          @if (bulkAction()) {
+            <p-button
+              label="Aplicar"
+              [disabled]="
+                operating() ||
+                (bulkAction() === 'branch' && !targetBranch()) ||
+                (bulkAction() === 'build' && !hasBuildableSelection())
+              "
+              (onClick)="applyBulkAction()"
+            />
+          }
+        </div>
+      } @else {
+        <label
+          class="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-400"
+        >
+          <i class="pi pi-search text-sm"></i>
+          <input
+            class="min-w-48 border-0 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
+            [disabled]="operating()"
+            [value]="search()"
+            placeholder="Buscar microfront…"
+            aria-label="Buscar microfront"
+            (input)="search.set($any($event.target).value)"
+          />
+        </label>
+      }
+    </header>
+    <p-table
+      [value]="visibleMicrofronts()"
+      [selection]="selectedMicrofronts()"
+      (selectionChange)="setSelectedMicrofronts($event)"
+      [rowHover]="true"
+      dataKey="id"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th>
+            <p-tableHeaderCheckbox [disabled]="operating()" />
+          </th>
+          <th>Microfront</th>
+          <th>Rama actual</th>
+          <th>Build local</th>
+          <th>Chequeo de proceso</th>
+          <th>Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-microfront>
+        <tr [class.detail-row-selected]="selectedIds().includes(microfront.id)">
+          <td>
+            <p-tableCheckbox [value]="microfront" [disabled]="operating()" />
+          </td>
+          <td>
+            <strong class="block text-sm text-slate-100">{{ microfront.name }}</strong>
+            <code class="block max-w-72 truncate text-xs text-slate-400">
+              {{ microfront.path }}
+            </code>
+          </td>
+          <td>
+            <span
+              [class.text-amber-300]="branchChanging(microfront)"
+              [class.text-teal-300]="!branchChanging(microfront)"
+            >
+              @if (infoBranches.isLoading()) {
+                <i class="pi pi-spin pi-spinner-dotted"></i>
+                &emsp;Cargando
+              } @else {
+                {{
+                  branchChanging(microfront)
+                    ? 'Cambiando rama…'
+                    : microfront.branch || 'No disponible'
+                }}
+                {{ microfront.outOfSync ? ' ⚠' : '' }}
+              }
+            </span>
+          </td>
+          <td>
+            <p-tag
+              [value]="
+                buildRunning(microfront)
+                  ? 'Reconstruyendo…'
+                  : microfront.localBuildAvailable
+                    ? 'Disponible'
+                    : 'No disponible'
+              "
+              [severity]="
+                buildRunning(microfront)
+                  ? 'warn'
+                  : microfront.localBuildAvailable
+                    ? 'success'
+                    : 'secondary'
+              "
+            />
+          </td>
+          <td>
+            <p-tag
+              [value]="operationLabel(microfront)"
+              [severity]="operationSeverity(microfront)"
+            />
+          </td>
+          <td>
+            <p-button
+              icon="pi pi-chevron-right"
+              styleClass="p-button-rounded p-button-text"
+              ariaLabel="Ver detalle"
+              [disabled]="operating()"
+              (onClick)="openMicrofront(microfront.id)"
+            />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="py-8 text-center text-sm text-slate-400">
+            No hay microfronts que coincidan con la búsqueda.
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </section>
 </section>
-<ng-template #loadingState><div class="loading"><p-progressSpinner strokeWidth="3"></p-progressSpinner><span>Cargando shell…</span></div></ng-template>

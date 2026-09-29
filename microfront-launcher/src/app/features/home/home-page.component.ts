@@ -17,13 +17,8 @@ import { Observable } from 'rxjs';
 import { finalize, tap } from 'rxjs/operators';
 import type {
   ApiMessage,
-  LauncherLog,
-  LauncherState,
   MovaVersion,
-  Project,
 } from '../../core/launcher.models';
-import type { LauncherEvent } from '../../core/launcher-events.service';
-import { LauncherEventsService } from '../../core/launcher-events.service';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { LauncherService } from '../../core/launcher.service';
 import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
@@ -48,7 +43,6 @@ interface VersionGroup {
 export class HomePageComponent {
   private readonly bootstrap = inject(AppBootstrapService);
   private readonly launcher = inject(LauncherService);
-  private readonly events = inject(LauncherEventsService);
   private readonly messages = inject(MessageService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -115,19 +109,6 @@ export class HomePageComponent {
       this.selectedVersionTag.set(state.preferences.preferredTag ?? this.selectedVersionTag());
       if (state.shell.projectId) this.selectedProjectId.set(state.shell.projectId);
     });
-
-    this.events
-      .events()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (event) => this.receiveEvent(event),
-        error: () =>
-          this.messages.add({
-            severity: 'warn',
-            summary: 'Conexión',
-            detail: 'No se pudo mantener la conexión de eventos.',
-          }),
-      });
   }
 
   protected saveVersion(): void {
@@ -181,32 +162,8 @@ export class HomePageComponent {
       });
   }
 
-  private receiveEvent(event: LauncherEvent): void {
-    if (event.type === 'state' && this.isState(event.payload)) {
-      this.state.set(event.payload);
-    }
-    const log = event.payload;
-    if (event.type === 'log' && this.isLog(log)) {
-      this.logs.update((logs) => [...logs, log].slice(-250));
-    }
-  }
-
   private toVersionOptions(versions: MovaVersion[]): VersionOption[] {
     return versions.map((version) => ({ label: version.tag, value: version.tag }));
-  }
-
-  private isState(value: unknown): value is LauncherState {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      'session' in value &&
-      'shell' in value &&
-      'components' in value
-    );
-  }
-
-  private isLog(value: unknown): value is LauncherLog {
-    return typeof value === 'object' && value !== null && 'id' in value && 'message' in value;
   }
 
   private notifyError(error: unknown): void {

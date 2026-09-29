@@ -4,6 +4,22 @@
   @apply flex items-center gap-3 rounded-md px-3 py-2.5 text-surface-600 no-underline transition-colors hover:bg-emphasis hover:text-surface-950 dark:text-surface-300 dark:hover:text-surface-0;
 }
 
+.nav-link.p-button {
+  @apply justify-start border-0 bg-transparent text-left shadow-none;
+}
+
+.nav-link.p-button:not(.nav-link-active) {
+  @apply text-surface-600 dark:text-surface-300;
+}
+
 .nav-link-active {
   @apply bg-primary text-primary-contrast hover:bg-primary hover:text-primary-contrast;
+}
+
+.nav-link.p-button.nav-link-active {
+  @apply bg-primary text-primary-contrast hover:bg-primary hover:text-primary-contrast;
+}
+
+.favorite-link {
+  @apply grid grid-cols-[1rem_minmax(0,1fr)] items-center gap-2 rounded-md px-2 py-1.5 text-sm text-surface-600 no-underline transition-colors hover:bg-emphasis hover:text-surface-950 dark:text-surface-300 dark:hover:text-surface-0;
 }

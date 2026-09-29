@@ -1,0 +1,55 @@
+@reference "../../../styles.css";
+
+:host {
+  @apply relative;
+}
+
+.sidebar {
+  @apply sticky top-0 flex h-screen w-64 shrink-0 flex-col gap-6 border-r border-surface-200 bg-surface-0 px-4 py-6 dark:border-surface-700 dark:bg-surface-900;
+}
+.sidebar-collapsed {
+  @apply w-18 px-3;
+}
+.sidebar-toggle {
+  @apply absolute -right-4 top-5 z-10 border border-surface-200 bg-surface-0 shadow-sm dark:border-surface-700 dark:bg-surface-900;
+}
+.brand {
+  @apply flex items-center gap-2.5 whitespace-nowrap font-bold text-surface-950 no-underline dark:text-surface-0;
+}
+nav {
+  @apply grid gap-1;
+}
+.nav-link {
+  @apply justify-start gap-3 border-0 bg-transparent px-3 py-2.5 text-left text-surface-600 shadow-none hover:bg-emphasis dark:text-surface-300;
+}
+.nav-link-active {
+  @apply bg-primary text-primary-contrast hover:bg-primary;
+}
+section {
+  @apply grid gap-2 border-t border-surface-200 pt-5 dark:border-surface-700;
+}
+section header {
+  @apply flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-surface-500;
+}
+section header span {
+  @apply flex items-center gap-2;
+}
+section p {
+  @apply m-0 text-sm text-surface-500;
+}
+.favorite-link {
+  @apply truncate rounded-md px-2 py-1.5 text-sm text-surface-600 no-underline hover:bg-emphasis dark:text-surface-300;
+}
+
+footer {
+  @apply mt-auto border-t border-surface-200 pt-3 dark:border-surface-700;
+  @apply sticky bottom-0 left-0;
+}
+
+.scrollable {
+  @apply overflow-y-auto;
+}
+
+.not-scrollable {
+  @apply overflow-y-hidden;
+}

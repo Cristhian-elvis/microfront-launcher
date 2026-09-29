@@ -1,88 +1,46 @@
-.shell-detail {
-  display: grid;
-  gap: 22px;
-}
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: flex-start;
-}
-.detail-header > div:first-child {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-.detail-header h1 {
-  margin: 0;
-  color: #eef8ff;
-  font-size: 26px;
-}
-.detail-header p {
-  margin: 5px 0 0;
-  color: #8da7bb;
-}
-.toolbar {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-.summary-grid article {
-  display: grid;
-  align-content: start;
-  gap: 7px;
+.detail-card {
   min-width: 0;
-  padding: 16px;
-  border: 1px solid #9acdc9;
-  border-radius: 12px;
-  background: linear-gradient(110deg, #effafa, #fff);
+  padding: 1rem;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  background: rgb(15 23 42 / 0.72);
 }
-.summary-grid span {
-  color: #587188;
-  font-size: 12px;
-}
-.summary-grid strong,
-.summary-grid code {
-  overflow: hidden;
-  color: #153047;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.microfronts header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-.microfronts h2 {
-  margin: 0;
-  color: #eef8ff;
-}
-.microfronts header span,
-td code {
+.detail-label {
   display: block;
-  color: #8da7bb;
-  font-size: 12px;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
-.loading {
-  display: grid;
-  min-height: 260px;
-  place-content: center;
-  justify-items: center;
-  gap: 14px;
-  color: #8da7bb;
+.detail-select {
+  max-width: 12rem;
+  border: 1px solid #475569;
+  border-radius: 0.375rem;
+  padding: 0.45rem 0.55rem;
+  color: #e2e8f0;
+  background: #0f172a;
+  font-size: 0.875rem;
 }
-@media (max-width: 800px) {
-  .detail-header {
-    flex-direction: column;
-  }
-  .summary-grid {
-    grid-template-columns: 1fr;
-  }
+.detail-favorite {
+  color: #94a3b8;
+}
+.detail-favorite.is-selected {
+  color: #fbbf24;
+}
+.detail-row-selected {
+  border-color: rgb(45 212 191 / 0.6);
+  background: rgb(19 78 74 / 0.25);
+}
+.is-idle {
+  color: #94a3b8;
+}
+.is-running {
+  color: #fcd34d;
+}
+.is-success {
+  color: #6ee7b7;
+}
+.is-error {
+  color: #fca5a5;
 }

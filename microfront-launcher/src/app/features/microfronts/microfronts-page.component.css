@@ -1,0 +1,7 @@
+@reference "../../../styles.css";
+.detail-favorite {
+  @apply text-surface-400;
+}
+.detail-favorite.is-selected {
+  @apply text-amber-400;
+}

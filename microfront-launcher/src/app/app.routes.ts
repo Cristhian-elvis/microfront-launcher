@@ -14,8 +14,7 @@ export const routes: Routes = [
   {
     path: 'microfronts',
     loadComponent: () =>
-      import('./shared/pages/placeholder-page.component').then((m) => m.PlaceholderPageComponent),
-    data: { title: 'Microfrontends', description: 'Directorio y acciones de microfrontends.' },
+      import('./features/microfronts/microfronts-page.component').then((m) => m.MicrofrontsPageComponent),
   },
   {
     path: 'shells/:shellId/versions',

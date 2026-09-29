@@ -1,11 +1,10 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MenuItem, MessageService, PrimeTemplate } from 'primeng/api';
+import { MessageService, PrimeTemplate } from 'primeng/api';
+import type { MenuItem } from 'primeng/api';
 import { finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import type { LauncherState, Project } from '../../core/launcher.models';
-import type { LauncherEvent } from '../../core/launcher-events.service';
-import { LauncherEventsService } from '../../core/launcher-events.service';
+import type { Project } from '../../core/launcher.models';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { LauncherService } from '../../core/launcher.service';
 import { FormsModule } from '@angular/forms';
@@ -27,7 +26,6 @@ import { BreadcrumbModule } from 'primeng/breadcrumb';
 export class ShellsPageComponent {
   private readonly bootstrap = inject(AppBootstrapService);
   private readonly launcher = inject(LauncherService);
-  private readonly events = inject(LauncherEventsService);
   private readonly messages = inject(MessageService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -40,16 +38,6 @@ export class ShellsPageComponent {
   breadCrumbItems: MenuItem[] = [
     { label: 'Shells' }
   ];
-
-  constructor() {
-    this.events
-      .events()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (event) => this.receiveEvent(event),
-        error: () => undefined,
-      });
-  }
 
   get filteredProjects(): Project[] {
     const query = this.filter.trim().toLocaleLowerCase();
@@ -130,16 +118,6 @@ export class ShellsPageComponent {
 
   openDetail(project: Project): void {
     void this.router.navigate(['/shells', project.id]);
-  }
-
-  private receiveEvent(event: LauncherEvent): void {
-    if (event.type === 'state' && this.isState(event.payload)) this.state.set(event.payload);
-  }
-
-  private isState(value: unknown): value is LauncherState {
-    return (
-      typeof value === 'object' && value !== null && 'shell' in value && 'preferences' in value
-    );
   }
 
   private notifyError(error: unknown): void {

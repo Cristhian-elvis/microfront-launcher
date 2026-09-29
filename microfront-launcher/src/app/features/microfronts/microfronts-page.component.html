@@ -1,0 +1,95 @@
+<section class="grid min-w-0 gap-6">
+  <p-breadcrumb [home]="{ icon: 'pi pi-home', routerLink: '/home' }" [model]="breadCrumbItems" />
+  <header class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div>
+      <h1 class="m-0 text-xl font-semibold tracking-tight">Microfronts disponibles</h1>
+      <p class="mb-0 mt-1 text-surface-500">{{ subtitle() }}</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <p-iconfield iconPosition="left">
+        <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+        <input
+          pInputText
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          placeholder="Buscar microfront o shell..."
+        />
+      </p-iconfield>
+      @if (hasFilter()) {
+        <p-button
+          label="Ver todos"
+          icon="pi pi-times"
+          styleClass="p-button-outlined"
+          (onClick)="clearSelection()"
+        />
+      }
+    </div>
+  </header>
+  <p-table [value]="visibleItems()" [rowHover]="true" dataKey="id">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Favorito</th>
+        <th>Microfront</th>
+        <th>Proyecto</th>
+        <th>Versión</th>
+        <th>Acciones</th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-item>
+      <tr>
+        <td>
+          <p-button
+            [icon]="isFavorite(item) ? 'pi pi-star-fill' : 'pi pi-star'"
+            [styleClass]="
+              isFavorite(item)
+                ? 'p-button-rounded p-button-text detail-favorite is-selected'
+                : 'p-button-rounded p-button-text detail-favorite'
+            "
+            [disabled]="pending()"
+            (onClick)="toggleFavorite(item)"
+          />
+        </td>
+        <td>
+          <strong>{{ item.name }}</strong>
+          <code class="block max-w-80 truncate text-xs text-surface-500">{{ item.path }}</code>
+        </td>
+        <td>
+          <p-tag [value]="item.project.name.split('_')[0].toUpperCase()" />
+        </td>
+        <td>
+          <code>{{ item.version || '—' }}</code>
+        </td>
+        <td class="flex gap-1">
+          <p-button
+            icon="pi pi-folder-open"
+            styleClass="p-button-rounded p-button-text"
+            [disabled]="pending()"
+            (onClick)="run('/api/microfrontends/open-folder', item)"
+          />
+          <p-button
+            icon="pi pi-code"
+            styleClass="p-button-rounded p-button-text"
+            [disabled]="pending()"
+            (onClick)="run('/api/microfrontends/open', item)"
+          />
+          @if (item.buildAvailable || item.localBuildAvailable) {
+            <p-button
+              icon="pi pi-play"
+              styleClass="p-button-rounded p-button-text"
+              [loading]="pending()"
+              [disabled]="pending()"
+              (onClick)="run('/api/microfrontends/build', item)"
+            />
+          }
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="5" class="py-8 text-center text-surface-500">
+          No hay microfronts locales detectados.
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>

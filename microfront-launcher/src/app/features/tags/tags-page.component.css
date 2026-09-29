@@ -3,17 +3,18 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 20px;
+  margin-bottom: 24px;
 }
 
 .tags-page-header h1 {
-  margin: 0 0 4px;
+  margin: 0;
   color: #eef7ff;
-  font-size: 24px;
+  font-size: 1.25rem;
 }
 
 .tags-page-header p {
   max-width: 590px;
-  margin: 0;
+  margin: 7px 0 0;
   color: #8ea7b8;
 }
 
