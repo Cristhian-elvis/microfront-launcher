@@ -4,18 +4,18 @@ import { RouterOutlet } from '@angular/router';
 import { Button, ButtonDirective } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
-import { ProcessConsoleComponent } from '../components/process-console/process-console.component';
-import { ThemeService } from '../services/theme.service';
+import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
+import { ThemeService } from '../../shared/services/theme.service';
 import { LauncherEventsService } from '../../core/launcher-events.service';
 import type { LauncherConfig, LauncherState, Project } from '../../core/launcher.models';
 import { ApiService } from '../../core/api.service';
-import { SidebarComponent } from './sidebar.component';
+import { SidebarComponent } from '../sidebar/sidebar.component';
 
 @Component({
-  selector: 'app-shell-layout',
+  selector: 'app-main-layout',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './shell-layout.component.html',
-  styleUrl: './shell-layout.component.css',
+  templateUrl: './main-layout.component.html',
+  styleUrl: './main-layout.component.css',
   imports: [
     Button,
     ButtonDirective,
@@ -25,7 +25,7 @@ import { SidebarComponent } from './sidebar.component';
     RouterOutlet,
   ],
 })
-export class ShellLayoutComponent {
+export class MainLayoutComponent {
   protected readonly bootstrap = inject(AppBootstrapService);
   protected readonly theme = inject(ThemeService);
   protected readonly consoleVisible = signal(false);

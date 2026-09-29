@@ -4,12 +4,12 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
 import { AppBootstrapService } from './core/app-bootstrap.service';
 import { BootstrapErrorPageComponent } from './shared/pages/bootstrap-error-page.component';
-import { ShellLayoutComponent } from './shared/layout/shell-layout.component';
+import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ProgressSpinner, Toast, BootstrapErrorPageComponent, ShellLayoutComponent],
+  imports: [ProgressSpinner, Toast, BootstrapErrorPageComponent, MainLayoutComponent],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
