@@ -10,7 +10,7 @@ import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
 import { ThemeService } from '../../shared/services/theme.service';
 import { LauncherEventsService } from '../../core/launcher-events.service';
-import type { LauncherConfig, LauncherState, Project } from '../../core/launcher.models';
+import type { LauncherConfig, LauncherLog, LauncherState, Project } from '../../core/launcher.models';
 import { ApiService } from '../../core/api.service';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 
@@ -62,7 +62,10 @@ export class MainLayoutComponent {
 
   constructor() {
     this.events.events().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (event) => { if (event.type === 'state' && this.isState(event.payload)) this.state.set(event.payload); },
+      next: (event) => {
+        if (event.type === 'state' && this.isState(event.payload)) this.state.set(event.payload);
+        if (event.type === 'log' && this.isLog(event.payload)) this.bootstrap.appendLog(event.payload);
+      },
       error: () => undefined,
     });
   }
@@ -133,5 +136,17 @@ export class MainLayoutComponent {
 
   private isState(value: unknown): value is LauncherState {
     return typeof value === 'object' && value !== null && 'shell' in value && 'preferences' in value;
+  }
+
+  private isLog(value: unknown): value is LauncherLog {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'id' in value &&
+      'at' in value &&
+      'source' in value &&
+      'level' in value &&
+      'message' in value
+    );
   }
 }

@@ -13,6 +13,7 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { FloatLabel } from 'primeng/floatlabel';
 import { Select } from 'primeng/select';
+import { Tag } from 'primeng/tag';
 import { Observable } from 'rxjs';
 import { finalize, tap } from 'rxjs/operators';
 import type {
@@ -33,12 +34,17 @@ interface VersionGroup {
   items: VersionOption[];
 }
 
+interface ProjectOption {
+  label: string;
+  value: string;
+}
+
 @Component({
   selector: 'app-home-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.css',
-  imports: [FloatLabel, Select, FormsModule, Button, ProcessConsoleComponent],
+  imports: [FloatLabel, Select, FormsModule, Button, Tag, ProcessConsoleComponent],
 })
 export class HomePageComponent {
   private readonly bootstrap = inject(AppBootstrapService);
@@ -77,9 +83,17 @@ export class HomePageComponent {
   protected readonly versionSelectionDisabled = computed(
     () =>
       !this.versions().length ||
-      Boolean(this.state()?.busy) ||
-      this.componentsActive() ||
-      this.shellRunning(),
+      Boolean(this.state()?.busy),
+  );
+  protected readonly versionLocked = computed(() => this.componentsActive() || this.shellRunning());
+  protected readonly activeVersion = computed(
+    () => this.state()?.components.version ?? this.selectedVersionTag() ?? 'No disponible',
+  );
+  protected readonly projectOptions = computed<ProjectOption[]>(() =>
+    this.projects().map((project) => ({
+      label: this.projectDisplayName(project.name),
+      value: project.id,
+    })),
   );
   protected readonly environmentLabel = computed(() => {
     const currentState = this.state();
@@ -173,7 +187,7 @@ export class HomePageComponent {
 
   private projectDisplayName(name: string | null | undefined): string {
     const value = String(name ?? '');
-    const match = /^([a-z0-9]{4})_webapp_/i.exec(value);
-    return ((match?.[1] ?? value) || 'Ninguna').toUpperCase();
+    if (!value) return 'Ninguna';
+    return (/^[a-z0-9]{4}/i.exec(value)?.[0] ?? value.slice(0, 4)).toLowerCase();
   }
 }

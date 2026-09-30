@@ -49,6 +49,12 @@ export class AppBootstrapService {
     this.state.reload();
   }
 
+  appendLog(log: LauncherLog): void {
+    this.logs.value.update((logs) =>
+      logs.some((entry) => entry.id === log.id) ? logs : [...logs.slice(-499), log],
+    );
+  }
+
   retry(): void {
     this.booting.set(true);
     this.state.reload();

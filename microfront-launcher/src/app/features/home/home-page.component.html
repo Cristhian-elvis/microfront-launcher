@@ -31,6 +31,9 @@
         <span>Componentes disponibles para la shell.</span>
       }
     </div>
+    @if (versionLocked()) {
+      <p-tag class="active-version-tag" [value]="activeVersion()" severity="info" icon="pi pi-tag" />
+    } @else {
     <p-floatlabel variant="on">
       <p-select
         inputId="components-version"
@@ -48,6 +51,7 @@
       />
       <label for="components-version">Versión</label>
     </p-floatlabel>
+    }
     @if (!shellRunning()) {
       <div class="operation-actions">
         @if (componentsActive()) {
@@ -93,11 +97,11 @@
       <p-floatlabel variant="on">
         <p-select
           inputId="shell-project"
-          [options]="projects()"
+          [options]="projectOptions()"
           [ngModel]="selectedProjectId()"
           (ngModelChange)="selectedProjectId.set($event)"
-          optionLabel="name"
-          optionValue="id"
+          optionLabel="label"
+          optionValue="value"
           [style]="{ width: '100%' }"
           [disabled]="currentState.busy || shellStarting() || !projects().length"
         />
