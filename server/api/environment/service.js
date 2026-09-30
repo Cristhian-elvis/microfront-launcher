@@ -1,11 +1,11 @@
-import { getProjects, readConfig } from '../../lib/core.js';
-import { addLog } from '../../lib/runtime.js';
-import { state } from '../../state.js';
-import { selectedVersion } from '../../services/components-version-service.js';
+import { getIndexedProject, readConfig } from "../../lib/core.js";
+import { addLog } from "../../lib/runtime.js";
+import { state } from "../../state.js";
+import { selectedVersion } from "../../services/components-version-service.js";
 import {
   assertNotCancelled,
   runProcessStep,
-} from '../../services/process-runner-service.js';
+} from "../../services/process-runner-service.js";
 
 /** Orquesta el inicio y la reconstrucción de un entorno. */
 export function createEnvironmentService({
@@ -16,6 +16,7 @@ export function createEnvironmentService({
   shellRuntime,
   microfrontendRuntime,
   openOrRequestBrowser,
+  emitState,
 }) {
   const {
     beginExecution,
@@ -32,25 +33,37 @@ export function createEnvironmentService({
 
   async function runEnvironment(projectId, options = {}) {
     clearExecutionForRestart();
-    addLog(
-      "Entorno",
-      "stage",
-      "Iniciando proceso. Validando la shell y MOVA Components…",
-    );
-    // AÑADIDO: await
-    const project = (await getProjects()).find((item) => item.id === projectId);
-    if (!project) throw new Error("Shell no encontrada.");
-    const validationStartedAt = new Date().toISOString();
-    let includeComponents;
-    let version;
-    let microfrontend;
-    let automaticBuild;
-    try {
-      if (state.shell.status !== "stopped")
+
+      if (state.shell.status !== "stopped") {
         throw new Error(`Ya hay una shell activa: ${state.shell.name}`);
-      includeComponents = true;
-      version = includeComponents ? selectedVersion() : null;
-      if (includeComponents && !version)
+      }
+
+      state.shell = {
+        status: "starting",
+        projectId: projectId,
+        name: null,
+        appName: null,
+        url: null,
+        external: false,
+      };
+      console.log("primer staring")
+      emitState();
+      addLog(
+        "Entorno",
+        "stage",
+        "Iniciando proceso. Validando la shell y MOVA Components…",
+      );
+      // AÑADIDO: await
+      const project = getIndexedProject(projectId);
+      if (!project) throw new Error("Shell no encoFntrada.");
+      const validationStartedAt = new Date().toISOString();
+      let version;
+      let microfrontend;
+      let automaticBuild;
+
+    try {
+      version = selectedVersion();
+      if (!version)
         throw new Error(
           "Selecciona una versión de MOVA Components antes de iniciar la shell.",
         );
@@ -94,7 +107,7 @@ export function createEnvironmentService({
     });
     const signal = current.controller.signal;
     const plan = [
-      ...(includeComponents ? ["components"] : []),
+      ...(["components"]),
       ...(automaticBuild ? ["prepare", "buildShell"] : []),
       ...(microfrontend ? ["microfrontend"] : []),
       "shell",
@@ -106,8 +119,7 @@ export function createEnvironmentService({
         command: "Validar shell y MOVA Components",
         detail: "Comprobando el build local y la configuración requerida.",
       },
-      ...(includeComponents
-        ? [
+      ...([
             {
               id: "components",
               label: "MOVA Components",
@@ -115,8 +127,7 @@ export function createEnvironmentService({
               detail:
                 "Instalando la librería dentro de server/cudc-lib-componentes-stencil-VAL",
             },
-          ]
-        : []),
+          ]),
       ...(automaticBuild
         ? [
             {
@@ -156,7 +167,7 @@ export function createEnvironmentService({
         detail: "Ejecutando navegador autorizado",
       },
     ];
-  
+
     beginExecution(project, steps);
     updateExecutionStep("validation", {
       status: "running",
@@ -171,7 +182,7 @@ export function createEnvironmentService({
       projectName: project.name,
       startedAt: new Date().toISOString(),
     });
-  
+
     try {
       if (
         state.shell.status !== "stopped" ||
@@ -198,24 +209,21 @@ export function createEnvironmentService({
           startedAt: validationStartedAt,
         });
       }
-  
+
       updateExecutionStep("validation", {
         status: "success",
         endedAt: new Date().toISOString(),
       });
       updateSession({
         status: "starting",
-        stage: includeComponents ? "components" : "shell",
+        stage: "components",
         plan,
-        message: includeComponents
-          ? `Iniciando MOVA Components ${version.version}`
-          : `Iniciando ${project.name} sin MOVA Components`,
+        message: `Iniciando MOVA Components ${version.version}`,
         projectId,
         projectName: project.name,
       });
-  
-      if (includeComponents)
-        await runTrackedStage({
+
+      await runTrackedStage({
           id: "components",
           message: `Compilando MOVA Components ${version.version}`,
           task: async () => {
@@ -224,6 +232,7 @@ export function createEnvironmentService({
             assertNotCancelled(signal);
           },
         });
+        
       if (automaticBuild) {
         await runTrackedStage({
           id: "prepare",
@@ -336,16 +345,13 @@ export function createEnvironmentService({
     // AÑADIDO: await
     const project = (await getProjects()).find((item) => item.id === projectId);
     if (!project) throw new Error("Shell no encontrada.");
-    if (
-      state.shell.status !== "stopped" &&
-      state.shell.projectId === projectId
-    )
+    if (state.shell.status !== "stopped" && state.shell.projectId === projectId)
       throw new Error("Detén la shell antes de reconstruir su servidor.");
     if (!project.workflow?.prepareServer || !project.workflow?.buildLocal)
       throw new Error(
         "Esta shell no define npm run prepare-server y npm run build:local.",
       );
-  
+
     const current = operation.start({
       projectId,
       mode: "rebuild-server",

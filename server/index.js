@@ -600,7 +600,6 @@ async function startMicrofrontendBranchBatch(
 }
 
 const shellRuntime = createShellRuntimeService({ emitState });
-const { needsShellBuild, startShell } = shellRuntime;
 
 function browserSettings(config = readConfig()) {
   const mode = config.chrome.browser;
@@ -980,6 +979,7 @@ const environmentService = createEnvironmentService({
   shellRuntime,
   microfrontendRuntime,
   openOrRequestBrowser,
+  emitState
 });
 const environmentModel = createEnvironmentModel({
   environmentService,
