@@ -29,7 +29,7 @@ export function createMicrofrontendHandler({
         message: "Carpeta del microfrontend abierta.",
       });
     } else if (url.pathname === "/api/microfrontends/build") {
-      const project = getProjects().find((item) => item.id === projectId);
+      const project = (await getProjects()).find((item) => item.id === projectId);
       const microfrontend = project?.microfrontends?.find(
         (item) => item.id === microfrontendId,
       );
@@ -59,7 +59,7 @@ export function createMicrofrontendHandler({
         message: `Cambio a ${branch} iniciado.`,
       });
     } else if (url.pathname === "/api/microfrontends/watch") {
-      const project = getProjects().find((item) => item.id === projectId);
+      const project = (await getProjects()).find((item) => item.id === projectId);
       const microfrontend = project?.microfrontends?.find(
         (item) => item.id === microfrontendId,
       );

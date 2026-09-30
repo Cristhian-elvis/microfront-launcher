@@ -28,12 +28,6 @@ export function addLog(source, level, message) {
   emit('log', entry);
 }
 
-export function processStatus() {
-  return [...childProcesses.entries()].map(([key, item]) => ({
-    key, pid: item.child.pid, label: item.label, startedAt: item.startedAt
-  }));
-}
-
 export function spawnManaged({ key, label, file, args = [], cwd, shell = false, longRunning = true }) {
   const existing = childProcesses.get(key);
   if (existing && !existing.child.killed) return existing;
@@ -54,7 +48,6 @@ export function spawnManaged({ key, label, file, args = [], cwd, shell = false, 
     settled = true;
     if (childProcesses.get(key)?.child === child) childProcesses.delete(key);
     resolveDone(result);
-    emit('processes', processStatus());
   };
   child.stdout?.on('data', (chunk) => addLog(label, 'stdout', chunk.toString()));
   child.stderr?.on('data', (chunk) => addLog(label, 'stderr', chunk.toString()));
@@ -67,7 +60,6 @@ export function spawnManaged({ key, label, file, args = [], cwd, shell = false, 
     addLog(label, code === 0 ? 'system' : 'error', `Proceso finalizado (código: ${code ?? '-'}, señal: ${signal ?? '-'})`);
     finish({ code, signal });
   });
-  emit('processes', processStatus());
   return record;
 }
 
@@ -183,7 +175,6 @@ export function startStaticServer({ key, label, root, port = 0, aliases = [], fa
       const record = { key, label, root, server, port: address.port, url: `http://127.0.0.1:${address.port}` };
       staticServers.set(key, record);
       if (announce) addLog(label, 'system', `Servidor disponible en ${record.url}`);
-      emit('servers', serverStatus());
       resolve(record);
     });
   });
@@ -196,7 +187,6 @@ export function stopStaticServer(key) {
     const finish = () => {
       staticServers.delete(key);
       addLog(record.label, 'system', 'Servidor detenido.');
-      emit('servers', serverStatus());
       resolve(true);
     };
     record.server.close(finish);
@@ -211,6 +201,3 @@ export async function stopAllStaticServers() {
   await Promise.all([...staticServers.keys()].map(stopStaticServer));
 }
 
-export function serverStatus() {
-  return [...staticServers.values()].map(({ key, label, port, url, root }) => ({ key, label, port, url, root }));
-}

@@ -55,14 +55,5 @@ export const state = {
     message: "Sin compilaciones en curso",
     startedAt: null,
   },
-  execution: {
-    status: "idle",
-    projectId: null,
-    projectName: null,
-    steps: [],
-    error: null,
-    startedAt: null,
-    endedAt: null,
-  },
   browserPrompt: null,
 };

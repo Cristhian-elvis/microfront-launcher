@@ -16,6 +16,7 @@ export class LauncherEventsService {
       const source = new EventSource('/api/events');
       source.onmessage = ({ data }: MessageEvent<string>) => this.zone.run(() => {
         try {
+          console.log('Launcher event received:', JSON.parse(data));
           subscriber.next(JSON.parse(data) as LauncherEvent);
         } catch {
           subscriber.error(new Error('Evento del launcher inválido.'));

@@ -56,13 +56,11 @@ export class ShellsPageComponent {
 
   status(project: Project): 'active' | 'starting' | 'stopped' {
     const state = this.state();
-    if (
-      state?.execution?.status === 'running' &&
-      state.execution.kind === 'start' &&
-      state.execution.projectId === project.id
-    )
-      return 'starting';
     if (state?.shell.status === 'running' && state.shell.projectId === project.id) return 'active';
+    if (
+      (state?.shell.status === 'preparing' || state?.shell.status === 'starting') &&
+      state.shell.projectId === project.id
+    ) return 'starting';
     return 'stopped';
   }
 

@@ -44,12 +44,16 @@ export interface LauncherState {
   busy: boolean;
   buildBusy: boolean;
   preferences: { preferredTag?: string; favoriteShellIds?: string[]; favoriteMicrofrontIds?: string[]; avatarLetters?: string };
-  session: { status: string; message?: string };
+  session: {
+    status: string;
+    stage?: string;
+    message?: string;
+    projectId?: string | null;
+    projectName?: string | null;
+  };
   components: { status: string; external?: boolean; version?: string | null };
   shell: { status: string; projectId?: string | null; name?: string | null };
   build?: { status: string; tag?: string | null; message?: string | null };
-  processes?: Array<{ key: string }>;
-  execution?: { status: string; kind?: string; error?: string | null; projectId?: string | null };
   microfrontendBranch?: MicrofrontendOperation;
   microfrontendBuild?: MicrofrontendOperation;
   microfrontendOperations?: Record<string, MicrofrontendOperation>;

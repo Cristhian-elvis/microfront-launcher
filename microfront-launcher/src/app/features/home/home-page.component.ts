@@ -73,8 +73,8 @@ export class HomePageComponent {
     return this.state()?.shell.status === 'running';
   });
   protected readonly shellStarting = computed(() => {
-    console.log('shellStarting', this.state());
-    return this.state()?.shell.status === 'starting';
+    const status = this.state()?.shell.status;
+    return status === 'preparing' || status === 'starting';
   });
   protected readonly shellRunning = computed(() => {
     const currentState = this.state();
@@ -97,7 +97,7 @@ export class HomePageComponent {
   );
   protected readonly environmentLabel = computed(() => {
     const currentState = this.state();
-    if (currentState?.execution?.status === 'error') return 'Error';
+    if (currentState?.session.status === 'error') return 'Error';
     if (currentState?.session.status === 'ready') return 'Listo';
     if (currentState?.session.status === 'stopping') return 'Deteniendo';
     if (currentState?.session.status === 'starting') return 'Iniciando';

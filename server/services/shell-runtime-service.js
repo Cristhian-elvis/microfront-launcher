@@ -21,7 +21,7 @@ export function createShellRuntimeService({ emitState }) {
 
   async function startShell(project, signal) {
     assertNotCancelled(signal);
-    if (state.shell.status !== "stopped")
+    if (state.shell.status !== "preparing" || state.shell.projectId !== project.id)
       throw new Error(`Ya hay una shell activa: ${state.shell.name}`);
     if (!project.appName)
       throw new Error(

@@ -113,11 +113,11 @@ export class ShellDetailPageComponent {
     this.selectedMicrofronts().some((item) => !!item.localBuildAvailable),
   );
   readonly operating = computed(() => {
-    const execution = this.state()?.execution;
-    return (
-      this.pending() ||
-      (execution?.status === 'running' && execution.projectId === this.project()?.id)
-    );
+    const state = this.state();
+    const projectId = this.project()?.id;
+    return this.pending() ||
+      (state?.shell.status !== 'stopped' && state?.shell.projectId === projectId) ||
+      Boolean(state?.busy && state?.session.projectId === projectId);
   });
   readonly active = computed(() => {
     const state = this.state();

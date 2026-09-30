@@ -24,12 +24,10 @@ import {
   childProcesses,
   emit,
   addLog,
-  processStatus,
   spawnManaged,
   stopProcess,
   startStaticServer,
   stopStaticServer,
-  serverStatus,
 } from "./lib/runtime.js";
 import { createMicrofrontendHandler } from "./handlers/microfrontend-handler.js";
 import { createProjectsHandler } from "./handlers/projects-handler.js";
@@ -40,7 +38,7 @@ import { createComponentsHandler } from "./handlers/components-handler.js";
 import { createEnvironmentModel } from "./api/environment/model.js";
 import { createEnvironmentHandler } from "./api/environment/handler.js";
 import { createEnvironmentRouter } from "./api/environment/router.js";
-import { createEnvironmentExecutionState } from "./api/environment/execution-state.js";
+import { createEnvironmentSessionState } from "./api/environment/session-state.js";
 import { createEnvironmentLifecycle } from "./api/environment/lifecycle.js";
 import { createEnvironmentOperation } from "./api/environment/operation.js";
 import { createEnvironmentService } from "./api/environment/service.js";
@@ -71,8 +69,6 @@ const environmentOperation = createEnvironmentOperation({ onChange: emitState })
 function getState() {
   return {
     ...state,
-    processes: processStatus(),
-    servers: serverStatus(),
     preferences: readPreferences(),
     busy: environmentOperation.isRunning(),
     buildBusy: Boolean(buildOperation),
@@ -81,13 +77,8 @@ function getState() {
 
 const {
   updateSession,
-  beginExecution,
-  updateExecution,
-  updateExecutionStep,
-  recordStartValidationError,
   runTrackedStage,
-  clearExecutionForRestart,
-} = createEnvironmentExecutionState({ emitState });
+} = createEnvironmentSessionState({ emitState });
 
 function updateBuild(patch) {
   state.build = { ...state.build, ...patch };
@@ -120,17 +111,10 @@ function updateMicrofrontendOperation(kind, projectId, microfrontendId, patch) {
 }
 
 const {
-  resetRuntimeState,
   cleanupStartedResources,
   stopEnvironmentInternals,
-  stopForRestart,
 } = createEnvironmentLifecycle({
-  emitState,
-  updateSession,
-  updateExecution,
-  updateExecutionStep,
-  clearExecutionForRestart,
-  getEnvironmentOperation: environmentOperation.get,
+  emitState, updateSession, getEnvironmentOperation: environmentOperation.get,
   clearEnvironmentOperation: environmentOperation.clear,
 });
 
@@ -703,7 +687,6 @@ async function openOrRequestBrowser(project) {
 async function cancelAndStopAll(reason = "Entorno detenido") {
   await stopEnvironmentInternals({
     reason,
-    emitStopExecution: true,
     emitFinalSession: true,
   });
 }
@@ -965,16 +948,8 @@ const handleComponentsRequest = createComponentsHandler({
   stopEnvironment: cancelAndStopAll,
 });
 const environmentService = createEnvironmentService({
-  execution: {
-    beginExecution,
-    updateExecution,
-    updateExecutionStep,
-    updateSession,
-    recordStartValidationError,
-    runTrackedStage,
-    clearExecutionForRestart,
-  },
-  lifecycle: { stopForRestart, cleanupStartedResources },
+  session: { updateSession, runTrackedStage },
+  lifecycle: { cleanupStartedResources },
   operation: environmentOperation,
   componentsRuntime,
   shellRuntime,

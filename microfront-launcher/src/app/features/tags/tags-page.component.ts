@@ -116,14 +116,7 @@ export class TagsPageComponent {
   }
 
   private buildStepLabel(): string {
-    const key = this.state?.processes?.find((process) => process.key.startsWith('build:'))?.key;
-    const steps: Record<string, string> = {
-      'build:clone': 'Clonando repositorio',
-      'build:checkout': 'Obteniendo tag',
-      'build:install': 'Instalando dependencias',
-      'build:compile': 'Compilando librería'
-    };
-    return (key && steps[key]) || this.state?.build?.message || 'Preparando compilación';
+    return this.state?.build?.message || 'Preparando compilación';
   }
 
   private notifyError(error: unknown): void {
