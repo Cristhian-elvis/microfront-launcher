@@ -485,23 +485,42 @@ export function safeTagName(tag) {
   return String(tag).replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
-export function getTags() {
+let tagCache = null;
+
+function cacheTags(tags) {
+  tagCache = Array.isArray(tags) ? tags : [];
+  writeJson(tagCatalogPath, { updatedAt: new Date().toISOString(), tags: tagCache });
+  return tagCache;
+}
+
+async function readTagsFromGit(sourcePath) {
+  const { stdout: output } = await execFileAsync('git', [
+    '-C', sourcePath, 'tag', '--sort=-creatordate',
+    '--format=%(refname:short)|%(creatordate:iso8601)|%(objectname:short)'
+  ], { encoding: 'utf8', windowsHide: true });
+  return output.split(/\r?\n/).filter(Boolean).map((line) => {
+    const [tag, date, commit] = line.split('|');
+    return { tag, date, commit };
+  }).filter((item) => item.tag.startsWith('release-'));
+}
+
+export async function getTags() {
+  if (tagCache) return tagCache;
+
+  // El catálogo persistido evita ejecutar Git en cada arranque.
+  if (fs.existsSync(tagCatalogPath)) {
+    const catalog = readJson(tagCatalogPath, { tags: [] });
+    tagCache = Array.isArray(catalog.tags) ? catalog.tags : [];
+    return tagCache;
+  }
+
   const { sourcePath } = readConfig().mova;
   if (!sourcePath) return [];
   try {
     if (!fs.existsSync(path.join(sourcePath, '.git'))) throw new Error('Repositorio no disponible');
-    const output = execFileSync('git', [
-      '-C', sourcePath, 'tag', '--sort=-creatordate',
-      '--format=%(refname:short)|%(creatordate:iso8601)|%(objectname:short)'
-    ], { encoding: 'utf8', windowsHide: true });
-    const tags = output.split(/\r?\n/).filter(Boolean).map((line) => {
-      const [tag, date, commit] = line.split('|');
-      return { tag, date, commit };
-    }).filter((item) => item.tag.startsWith('release-'));
-    writeJson(tagCatalogPath, { updatedAt: new Date().toISOString(), tags });
-    return tags;
+    return cacheTags(await readTagsFromGit(sourcePath));
   } catch {
-    return readJson(tagCatalogPath, { tags: [] }).tags || [];
+    return [];
   }
 }
 
@@ -515,22 +534,27 @@ export function getCachedVersions() {
     }).filter(Boolean);
 }
 
-export function refreshTags() {
+export async function refreshTags() {
   const { sourcePath } = readConfig().mova;
   if (!fs.existsSync(path.join(sourcePath, '.git'))) throw new Error('El repositorio MOVA no está disponible para actualizar tags.');
   try {
-    execFileSync('git', ['-C', sourcePath, 'fetch', '--tags', '--prune'], { encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+    await execFileAsync(
+      'git',
+      ['-C', sourcePath, 'fetch', '--tags', '--prune'],
+      { encoding: 'utf8', windowsHide: true },
+    );
   } catch (error) {
     const details = String(error.stderr || error.message || '').trim();
     throw new Error(`No se pudieron actualizar los tags.${details ? ` ${details}` : ''}`);
   }
-  return getTags();
+  return cacheTags(await readTagsFromGit(sourcePath));
 }
 
-export function getVersions() {
+export async function getVersions() {
   const preferences = readPreferences();
   const cached = new Map(getCachedVersions().map((item) => [item.tag, item]));
-  return getTags().map((item) => ({
+  const tags = await getTags();
+  return tags.map((item) => ({
     ...item,
     version: item.tag.replace(/^release-/, ''),
     cached: cached.has(item.tag),

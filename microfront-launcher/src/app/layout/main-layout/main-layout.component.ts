@@ -3,6 +3,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
 import { Button, ButtonDirective } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
+import { InputText } from 'primeng/inputtext';
+import { Tooltip } from 'primeng/tooltip';
+import { concatMap, finalize, of } from 'rxjs';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
 import { ThemeService } from '../../shared/services/theme.service';
@@ -20,6 +23,8 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
     Button,
     ButtonDirective,
     Dialog,
+    InputText,
+    Tooltip,
     ProcessConsoleComponent,
     SidebarComponent,
     RouterOutlet,
@@ -31,6 +36,8 @@ export class MainLayoutComponent {
   protected readonly consoleVisible = signal(false);
   protected readonly settingsVisible = signal(false);
   protected readonly settings = signal<LauncherConfig>({});
+  protected readonly settingsError = signal<string | null>(null);
+  protected readonly settingsSaving = signal(false);
   protected readonly collapsed = signal(false);
   protected readonly projects = this.bootstrap.projects.value;
   protected readonly state = this.bootstrap.state.value;
@@ -51,6 +58,7 @@ export class MainLayoutComponent {
   private readonly events = inject(LauncherEventsService);
   private readonly api = inject(ApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private initialAvatarLetters = 'ML';
 
   constructor() {
     this.events.events().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -65,7 +73,17 @@ export class MainLayoutComponent {
 
   protected openSettings(): void {
     this.api.get<LauncherConfig>('/api/config').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (config) => { this.settings.set(config); this.settingsVisible.set(true); },
+      next: (config) => {
+        const avatarLetters = this.state()?.preferences.avatarLetters ?? 'ML';
+        this.initialAvatarLetters = avatarLetters;
+        this.settings.set({
+          ...config,
+          preferences: { ...config.preferences, ...this.state()?.preferences, avatarLetters },
+        });
+        this.settingsError.set(null);
+        this.settingsVisible.set(true);
+      },
+      error: (error: { message?: string }) => this.settingsError.set(error.message ?? 'No se pudo cargar la configuración.'),
     });
   }
 
@@ -75,9 +93,33 @@ export class MainLayoutComponent {
       : { ...config, [section]: { ...config[section], [key]: value } });
   }
 
+  protected updateAvatarLetters(value: string): void {
+    this.updateSetting(
+      'preferences',
+      'avatarLetters',
+      value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase(),
+    );
+  }
+
   protected saveSettings(): void {
-    this.api.put<unknown>('/api/config', this.settings()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => this.settingsVisible.set(false),
+    const settings = this.settings();
+    const avatarLetters = settings.preferences?.avatarLetters ?? 'ML';
+    this.settingsError.set(null);
+    this.settingsSaving.set(true);
+
+    this.api.put<unknown>('/api/config', settings).pipe(
+      concatMap(() => avatarLetters !== this.initialAvatarLetters
+        ? this.api.put<unknown>('/api/mova/preferences', { avatarLetters })
+        : of(null)),
+      finalize(() => this.settingsSaving.set(false)),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.settingsVisible.set(false);
+        this.bootstrap.state.reload();
+        this.bootstrap.projects.reload();
+      },
+      error: (error: { message?: string }) => this.settingsError.set(error.message ?? 'No se pudieron guardar los cambios.'),
     });
   }
 

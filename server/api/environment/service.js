@@ -38,16 +38,6 @@ export function createEnvironmentService({
         throw new Error(`Ya hay una shell activa: ${state.shell.name}`);
       }
 
-      state.shell = {
-        status: "starting",
-        projectId: projectId,
-        name: null,
-        appName: null,
-        url: null,
-        external: false,
-      };
-      console.log("primer staring")
-      emitState();
       addLog(
         "Entorno",
         "stage",
@@ -62,7 +52,10 @@ export function createEnvironmentService({
       let automaticBuild;
 
     try {
-      version = selectedVersion();
+      
+      console.log("selectedVersion start", new Date().toISOString());
+      version = await selectedVersion();
+      console.log("selectedVersion end", version, new Date().toISOString());
       if (!version)
         throw new Error(
           "Selecciona una versión de MOVA Components antes de iniciar la shell.",
@@ -97,10 +90,12 @@ export function createEnvironmentService({
         status: "success",
         endedAt: new Date().toISOString(),
       });
+      console.log("updateExecutionStep")
     } catch (error) {
       recordStartValidationError(project, error);
       throw error;
     }
+
     const current = operation.start({
       projectId,
       microfrontendId: microfrontend?.id || null,
@@ -168,6 +163,7 @@ export function createEnvironmentService({
       },
     ];
 
+    console.log("beginExecution")
     beginExecution(project, steps);
     updateExecutionStep("validation", {
       status: "running",
@@ -184,31 +180,6 @@ export function createEnvironmentService({
     });
 
     try {
-      if (
-        state.shell.status !== "stopped" ||
-        state.components.status !== "stopped" ||
-        state.microfrontend.status !== "stopped"
-      ) {
-        addLog(
-          "Entorno",
-          "stage",
-          "Deteniendo recursos previos antes de iniciar el nuevo entorno.",
-        );
-        await lifecycle.stopForRestart("Reiniciando entorno");
-        updateSession({
-          status: "starting",
-          stage: "validation",
-          plan,
-          message: "Validando la configuración inicial",
-          projectId,
-          projectName: project.name,
-        });
-        beginExecution(project, steps);
-        updateExecutionStep("validation", {
-          status: "running",
-          startedAt: validationStartedAt,
-        });
-      }
 
       updateExecutionStep("validation", {
         status: "success",
@@ -232,7 +203,8 @@ export function createEnvironmentService({
             assertNotCancelled(signal);
           },
         });
-        
+
+      console.log('automaticBuild');
       if (automaticBuild) {
         await runTrackedStage({
           id: "prepare",
@@ -271,6 +243,7 @@ export function createEnvironmentService({
           },
         });
       }
+      console.log('startShell');
       await runTrackedStage({
         id: "shell",
         message: `Iniciando servidor HTTP de ${project.name}`,

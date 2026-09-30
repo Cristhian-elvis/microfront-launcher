@@ -12,12 +12,13 @@ export function createMovaHandler({ emitState, compileVersion, cancelBuild }) {
   return async function handleMovaRequest(request, response, url) {
     const { method, pathname } = { method: request.method, pathname: url.pathname };
     if (method === 'GET' && pathname === '/api/mova/versions') {
-      json(response, 200, getVersions());
+      json(response, 200, await getVersions());
       return true;
     }
     if (method === 'PUT' && pathname === '/api/mova/preferences') {
       const body = await readBody(request);
-      if (body.preferredTag && !getVersions().some((item) => item.tag === body.preferredTag)) {
+      const versions = await getVersions();
+      if (body.preferredTag && !versions.some((item) => item.tag === body.preferredTag)) {
         json(response, 400, { error: 'El tag seleccionado no existe.' });
         return true;
       }
@@ -28,7 +29,7 @@ export function createMovaHandler({ emitState, compileVersion, cancelBuild }) {
     }
     if (method === 'POST' && pathname === '/api/mova/tags/refresh') {
       addLog('Versiones', 'stage', 'Actualizando tags desde el remoto');
-      const tags = refreshTags();
+      const tags = await refreshTags();
       addLog('Versiones', 'success', `${tags.length} tags disponibles tras actualizar.`);
       json(response, 200, { ok: true, tags, message: `${tags.length} tags disponibles tras actualizar.` });
       return true;

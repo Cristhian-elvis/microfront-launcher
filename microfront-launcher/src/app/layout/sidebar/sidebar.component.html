@@ -1,5 +1,5 @@
-<aside class="sidebar" [class.sidebar-collapsed]="collapsed()" [class.scrollable]="!collapsed()" [class.not-scrollable]="collapsed()">
-  <div class="flex sticky top-0 left-0">
+<aside class="sidebar" [class.sidebar-collapsed]="collapsed()">
+  <div class="sidebar-header flex">
     <p-button
       [icon]="collapsed() ? 'pi pi-angle-right' : 'pi pi-angle-left'"
       styleClass="p-button-rounded p-button-text sidebar-toggle"
@@ -13,6 +13,7 @@
     }
   </div>
 
+  <div class="sidebar-scroll">
   <nav aria-label="Navegación principal">
     <a
       pButton
@@ -109,11 +110,14 @@
     </section>
   }
 
+  </div>
+
   <footer>
     <p-button
       icon="pi pi-cog"
       [label]="collapsed() ? undefined : 'Configuración'"
       styleClass="p-button-text w-full justify-start"
+      [disabled]="state()?.busy || state()?.shell?.status !== 'stopped'"
       (onClick)="settingsRequested.emit()"
     />
   </footer>

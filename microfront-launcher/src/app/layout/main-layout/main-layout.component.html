@@ -54,10 +54,14 @@
   header="Configuración"
   [modal]="true"
   [visible]="settingsVisible()"
+  [style]="{ width: 'min(740px, calc(100vw - 2rem))' }"
   [draggable]="false"
   (visibleChange)="settingsVisible.set($event)"
 >
-  <div class="grid gap-4">
+  <div class="grid gap-5">
+    <p class="m-0 text-sm text-surface-500">Preferencias globales del launcher.</p>
+    <section class="grid gap-3">
+      <h3 class="m-0 text-base">Rutas del entorno</h3>
     <label class="grid gap-1">
       Raíz de shells
       <input
@@ -67,21 +71,104 @@
       />
     </label>
     <label class="grid gap-1">
+      Repositorio MOVA UI Components
+      <input
+        pInputText
+        [value]="settings().mova?.sourcePath || ''"
+        (input)="updateSetting('mova', 'sourcePath', $any($event.target).value)"
+      />
+    </label>
+    </section>
+    <section class="grid gap-3">
+      <h3 class="m-0 text-base">Servidor local</h3>
+    <label class="grid gap-1">
+      <span class="flex items-center gap-2">
+        Puerto del servidor local
+        <i
+          class="pi pi-info-circle cursor-help text-primary"
+          tabindex="0"
+          pTooltip="Se aplica globalmente a todas las shells y a MOVA Components."
+          tooltipPosition="top"
+          aria-label="Información sobre el puerto local"
+        ></i>
+      </span>
+      <input
+        pInputText
+        type="number"
+        [value]="settings().shellDefaults?.serverPort || ''"
+        (input)="updateSetting('shellDefaults', 'serverPort', $any($event.target).value)"
+      />
+    </label>
+    </section>
+    <section class="grid gap-3">
+      <h3 class="m-0 text-base">Navegador</h3>
+    <label class="grid gap-1">
+      Modo de navegador
+      <select
+        class="p-inputtext w-full"
+        [value]="settings().chrome?.browser || 'chrome-insecure'"
+        (change)="updateSetting('chrome', 'browser', $any($event.target).value)"
+      >
+        <option value="chrome">Chrome</option>
+        <option value="chrome-insecure">Chrome sin seguridad</option>
+        <option value="edge">Edge</option>
+        <option value="edge-insecure">Edge sin seguridad</option>
+      </select>
+    </label>
+    <label class="grid gap-1">
+      Si ya hay una ventana abierta
+      <select
+        class="p-inputtext w-full"
+        [value]="settings().chrome?.openMode || ''"
+        (change)="updateSetting('chrome', 'openMode', $any($event.target).value)"
+      >
+        <option value="">Preguntar cada vez</option>
+        <option value="tab">Abrir como nueva pestaña</option>
+        <option value="window">Abrir como nueva ventana</option>
+      </select>
+    </label>
+    <label class="grid gap-1">
+      Dirección para abrir
+      <select
+        class="p-inputtext w-full"
+        [value]="settings().chrome?.openHost || 'localhost'"
+        (change)="updateSetting('chrome', 'openHost', $any($event.target).value)"
+      >
+        <option value="localhost">localhost (predeterminado)</option>
+        <option value="127.0.0.1">127.0.0.1</option>
+    </select>
+    </label>
+    </section>
+    <section class="grid gap-3">
+      <h3 class="m-0 text-base">Avatar</h3>
+    <label class="grid gap-1">
       Iniciales
       <input
         pInputText
         maxlength="2"
         [value]="settings().preferences?.avatarLetters || ''"
-        (input)="updateSetting('preferences', 'avatarLetters', $any($event.target).value)"
+        (input)="updateAvatarLetters($any($event.target).value)"
       />
     </label>
+    </section>
+    @if (settingsError(); as error) {
+      <p class="m-0 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+        {{ error }}
+      </p>
+    }
     <div class="flex justify-end gap-2">
       <p-button
         label="Cancelar"
         styleClass="p-button-outlined"
+        [disabled]="settingsSaving()"
         (onClick)="settingsVisible.set(false)"
       />
-      <p-button label="Guardar" (onClick)="saveSettings()" />
+      <p-button
+        label="Guardar cambios"
+        icon="pi pi-check"
+        [loading]="settingsSaving()"
+        (onClick)="saveSettings()"
+      />
     </div>
   </div>
 </p-dialog>

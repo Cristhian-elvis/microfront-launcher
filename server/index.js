@@ -166,7 +166,7 @@ function endBuildOperation(id) {
 
 async function buildComponents(version, signal, { force = false } = {}) {
   const tag = version.tag;
-  const available = getTags();
+  const available = await getTags();
   if (!available.some((item) => item.tag === tag))
     throw new Error(`El tag no existe localmente: ${tag}`);
   const config = readConfig();
@@ -267,7 +267,8 @@ async function buildComponents(version, signal, { force = false } = {}) {
 }
 
 async function compileVersion(tag) {
-  const version = getVersions().find((item) => item.tag === tag);
+  const versions = await getVersions();
+  const version = versions.find((item) => item.tag === tag);
   if (!version) throw new Error("La versión seleccionada no existe.");
   const current = beginBuildOperation({ tag });
   updateBuild({
@@ -318,7 +319,7 @@ const componentsRuntime = createComponentsRuntimeService({
 });
 
 async function startComponentsStandalone() {
-  const version = selectedVersion();
+  const version = await selectedVersion();
   if (!version)
     throw new Error(
       "Selecciona una versión de MOVA Components antes de iniciarlo.",
@@ -1058,7 +1059,7 @@ server.on("error", (error) => {
 if (process.argv.includes("--check")) {
   // Envolvemos en una función asíncrona autoejecutable
   (async () => {
-    const versions = getVersions();
+    const versions = await getVersions();
     const projects = await getProjects();
     console.log(
       JSON.stringify(
