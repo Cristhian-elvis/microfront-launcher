@@ -30,7 +30,7 @@
         (onClick)="viewVersions()"
       />
       <p-button
-        [label]="pending() ? 'Sincronizando…' : 'Sincronizar'"
+        [label]="pending() ? 'Actualizando Git…' : 'Actualizar Git'"
         icon="pi pi-refresh"
         styleClass="p-button-outlined"
         [loading]="pending()"
@@ -74,18 +74,18 @@
     <article class="detail-card">
       <span class="detail-label">Git shell</span>
       <strong class="mt-2 block truncate text-slate-100">
-        {{ project()?.gitInfo?.shell?.branch || 'No disponible' }}
+        {{ infoBranches.value()?.shell?.branch || project()?.gitInfo?.shell?.branch || 'No disponible' }}
       </strong>
-      @if (project()?.gitInfo?.shell?.exactTag) {
+      @if (infoBranches.value()?.shell?.exactTag || project()?.gitInfo?.shell?.exactTag) {
         <code class="mt-1 block truncate text-xs text-slate-400">
-          {{ project()?.gitInfo?.shell?.exactTag }}
+          {{ infoBranches.value()?.shell?.exactTag || project()?.gitInfo?.shell?.exactTag }}
         </code>
       }
     </article>
     <article class="detail-card">
       <span class="detail-label">Git webapp</span>
       <strong class="mt-2 block truncate text-slate-100">
-        {{ project()?.gitInfo?.webapp?.branch || 'No disponible' }}
+        {{ infoBranches.value()?.webapp?.branch || project()?.gitInfo?.webapp?.branch || 'No disponible' }}
       </strong>
     </article>
   </div>
@@ -243,14 +243,31 @@
               [severity]="operationSeverity(microfront)"
             />
           </td>
-          <td>
+          <td class="flex gap-1">
             <p-button
-              icon="pi pi-chevron-right"
+              icon="pi pi-folder-open"
               styleClass="p-button-rounded p-button-text"
-              ariaLabel="Ver detalle"
+              ariaLabel="Abrir en explorador"
               [disabled]="operating()"
-              (onClick)="openMicrofront(microfront.id)"
+              (onClick)="openMicrofrontFolder(microfront)"
             />
+            <p-button
+              icon="pi pi-code"
+              styleClass="p-button-rounded p-button-text"
+              ariaLabel="Abrir en VS Code"
+              [disabled]="operating()"
+              (onClick)="openMicrofrontInVsCode(microfront)"
+            />
+            @if (microfront.buildAvailable || microfront.localBuildAvailable) {
+              <p-button
+                icon="pi pi-play"
+                styleClass="p-button-rounded p-button-text"
+                ariaLabel="Compilar microfront"
+                [loading]="buildRunning(microfront)"
+                [disabled]="operating() || buildRunning(microfront)"
+                (onClick)="buildMicrofront(microfront)"
+              />
+            }
           </td>
         </tr>
       </ng-template>

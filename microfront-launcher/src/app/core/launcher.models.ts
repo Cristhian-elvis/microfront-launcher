@@ -5,18 +5,32 @@ export interface Project {
   configFolder?: string;
   path?: string;
   webappPath?: string;
-  gitInfo?: { shell?: { branch?: string; exactTag?: string }; webapp?: { branch?: string } };
+  gitInfo?: ProjectGitInfo;
   microfrontends?: Array<{
     id: string;
     name: string;
     path?: string;
-    branch?: string;
+    branch?: string | null;
     branches?: string[];
     outOfSync?: boolean;
     localBuildAvailable?: boolean;
     buildAvailable?: boolean;
     version?: string;
   }>;
+}
+
+export interface RepositoryGitInfo {
+  branch?: string | null;
+  branches?: string[];
+  exactTag?: string | null;
+}
+
+export interface ProjectGitInfo {
+  projectId?: string;
+  loadedAt?: string;
+  shell?: RepositoryGitInfo;
+  webapp?: RepositoryGitInfo;
+  microfrontends?: Array<RepositoryGitInfo & { id: string }>;
 }
 
 export interface MovaVersion {

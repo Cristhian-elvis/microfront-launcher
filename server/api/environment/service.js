@@ -316,8 +316,9 @@ export function createEnvironmentService({
 
   async function rebuildShellServer(projectId) {
     // AÑADIDO: await
-    const project = (await getProjects()).find((item) => item.id === projectId);
-    if (!project) throw new Error("Shell no encontrada.");
+    const project = getIndexedProject(projectId);
+    if (!project)
+      throw new Error("Shell no cargada. Actualiza el catálogo antes de reconstruir.");
     if (state.shell.status !== "stopped" && state.shell.projectId === projectId)
       throw new Error("Detén la shell antes de reconstruir su servidor.");
     if (!project.workflow?.prepareServer || !project.workflow?.buildLocal)
@@ -362,7 +363,7 @@ export function createEnvironmentService({
           runProcessStep({
             key: `prepare:${project.id}`,
             label: `${project.name} · prepare-server`,
-            file: process.platform === "win32" ? "npm.cmd" : "npm",
+            file: process.platform === "win32" ? "qué otra alnertiv" : "npm",
             args: ["run", "prepare-server"],
             cwd: project.path,
             signal,

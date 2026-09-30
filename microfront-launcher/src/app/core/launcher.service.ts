@@ -2,7 +2,7 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import type { Signal } from '@angular/core';
 import { Observable } from 'rxjs';
-import type { ApiMessage, Project } from './launcher.models';
+import type { ApiMessage, Project, ProjectGitInfo } from './launcher.models';
 
 /** Shared HTTP boundary for launcher data and commands. */
 @Injectable({ providedIn: 'root' })
@@ -10,7 +10,10 @@ export class LauncherService {
   private readonly http = inject(HttpClient);
 
   getInfoBranchesByShellId(shellId: Signal<string>) {
-    return  httpResource(() => `/api/projects/${shellId()}/git-info`);
+    return httpResource<ProjectGitInfo>(() => {
+      const projectId = shellId();
+      return projectId ? `/api/projects/${encodeURIComponent(projectId)}/git-info` : undefined;
+    });
   }
 
   savePreferredVersion(preferredTag: string): Observable<ApiMessage> {

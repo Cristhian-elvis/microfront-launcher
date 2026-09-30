@@ -67,7 +67,17 @@ export class ShellDetailPageComponent {
   readonly infoBranches = this.launcher.getInfoBranchesByShellId(this.shellId);
   protected readonly projects = this.bootstrap.projects.value;
   
-  readonly microfronts = computed(() => this.project()?.microfrontends ?? []);
+  readonly microfronts = computed(() => {
+    const gitByMicrofrontId = new Map(
+      this.infoBranches.value()?.microfrontends?.map((item) => [item.id, item]) ?? [],
+    );
+    return (this.project()?.microfrontends ?? []).map((microfront) => {
+      const gitInfo = gitByMicrofrontId.get(microfront.id);
+      return gitInfo
+        ? { ...microfront, branch: gitInfo.branch, branches: gitInfo.branches ?? [] }
+        : microfront;
+    });
+  });
   readonly visibleMicrofronts = computed(() => {
     const query = this.search().trim().toLocaleLowerCase();
     return query
@@ -127,10 +137,6 @@ export class ShellDetailPageComponent {
     { label: 'Cambiar a rama…', value: 'branch' },
   ];
 
-  constructor() {
-    this.infoBranches.reload();
-  }
-
   refresh(): void {
     this.pending.set(true);
     this.api
@@ -141,7 +147,12 @@ export class ShellDetailPageComponent {
       )
       .subscribe({
         next: (project) => {
-          console.log('Project refreshed:', project);
+          this.infoBranches.reload();
+          this.messages.add({
+            severity: 'success',
+            summary: 'Git actualizado',
+            detail: `Se actualizaron los repositorios de ${project.name}.`,
+          });
         },
         error: (error: unknown) => this.fail(error),
       });
@@ -271,8 +282,16 @@ export class ShellDetailPageComponent {
     return this.state()?.microfrontendOperations?.[`build:${microfront.id}`]?.status === 'running';
   }
 
-  openMicrofront(id: string): void {
-    void this.router.navigate(['/shells', this.shellId(), id]);
+  openMicrofrontFolder(microfront: Microfront): void {
+    this.runMicrofrontAction('/api/microfrontends/open-folder', microfront, false);
+  }
+
+  openMicrofrontInVsCode(microfront: Microfront): void {
+    this.runMicrofrontAction('/api/microfrontends/open', microfront, false);
+  }
+
+  buildMicrofront(microfront: Microfront): void {
+    this.runMicrofrontAction('/api/microfrontends/build', microfront);
   }
 
   viewVersions(): void {
@@ -302,6 +321,12 @@ export class ShellDetailPageComponent {
         },
         error: (error: unknown) => this.fail(error),
       });
+  }
+
+  private runMicrofrontAction(url: string, microfront: Microfront, reload = true): void {
+    const project = this.project();
+    if (!project) return;
+    this.run(url, { projectId: project.id, microfrontendId: microfront.id }, reload);
   }
   private load(): void {
     this.snapshot()

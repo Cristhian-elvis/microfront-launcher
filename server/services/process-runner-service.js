@@ -13,6 +13,7 @@ export async function runProcessStep({ key, label, file, args, cwd, signal }) {
   const result = await record.done;
   signal?.removeEventListener("abort", abort);
   assertNotCancelled(signal);
+  if (result.error) throw result.error;
   if (result.code !== 0)
     throw new Error(`${label} terminó con código ${result.code}.`);
 }

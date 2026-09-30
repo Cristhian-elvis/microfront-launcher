@@ -26,13 +26,6 @@ export const routes: Routes = [
     },
   },
   {
-    path: 'shells/:shellId/:microfrontId',
-    loadComponent: () =>
-      import('./features/microfront-detail/microfront-detail-page.component').then(
-        (m) => m.MicrofrontDetailPageComponent,
-      ),
-  },
-  {
     path: 'shells/:shellId',
     loadComponent: () =>
       import('./features/shell-detail/shell-detail-page.component').then(

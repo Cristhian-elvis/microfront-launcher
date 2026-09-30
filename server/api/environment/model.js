@@ -19,7 +19,9 @@ export function createEnvironmentModel({
     },
 
     rebuildShell({ projectId }) {
-      environmentService.rebuildShellServer(projectId).catch(() => {});
+      environmentService
+        .rebuildShellServer(projectId)
+        .catch((error) => addLog("Reconstruir servidor", "error", error.message));
     },
 
     stop(reason) {

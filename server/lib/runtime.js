@@ -39,23 +39,33 @@ export function spawnManaged({ key, label, file, args = [], cwd, shell = false, 
   if (existing && !existing.child.killed) return existing;
   if (!cwd || !fs.existsSync(cwd)) throw new Error(`La carpeta no existe: ${cwd}`);
   addLog(label, 'system', `Ejecutando: ${[file, ...args].join(' ')}`);
+  const useShell = shell || (process.platform === 'win32' && /\.(cmd|bat)$/i.test(file));
   const child = spawn(file, args, {
-    cwd, shell, windowsHide: true,
+    cwd, shell: useShell, windowsHide: true,
     env: { ...process.env, FORCE_COLOR: '0' }
   });
   let resolveDone;
   const done = new Promise((resolve) => { resolveDone = resolve; });
   const record = { child, label, startedAt: new Date().toISOString(), done, longRunning, exitCode: null };
   childProcesses.set(key, record);
+  let settled = false;
+  const finish = (result) => {
+    if (settled) return;
+    settled = true;
+    if (childProcesses.get(key)?.child === child) childProcesses.delete(key);
+    resolveDone(result);
+    emit('processes', processStatus());
+  };
   child.stdout?.on('data', (chunk) => addLog(label, 'stdout', chunk.toString()));
   child.stderr?.on('data', (chunk) => addLog(label, 'stderr', chunk.toString()));
-  child.on('error', (error) => addLog(label, 'error', error.message));
+  child.on('error', (error) => {
+    addLog(label, 'error', error.message);
+    finish({ code: null, signal: null, error });
+  });
   child.on('exit', (code, signal) => {
     record.exitCode = code;
     addLog(label, code === 0 ? 'system' : 'error', `Proceso finalizado (código: ${code ?? '-'}, señal: ${signal ?? '-'})`);
-    if (childProcesses.get(key)?.child === child) childProcesses.delete(key);
-    resolveDone({ code, signal });
-    emit('processes', processStatus());
+    finish({ code, signal });
   });
   emit('processes', processStatus());
   return record;
