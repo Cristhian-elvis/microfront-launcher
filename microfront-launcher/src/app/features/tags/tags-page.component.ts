@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { MessageService, PrimeTemplate } from 'primeng/api';
 import type { MenuItem } from 'primeng/api';
-import { finalize, tap } from 'rxjs/operators';
+import { finalize } from 'rxjs/operators';
 import { ApiService } from '../../core/api.service';
-import type { ApiMessage, LauncherState, MovaVersion } from '../../core/launcher.models';
+import type { ApiMessage, MovaVersion } from '../../core/launcher.models';
 import { Button } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
@@ -24,9 +24,9 @@ export class TagsPageComponent {
   private readonly messages = inject(MessageService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly versions = this.bootstrap.versions.value;
-
-  state: LauncherState | null = this.bootstrap.state.value() ?? null;
+  protected readonly versions = signal<MovaVersion[]>([]);
+  protected readonly state = this.bootstrap.state;
+  protected readonly preferences = this.bootstrap.preferences;
   refreshing = false;
   pending = false;
 
@@ -34,8 +34,12 @@ export class TagsPageComponent {
     { label: 'Tags de MOVA' }
   ];
 
+  constructor() {
+    this.load();
+  }
+
   get preferredTag(): string {
-    return this.state?.preferences.preferredTag ?? '';
+    return this.preferences().preferredTag ?? '';
   }
 
   buildLabel(version: MovaVersion): string {
@@ -56,7 +60,7 @@ export class TagsPageComponent {
 
   processLabel(version: MovaVersion): string {
     if (this.isBuilding(version)) return this.buildStepLabel();
-    if (this.isBuildError(version)) return this.state?.build?.message ?? 'La compilación falló';
+    if (this.isBuildError(version)) return this.state()?.build?.message ?? 'La compilación falló';
     return '—';
   }
 
@@ -67,16 +71,12 @@ export class TagsPageComponent {
   }
 
   load(): void {
-    /*forkJoin({
-      versions: this.api.get<MovaVersion[]>('/api/mova/versions'),
-      state: this.api.get<LauncherState>('/api/state')
-    }).pipe(
-      tap(({ versions, state }) => {
-        this.versions = versions;
-        this.state = state;
-      }),
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe({ error: (error: unknown) => this.notifyError(error) })*/
+    this.api.get<MovaVersion[]>('/api/mova/versions').pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (versions) => this.versions.set(versions),
+      error: (error: unknown) => this.notifyError(error),
+    });
   }
 
   refreshTags(): void {
@@ -108,15 +108,15 @@ export class TagsPageComponent {
   }
 
   private isBuilding(version: MovaVersion): boolean {
-    return this.state?.build?.tag === version.tag && this.state.build.status === 'building';
+    return this.state()?.build?.tag === version.tag && this.state()?.build?.status === 'building';
   }
 
   private isBuildError(version: MovaVersion): boolean {
-    return this.state?.build?.tag === version.tag && this.state.build.status === 'error';
+    return this.state()?.build?.tag === version.tag && this.state()?.build?.status === 'error';
   }
 
   private buildStepLabel(): string {
-    return this.state?.build?.message || 'Preparando compilación';
+    return this.state()?.build?.message || 'Preparando compilación';
   }
 
   private notifyError(error: unknown): void {

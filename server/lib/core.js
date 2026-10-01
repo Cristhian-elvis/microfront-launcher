@@ -24,7 +24,6 @@ function hasCompletedInitialSetup() {
 let initialSetupRequired = !hasCompletedInitialSetup();
 export const storageRoot = path.join(appRoot, 'storage');
 export const preferencesPath = path.join(storageRoot, 'preferences.json');
-export const tagCatalogPath = path.join(storageRoot, 'tag-catalog.json');
 export const movaStorageRoot = path.join(storageRoot, 'mova-components');
 export const versionsRoot = path.join(movaStorageRoot, 'versions');
 export const workRoot = path.join(movaStorageRoot, 'work');
@@ -51,6 +50,7 @@ export const defaultConfig = {
 
 export const defaultPreferences = {
   preferredTag: null,
+  componentsVersion: { mode: 'latest', selectedTag: null },
   favoriteShellIds: [],
   favoriteMicrofrontIds: [],
   avatarLetters: "ML"
@@ -113,8 +113,17 @@ export function readPreferences() {
   const saved = readJson(preferencesPath, defaultPreferences);
   delete saved.storybookMode;
   const preferences = { ...defaultPreferences, ...saved };
+  const savedVersion = saved.componentsVersion || {};
+  const mode = ['latest', 'manual'].includes(savedVersion.mode)
+    ? savedVersion.mode
+    : saved.preferredTag ? 'manual' : 'latest';
+  const selectedTag = mode === 'manual'
+    ? String(savedVersion.selectedTag || saved.preferredTag || '').trim() || null
+    : null;
   return {
     ...preferences,
+    preferredTag: selectedTag,
+    componentsVersion: { mode, selectedTag },
     avatarLetters: String(preferences.avatarLetters || "ML")
       .replace(/[^a-zA-Z]/g, "")
       .slice(0, 2)
@@ -129,7 +138,21 @@ export function readPreferences() {
 }
 
 export function writePreferences(next) {
-  const value = { ...readPreferences(), ...next };
+  const current = readPreferences();
+  const requestedVersion = next.componentsVersion || {};
+  const legacyManualTag = next.preferredTag;
+  const mode = ['latest', 'manual'].includes(requestedVersion.mode)
+    ? requestedVersion.mode
+    : legacyManualTag !== undefined ? 'manual' : current.componentsVersion.mode;
+  const selectedTag = mode === 'manual'
+    ? String(requestedVersion.selectedTag ?? legacyManualTag ?? current.componentsVersion.selectedTag ?? '').trim() || null
+    : null;
+  const value = {
+    ...current,
+    ...next,
+    preferredTag: selectedTag,
+    componentsVersion: { mode, selectedTag },
+  };
   writeJson(preferencesPath, value);
   return value;
 }
@@ -489,7 +512,6 @@ let tagCache = null;
 
 function cacheTags(tags) {
   tagCache = Array.isArray(tags) ? tags : [];
-  writeJson(tagCatalogPath, { updatedAt: new Date().toISOString(), tags: tagCache });
   return tagCache;
 }
 
@@ -508,12 +530,6 @@ export async function getTags() {
   if (tagCache) return tagCache;
 
   // El catálogo persistido evita ejecutar Git en cada arranque.
-  if (fs.existsSync(tagCatalogPath)) {
-    const catalog = readJson(tagCatalogPath, { tags: [] });
-    tagCache = Array.isArray(catalog.tags) ? catalog.tags : [];
-    return tagCache;
-  }
-
   const { sourcePath } = readConfig().mova;
   if (!sourcePath) return [];
   try {
@@ -521,6 +537,33 @@ export async function getTags() {
     return cacheTags(await readTagsFromGit(sourcePath));
   } catch {
     return [];
+  }
+}
+
+export async function getVersionByTag(tag) {
+  const normalizedTag = String(tag || '').trim();
+  if (!/^release-[a-zA-Z0-9._-]+$/.test(normalizedTag)) return null;
+  const { sourcePath } = readConfig().mova;
+  if (!sourcePath || !fs.existsSync(path.join(sourcePath, '.git'))) return null;
+  try {
+    const { stdout } = await execFileAsync('git', [
+      '-C', sourcePath,
+      'for-each-ref', `refs/tags/${normalizedTag}`,
+      '--format=%(refname:short)|%(creatordate:iso8601)|%(objectname:short)',
+    ], { encoding: 'utf8', windowsHide: true });
+    const [foundTag, date, commit] = stdout.trim().split('|');
+    if (foundTag !== normalizedTag) return null;
+    const cached = getCachedVersions().some((item) => item.tag === normalizedTag);
+    return {
+      tag: normalizedTag,
+      date,
+      commit,
+      version: normalizedTag.replace(/^release-/, ''),
+      cached,
+      preferred: false,
+    };
+  } catch {
+    return null;
   }
 }
 

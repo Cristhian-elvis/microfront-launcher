@@ -35,13 +35,23 @@ export interface ProjectGitInfo {
 
 export interface MovaVersion {
   tag: string;
+  version?: string;
   cached: boolean;
   date?: string;
   preferred?: boolean;
 }
 
+export interface ComponentsVersionPreference {
+  mode: 'latest' | 'manual';
+  selectedTag: string | null;
+}
+
+export interface LatestMovaVersion extends MovaVersion {
+  packageUrl: string;
+  source: 'latest';
+}
+
 export interface LauncherState {
-  preferences: { preferredTag?: string; favoriteShellIds?: string[]; favoriteMicrofrontIds?: string[]; avatarLetters?: string };
   session: {
     status: string;
     stage?: string;
@@ -55,6 +65,31 @@ export interface LauncherState {
   microfrontendBranch?: MicrofrontendOperation;
   microfrontendBuild?: MicrofrontendOperation;
   microfrontendOperations?: Record<string, MicrofrontendOperation>;
+}
+
+export interface LauncherPreferences {
+  preferredTag?: string;
+  componentsVersion?: ComponentsVersionPreference;
+  favoriteShellIds?: string[];
+  favoriteMicrofrontIds?: string[];
+  avatarLetters?: string;
+}
+
+export interface BootstrapErrors {
+  projects?: string;
+  versions?: string;
+  logs?: string;
+  setup?: string;
+}
+
+export interface BootstrapPayload {
+  runtime: LauncherState;
+  preferences: LauncherPreferences;
+  projects: Project[];
+  versions: MovaVersion[];
+  logs: LauncherLog[];
+  setup: SetupStatus;
+  errors: BootstrapErrors;
 }
 
 export interface MicrofrontendOperation {

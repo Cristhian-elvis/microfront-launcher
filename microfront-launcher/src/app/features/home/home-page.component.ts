@@ -18,6 +18,8 @@ import { Observable } from 'rxjs';
 import { finalize, tap } from 'rxjs/operators';
 import type {
   ApiMessage,
+  ComponentsVersionPreference,
+  LatestMovaVersion,
   MovaVersion,
 } from '../../core/launcher.models';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
@@ -52,11 +54,15 @@ export class HomePageComponent {
   private readonly messages = inject(MessageService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly state = this.bootstrap.state.value;
-  protected readonly projects = this.bootstrap.projects.value;
-  protected readonly versions = this.bootstrap.versions.value;
-  protected readonly logs = this.bootstrap.logs.value;
+  protected readonly state = this.bootstrap.state;
+  protected readonly preferences = this.bootstrap.preferences;
+  protected readonly projects = this.bootstrap.projects;
+  protected readonly versions = this.bootstrap.versions;
+  protected readonly logs = this.bootstrap.logs;
   protected readonly selectedVersionTag = signal('');
+  protected readonly latestVersion = signal<LatestMovaVersion | null>(null);
+  protected readonly latestLoading = signal(false);
+  protected readonly latestError = signal('');
   protected readonly selectedProjectId = signal(
     localStorage.getItem('microfront-last-shell-id') ?? '',
   );
@@ -64,6 +70,9 @@ export class HomePageComponent {
 
   protected readonly selectedProject = computed(() =>
     this.projects().find((project) => project.id === this.selectedProjectId()),
+  );
+  protected readonly versionPreference = computed<ComponentsVersionPreference>(() =>
+    this.preferences().componentsVersion ?? { mode: 'latest', selectedTag: null },
   );
   protected readonly componentsActive = computed(
     () => this.state()?.components.status === 'running',
@@ -78,19 +87,22 @@ export class HomePageComponent {
   });
   protected readonly shellRunning = computed(() => {
     const currentState = this.state();
-    return currentState !== undefined && currentState.shell.status !== 'stopped';
+    return currentState !== null && currentState.shell.status !== 'stopped';
   });
   protected readonly versionSelectionDisabled = computed(
-    () =>
-      !this.versions().length ||
-      this.sessionBusy(),
+    () => this.sessionBusy(),
   );
   protected readonly sessionBusy = computed(() =>
     ['starting', 'building', 'stopping'].includes(this.state()?.session.status ?? ''),
   );
   protected readonly versionLocked = computed(() => this.componentsActive() || this.shellRunning());
   protected readonly activeVersion = computed(
-    () => this.state()?.components.version ?? this.selectedVersionTag() ?? 'No disponible',
+    () => this.state()?.components.version ?? this.latestVersion()?.tag ?? this.selectedVersionTag() ?? 'No disponible',
+  );
+  protected readonly versionReady = computed(() =>
+    this.versionPreference().mode === 'latest'
+      ? Boolean(this.latestVersion())
+      : Boolean(this.selectedVersionTag()),
   );
   protected readonly projectOptions = computed<ProjectOption[]>(() =>
     this.projects().map((project) => ({
@@ -123,8 +135,31 @@ export class HomePageComponent {
       const state = this.state();
       if (!state) return;
 
-      this.selectedVersionTag.set(state.preferences.preferredTag ?? this.selectedVersionTag());
+      if (this.versionPreference().mode === 'manual') {
+        this.selectedVersionTag.set(this.versionPreference().selectedTag ?? '');
+      }
       if (state.shell.projectId) this.selectedProjectId.set(state.shell.projectId);
+    });
+    effect((onCleanup) => {
+      const project = this.selectedProject();
+      if (this.versionPreference().mode !== 'latest' || !project) {
+        this.latestVersion.set(null);
+        this.latestError.set('');
+        this.latestLoading.set(false);
+        return;
+      }
+      this.latestLoading.set(true);
+      this.latestError.set('');
+      const subscription = this.launcher.getLatestVersion(project.id).subscribe({
+        next: (version) => this.latestVersion.set(version),
+        error: (error: unknown) => {
+          this.latestVersion.set(null);
+          this.latestError.set(this.errorDetail(error));
+          this.latestLoading.set(false);
+        },
+        complete: () => this.latestLoading.set(false),
+      });
+      onCleanup(() => subscription.unsubscribe());
     });
   }
 
@@ -132,13 +167,26 @@ export class HomePageComponent {
     const tag = this.selectedVersionTag();
     if (!tag) return;
     this.run(
-      this.launcher.savePreferredVersion(tag).pipe(tap(() => this.bootstrap.reloadState())),
+      this.launcher.saveComponentsVersion({ mode: 'manual', selectedTag: tag }),
       'Versión preferida actualizada.',
     );
   }
 
+  protected changeVersionMode(mode: 'latest' | 'manual'): void {
+    if (mode === 'manual') this.loadVersions();
+    this.run(
+      this.launcher.saveComponentsVersion({
+        mode,
+        selectedTag: mode === 'manual' ? this.selectedVersionTag() || null : null,
+      }),
+      mode === 'latest' ? 'Se usará la última versión publicada.' : 'Selecciona una versión manual.',
+    );
+  }
+
   protected startComponents(): void {
-    this.run(this.launcher.startComponents(), 'MOVA Components se está iniciando.');
+    const project = this.selectedProject();
+    if (!project) return;
+    this.run(this.launcher.startComponents(project.id), 'MOVA Components se está iniciando.');
   }
 
   protected stopComponents(): void {
@@ -183,9 +231,24 @@ export class HomePageComponent {
     return versions.map((version) => ({ label: version.tag, value: version.tag }));
   }
 
+  private loadVersions(): void {
+    this.launcher.getVersions().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (versions) => this.bootstrap.setVersions(versions),
+      error: (error: unknown) => this.notifyError(error),
+    });
+  }
+
   private notifyError(error: unknown): void {
     const detail = error instanceof Error ? error.message : 'No se pudo completar la operación.';
     this.messages.add({ severity: 'error', summary: 'Error', detail });
+  }
+
+  private errorDetail(error: unknown): string {
+    if (typeof error === 'object' && error && 'error' in error) {
+      const body = (error as { error?: { error?: string } }).error;
+      if (body?.error) return body.error;
+    }
+    return error instanceof Error ? error.message : 'No se pudo consultar la última versión.';
   }
 
   private projectDisplayName(name: string | null | undefined): string {

@@ -10,7 +10,7 @@ import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
 import { ThemeService } from '../../shared/services/theme.service';
 import { LauncherEventsService } from '../../core/launcher-events.service';
-import type { LauncherConfig, LauncherLog, LauncherState, Project } from '../../core/launcher.models';
+import type { LauncherConfig, LauncherLog, LauncherPreferences, LauncherState, Project } from '../../core/launcher.models';
 import { ApiService } from '../../core/api.service';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 
@@ -39,14 +39,15 @@ export class MainLayoutComponent {
   protected readonly settingsError = signal<string | null>(null);
   protected readonly settingsSaving = signal(false);
   protected readonly collapsed = signal(false);
-  protected readonly projects = this.bootstrap.projects.value;
-  protected readonly state = this.bootstrap.state.value;
+  protected readonly projects = this.bootstrap.projects;
+  protected readonly state = this.bootstrap.state;
+  protected readonly preferences = this.bootstrap.preferences;
   protected readonly favoriteShells = computed(() => {
-    const ids = new Set(this.state()?.preferences.favoriteShellIds ?? []);
+    const ids = new Set(this.preferences().favoriteShellIds ?? []);
     return this.projects().filter((project) => ids.has(project.id));
   });
   protected readonly favoriteMicrofronts = computed(() => {
-    const ids = new Set(this.state()?.preferences.favoriteMicrofrontIds ?? []);
+    const ids = new Set(this.preferences().favoriteMicrofrontIds ?? []);
     return this.projects().flatMap((project) => (project.microfrontends ?? [])
       .filter((microfront) => ids.has(this.microfrontKey(project, microfront)))
       .map((microfront) => ({ project, microfront })));
@@ -54,7 +55,7 @@ export class MainLayoutComponent {
   protected readonly microfrontCount = computed(() => this.projects().reduce(
     (total, project) => total + (project.microfrontends?.length ?? 0), 0,
   ));
-  protected readonly avatarLetters = computed(() => (this.state()?.preferences.avatarLetters ?? 'ML').slice(0, 2).toUpperCase());
+  protected readonly avatarLetters = computed(() => (this.preferences().avatarLetters ?? 'ML').slice(0, 2).toUpperCase());
   private readonly events = inject(LauncherEventsService);
   private readonly api = inject(ApiService);
   private readonly destroyRef = inject(DestroyRef);
@@ -63,7 +64,8 @@ export class MainLayoutComponent {
   constructor() {
     this.events.events().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (event) => {
-        if (event.type === 'state' && this.isState(event.payload)) this.state.set(event.payload);
+        if (event.type === 'runtime' && this.isState(event.payload)) this.bootstrap.setRuntime(event.payload);
+        if (event.type === 'preferences' && this.isPreferences(event.payload)) this.bootstrap.setPreferences(event.payload);
         if (event.type === 'log' && this.isLog(event.payload)) this.bootstrap.appendLog(event.payload);
       },
       error: () => undefined,
@@ -77,11 +79,11 @@ export class MainLayoutComponent {
   protected openSettings(): void {
     this.api.get<LauncherConfig>('/api/config').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (config) => {
-        const avatarLetters = this.state()?.preferences.avatarLetters ?? 'ML';
+        const avatarLetters = this.preferences().avatarLetters ?? 'ML';
         this.initialAvatarLetters = avatarLetters;
         this.settings.set({
           ...config,
-          preferences: { ...config.preferences, ...this.state()?.preferences, avatarLetters },
+          preferences: { ...config.preferences, ...this.preferences(), avatarLetters },
         });
         this.settingsError.set(null);
         this.settingsVisible.set(true);
@@ -119,8 +121,7 @@ export class MainLayoutComponent {
     ).subscribe({
       next: () => {
         this.settingsVisible.set(false);
-        this.bootstrap.state.reload();
-        this.bootstrap.projects.reload();
+        this.bootstrap.reload();
       },
       error: (error: { message?: string }) => this.settingsError.set(error.message ?? 'No se pudieron guardar los cambios.'),
     });
@@ -135,7 +136,11 @@ export class MainLayoutComponent {
   }
 
   private isState(value: unknown): value is LauncherState {
-    return typeof value === 'object' && value !== null && 'shell' in value && 'preferences' in value;
+    return typeof value === 'object' && value !== null && 'shell' in value && 'components' in value;
+  }
+
+  private isPreferences(value: unknown): value is LauncherPreferences {
+    return typeof value === 'object' && value !== null && 'favoriteShellIds' in value;
   }
 
   private isLog(value: unknown): value is LauncherLog {

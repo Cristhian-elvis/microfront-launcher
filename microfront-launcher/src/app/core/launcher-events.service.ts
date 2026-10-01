@@ -2,7 +2,7 @@ import { Injectable, NgZone, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 export interface LauncherEvent {
-  type: 'log' | 'state';
+  type: 'log' | 'runtime' | 'preferences';
   payload: unknown;
 }
 

@@ -30,8 +30,9 @@ export class ShellsPageComponent {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly projects = this.bootstrap.projects.value;
-  readonly state = this.bootstrap.state.value;
+  readonly projects = this.bootstrap.projects;
+  readonly state = this.bootstrap.state;
+  readonly preferences = this.bootstrap.preferences;
   filter = '';
   pending = false;
 
@@ -51,7 +52,7 @@ export class ShellsPageComponent {
   }
 
   isFavorite(project: Project): boolean {
-    return this.state()?.preferences.favoriteShellIds?.includes(project.id) ?? false;
+    return this.preferences().favoriteShellIds?.includes(project.id) ?? false;
   }
 
   status(project: Project): 'active' | 'starting' | 'stopped' {
@@ -90,9 +91,7 @@ export class ShellsPageComponent {
   }
 
   toggleFavorite(project: Project): void {
-    const currentState = this.state();
-    if (!currentState) return;
-    const previous = currentState.preferences.favoriteShellIds ?? [];
+    const previous = this.preferences().favoriteShellIds ?? [];
     const favoriteShellIds = previous.includes(project.id)
       ? previous.filter((id) => id !== project.id)
       : [...previous, project.id];
@@ -104,12 +103,7 @@ export class ShellsPageComponent {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: () => {
-          this.state.set({
-            ...currentState,
-            preferences: { ...currentState.preferences, favoriteShellIds },
-          });
-        },
+        next: () => undefined,
         error: (error: unknown) => this.notifyError(error),
       });
   }

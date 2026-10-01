@@ -48,7 +48,7 @@
   [draggable]="false"
   (visibleChange)="consoleVisible.set($event)"
 >
-  <app-process-console [logs]="bootstrap.logs.value()" />
+  <app-process-console [logs]="bootstrap.logs()" />
 </p-dialog>
 <p-dialog
   header="Configuración"

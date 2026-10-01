@@ -164,6 +164,22 @@ h1 em {
   width: var(--home-dropdown-width);
 }
 
+.operation-card .version-status {
+  grid-column: 3;
+  display: block;
+  width: var(--home-dropdown-width);
+  margin-top: -8px;
+  overflow: hidden;
+  color: #96aec0;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operation-card .version-status.error {
+  color: #ff9ba1;
+}
+
 .operation-card > .active-version-tag {
   justify-self: start;
 }
@@ -255,6 +271,10 @@ h1 em {
     grid-column: 2;
   }
 
+  .operation-card .version-status {
+    grid-column: 2;
+  }
+
   .operation-actions {
     grid-row: 1 / span 2;
     grid-column: 3;
@@ -268,6 +288,7 @@ h1 em {
   }
 
   .operation-card p-floatlabel,
+  .operation-card .version-status,
   .operation-actions {
     grid-column: 1 / -1;
     grid-row: auto;

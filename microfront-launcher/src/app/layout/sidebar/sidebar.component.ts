@@ -23,14 +23,15 @@ export class SidebarComponent {
   private readonly bootstrap = inject(AppBootstrapService);
   readonly settingsRequested = output<void>();
   readonly collapsed = signal(false);
-  readonly projects = this.bootstrap.projects.value;
-  readonly state = this.bootstrap.state.value;
+  readonly projects = this.bootstrap.projects;
+  readonly state = this.bootstrap.state;
+  readonly preferences = this.bootstrap.preferences;
   readonly favoriteShells = computed(() => {
-    const ids = new Set(this.state()?.preferences.favoriteShellIds ?? []);
+    const ids = new Set(this.preferences().favoriteShellIds ?? []);
     return this.projects().filter((project) => ids.has(project.id));
   });
   readonly favoriteMicrofronts = computed(() => {
-    const ids = new Set(this.state()?.preferences.favoriteMicrofrontIds ?? []);
+    const ids = new Set(this.preferences().favoriteMicrofrontIds ?? []);
     return this.projects().flatMap((project) =>
       (project.microfrontends ?? [])
         .filter((microfront) => ids.has(this.microfrontKey(project, microfront)))

@@ -17,11 +17,10 @@ import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { Select } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
-import { finalize, forkJoin, tap } from 'rxjs';
+import { finalize } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import type {
   ApiMessage,
-  LauncherState,
   MicrofrontendOperation,
   Project,
 } from '../../core/launcher.models';
@@ -63,9 +62,10 @@ export class ShellDetailPageComponent {
   readonly bulkAction = signal<BulkAction>('');
   readonly targetBranch = signal('');
 
-  readonly state = this.bootstrap.state.value;
+  readonly state = this.bootstrap.state;
+  readonly preferences = this.bootstrap.preferences;
   readonly infoBranches = this.launcher.getInfoBranchesByShellId(this.shellId);
-  protected readonly projects = this.bootstrap.projects.value;
+  protected readonly projects = this.bootstrap.projects;
   
   readonly microfronts = computed(() => {
     const gitByMicrofrontId = new Map(
@@ -129,7 +129,7 @@ export class ShellDetailPageComponent {
   readonly displayName = computed(() => this.projectDisplayName(this.project()?.name));
   readonly favorite = computed(() => {
     const project = this.project();
-    return !!project && (this.state()?.preferences.favoriteShellIds ?? []).includes(project.id);
+    return !!project && (this.preferences().favoriteShellIds ?? []).includes(project.id);
   });
   readonly breadCrumbItems: MenuItem[] = [
     { label: 'Shells', routerLink: '/shells' },
@@ -173,9 +173,8 @@ export class ShellDetailPageComponent {
 
   toggleFavorite(): void {
     const project = this.project();
-    const state = this.state();
-    if (!project || !state) return;
-    const current = state.preferences.favoriteShellIds ?? [];
+    if (!project) return;
+    const current = this.preferences().favoriteShellIds ?? [];
     const favoriteShellIds = current.includes(project.id)
       ? current.filter((id) => id !== project.id)
       : [...current, project.id];
@@ -187,8 +186,7 @@ export class ShellDetailPageComponent {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: () =>
-          this.state.set({ ...state, preferences: { ...state.preferences, favoriteShellIds } }),
+        next: () => undefined,
         error: (error: unknown) => this.fail(error),
       });
   }
@@ -320,7 +318,7 @@ export class ShellDetailPageComponent {
             summary: 'Operación enviada',
             detail: result.message ?? 'Operación iniciada.',
           });
-          if (reload) this.load();
+          void reload;
         },
         error: (error: unknown) => this.fail(error),
       });
@@ -331,24 +329,6 @@ export class ShellDetailPageComponent {
     if (!project) return;
     this.run(url, { projectId: project.id, microfrontendId: microfront.id }, reload);
   }
-  private load(): void {
-    this.snapshot()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ error: (error: unknown) => this.fail(error) });
-  }
-
-  private snapshot() {
-    this.loading.set(true);
-    return forkJoin({
-      state: this.api.get<LauncherState>('/api/state'),
-    }).pipe(
-      tap(({ state }) => {
-        this.state.set(state);
-      }),
-      finalize(() => this.loading.set(false))
-    );
-  }
-
   private projectDisplayName(name: string | null | undefined): string {
     const value = String(name ?? '');
     const match = /^([a-z0-9]{4})_webapp_/i.exec(value);

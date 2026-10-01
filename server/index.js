@@ -11,7 +11,7 @@ import {
   writeJson,
   getProjects,
   getVersions,
-  getTags,
+  getVersionByTag,
   versionPaths,
   safeTagName,
   assertInside,
@@ -24,6 +24,7 @@ import {
   childProcesses,
   emit,
   addLog,
+  logs,
   spawnManaged,
   stopProcess,
   startStaticServer,
@@ -49,7 +50,7 @@ import { createProjectGitService } from "./services/project-git-service.js";
 import { createMicrofrontendRuntimeService } from "./services/microfrontend-runtime-service.js";
 import { assertNotCancelled, runProcessStep } from "./services/process-runner-service.js";
 import { createShellRuntimeService } from "./services/shell-runtime-service.js";
-import { selectedVersion } from "./services/components-version-service.js";
+import { latestVersion, selectedVersion } from "./services/components-version-service.js";
 import { createComponentsRuntimeService } from "./services/components-runtime-service.js";
 import { json, readBody } from "./lib/http.js";
 import { state } from "./state.js";
@@ -60,17 +61,19 @@ const port = Number(process.env.PORT || 3187);
 let buildOperation = null;
 let branchOperation = null;
 
-function emitState() {
-  emit("state", getState());
+function emitRuntime() {
+  emit("runtime", getRuntime());
 }
 
-const environmentOperation = createEnvironmentOperation({ onChange: emitState });
+const emitState = emitRuntime;
+const environmentOperation = createEnvironmentOperation({ onChange: emitRuntime });
 
-function getState() {
-  return {
-    ...state,
-    preferences: readPreferences(),
-  };
+function getRuntime() {
+  return { ...state, preferences: readPreferences() };
+}
+
+function emitPreferences() {
+  emit("preferences", readPreferences());
 }
 
 const {
@@ -148,8 +151,7 @@ function endBuildOperation(id) {
 
 async function buildComponents(version, signal, { force = false } = {}) {
   const tag = version.tag;
-  const available = await getTags();
-  if (!available.some((item) => item.tag === tag))
+  if (!await getVersionByTag(tag))
     throw new Error(`El tag no existe localmente: ${tag}`);
   const config = readConfig();
   const storageDirectories = [
@@ -300,8 +302,11 @@ const componentsRuntime = createComponentsRuntimeService({
   emitState,
 });
 
-async function startComponentsStandalone() {
-  const version = await selectedVersion();
+async function startComponentsStandalone(projectId) {
+  const project = getIndexedProject(projectId);
+  if (!project)
+    throw new Error("Selecciona una shell para resolver la versión de MOVA Components.");
+  const version = await selectedVersion(project);
   if (!version)
     throw new Error(
       "Selecciona una versión de MOVA Components antes de iniciarlo.",
@@ -898,12 +903,17 @@ const handleBrowserRequest = createBrowserHandler({
   openEmptyBrowser,
 });
 const handleStateRequest = createStateHandler({
-  getState
+  getRuntime
 });
 const handleMovaRequest = createMovaHandler({
-  emitState,
+  emitPreferences,
   compileVersion,
-  cancelBuild
+  cancelBuild,
+  getLatestVersion: async (projectId) => {
+    const project = getIndexedProject(projectId);
+    if (!project) throw new Error("Shell no encontrada.");
+    return latestVersion(project);
+  },
 });
 const handleComponentsRequest = createComponentsHandler({
   state,

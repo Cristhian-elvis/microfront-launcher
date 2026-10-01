@@ -40,8 +40,9 @@ export class MicrofrontsPageComponent {
   private readonly api = inject(ApiService);
   private readonly launcher = inject(LauncherService);
   private readonly route = inject(ActivatedRoute);
-  readonly projects = this.bootstrap.projects.value;
-  readonly state = this.bootstrap.state.value;
+  readonly projects = this.bootstrap.projects;
+  readonly state = this.bootstrap.state;
+  readonly preferences = this.bootstrap.preferences;
   readonly search = signal('');
   readonly pending = signal(false);
   readonly selectedId = signal(this.route.snapshot.queryParamMap.get('microfront') ?? '');
@@ -79,17 +80,15 @@ export class MicrofrontsPageComponent {
     return `${item.project.id}:${item.id}`;
   }
   isFavorite(item: DirectoryItem): boolean {
-    return (this.state()?.preferences.favoriteMicrofrontIds ?? []).includes(this.key(item));
+    return (this.preferences().favoriteMicrofrontIds ?? []).includes(this.key(item));
   }
   clearSelection(): void {
     this.selectedId.set('');
     this.projectId.set('');
   }
   toggleFavorite(item: DirectoryItem): void {
-    const state = this.state();
-    if (!state) return;
     const key = this.key(item);
-    const previous = state.preferences.favoriteMicrofrontIds ?? [];
+    const previous = this.preferences().favoriteMicrofrontIds ?? [];
     const favoriteMicrofrontIds = previous.includes(key)
       ? previous.filter((id) => id !== key)
       : [...previous, key];
@@ -98,11 +97,7 @@ export class MicrofrontsPageComponent {
       .savePreferences({ favoriteMicrofrontIds })
       .pipe(finalize(() => this.pending.set(false)))
       .subscribe({
-        next: () =>
-          this.state.set({
-            ...state,
-            preferences: { ...state.preferences, favoriteMicrofrontIds },
-          }),
+        next: () => undefined,
       });
   }
   run(url: string, item: DirectoryItem): void {
