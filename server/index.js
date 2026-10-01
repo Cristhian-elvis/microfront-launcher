@@ -70,8 +70,6 @@ function getState() {
   return {
     ...state,
     preferences: readPreferences(),
-    busy: environmentOperation.isRunning(),
-    buildBusy: Boolean(buildOperation),
   };
 }
 
@@ -600,22 +598,6 @@ function browserSettings(config = readConfig()) {
   };
 }
 
-function hasBrowserProfileOpen(browser) {
-  if (process.platform !== "win32" || !browser.insecure)
-    return Promise.resolve(false);
-  const profile = browser.userDataDir.replace(/'/g, "''");
-  const executable = path.basename(browser.path).replace(/'/g, "''");
-  const script = `$profile = [Regex]::Escape('${profile}'); @(Get-CimInstance Win32_Process -Filter \"Name='${executable}'\" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match \"--user-data-dir=$profile(?:\\s|$)\" }).Count -gt 0`;
-  return new Promise((resolve) =>
-    execFile(
-      "powershell.exe",
-      ["-NoProfile", "-NonInteractive", "-Command", script],
-      { windowsHide: true },
-      (error, stdout) => resolve(!error && /^true\s*$/i.test(stdout)),
-    ),
-  );
-}
-
 async function openChrome(project, { newWindow = true, url = null } = {}) {
   const config = readConfig();
   const browser = browserSettings(config);
@@ -661,23 +643,7 @@ async function openOrRequestBrowser(project) {
   const browser = browserSettings(config);
   if (!fs.existsSync(browser.path))
     throw new Error(`No se encontró ${browser.name}: ${browser.path}`);
-  const alreadyOpen = await hasBrowserProfileOpen(browser);
-  if (!alreadyOpen) return openChrome(project, { newWindow: true });
-  if (config.chrome.openMode)
-    return openChrome(project, {
-      newWindow: config.chrome.openMode === "window",
-    });
-  state.browserPrompt = {
-    projectId: project.id,
-    browser: browser.name,
-    insecure: browser.insecure,
-  };
-  addLog(
-    browser.name,
-    "system",
-    "Ya hay una ventana con esta configuración. Esperando la elección de apertura.",
-  );
-  emitState();
+  return openChrome(project, { newWindow: config.chrome.openMode === "window" });
 }
 
 
@@ -928,10 +894,8 @@ const handleProjectsRequest = createProjectsHandler({
   openProjectWebapp: vsCodeService.openProjectWebapp
 });
 const handleBrowserRequest = createBrowserHandler({
-  state,
   reopenChrome,
   openEmptyBrowser,
-  emitState
 });
 const handleStateRequest = createStateHandler({
   getState

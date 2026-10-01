@@ -103,7 +103,7 @@
           optionLabel="label"
           optionValue="value"
           [style]="{ width: '100%' }"
-          [disabled]="currentState.busy || shellStarting() || !projects().length"
+          [disabled]="sessionBusy() || shellStarting() || !projects().length"
         />
         <label for="shell-project">Proyecto</label>
       </p-floatlabel>

@@ -117,7 +117,10 @@
       icon="pi pi-cog"
       [label]="collapsed() ? undefined : 'Configuración'"
       styleClass="p-button-text w-full justify-start"
-      [disabled]="state()?.busy || state()?.shell?.status !== 'stopped'"
+      [disabled]="
+        ['starting', 'building', 'stopping'].includes(state()?.session?.status ?? '') ||
+        state()?.shell?.status !== 'stopped'
+      "
       (onClick)="settingsRequested.emit()"
     />
   </footer>

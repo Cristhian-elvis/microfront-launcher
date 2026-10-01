@@ -55,5 +55,4 @@ export const state = {
     message: "Sin compilaciones en curso",
     startedAt: null,
   },
-  browserPrompt: null,
 };

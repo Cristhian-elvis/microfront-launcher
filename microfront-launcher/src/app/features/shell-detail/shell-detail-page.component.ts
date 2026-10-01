@@ -117,7 +117,10 @@ export class ShellDetailPageComponent {
     const projectId = this.project()?.id;
     return this.pending() ||
       (state?.shell.status !== 'stopped' && state?.shell.projectId === projectId) ||
-      Boolean(state?.busy && state?.session.projectId === projectId);
+      (
+        ['starting', 'building', 'stopping'].includes(state?.session.status ?? '') &&
+        state?.session.projectId === projectId
+      );
   });
   readonly active = computed(() => {
     const state = this.state();

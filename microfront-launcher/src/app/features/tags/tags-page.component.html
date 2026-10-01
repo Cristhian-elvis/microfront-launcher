@@ -20,7 +20,7 @@
         icon="pi pi-refresh"
         styleClass="p-button-outlined"
         [loading]="refreshing"
-        [disabled]="refreshing || pending || (state?.buildBusy ?? false)"
+        [disabled]="refreshing || pending || state?.build?.status === 'building'"
         (onClick)="refreshTags()"
       ></p-button>
     </div>
@@ -60,7 +60,7 @@
             [label]="buildLabel(version)"
             icon="pi pi-play"
             styleClass="p-button-outlined"
-            [disabled]="pending || (state?.buildBusy ?? false)"
+            [disabled]="pending || state?.build?.status === 'building'"
             (onClick)="build(version)"
           ></p-button>
         </td>
@@ -77,7 +77,7 @@
               label="Actualizar tags"
               icon="pi pi-refresh"
               styleClass="p-button-outlined"
-              [disabled]="refreshing || pending || (state?.buildBusy ?? false)"
+              [disabled]="refreshing || pending || state?.build?.status === 'building'"
               (onClick)="refreshTags()"
             ></p-button>
           </div>

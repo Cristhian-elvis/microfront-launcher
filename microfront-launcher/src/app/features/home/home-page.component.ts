@@ -83,7 +83,10 @@ export class HomePageComponent {
   protected readonly versionSelectionDisabled = computed(
     () =>
       !this.versions().length ||
-      Boolean(this.state()?.busy),
+      this.sessionBusy(),
+  );
+  protected readonly sessionBusy = computed(() =>
+    ['starting', 'building', 'stopping'].includes(this.state()?.session.status ?? ''),
   );
   protected readonly versionLocked = computed(() => this.componentsActive() || this.shellRunning());
   protected readonly activeVersion = computed(

@@ -41,8 +41,6 @@ export interface MovaVersion {
 }
 
 export interface LauncherState {
-  busy: boolean;
-  buildBusy: boolean;
   preferences: { preferredTag?: string; favoriteShellIds?: string[]; favoriteMicrofrontIds?: string[]; avatarLetters?: string };
   session: {
     status: string;

@@ -5,7 +5,7 @@ import {
 } from "./../lib/core.js";
 import { json, readBody } from "./../lib/http.js";
 
-export function createBrowserHandler({ state, reopenChrome, openEmptyBrowser, emitState }) {
+export function createBrowserHandler({ reopenChrome, openEmptyBrowser }) {
   return async function handleBrowserRequest(request, response, url) {
     if (request.method !== 'POST' || !url.pathname.startsWith('/api/chrome/')) return false;
     if (url.pathname === '/api/chrome/open') {
@@ -17,7 +17,6 @@ export function createBrowserHandler({ state, reopenChrome, openEmptyBrowser, em
         return true;
       }
       if (remember) { const config = readConfig(); writeJson(configPath, { ...config, chrome: { ...config.chrome, openMode: mode } }); }
-      state.browserPrompt = null; emitState();
       json(response, 200, { ok: true, message: 'Navegador abierto.' });
       return true;
     }
@@ -30,7 +29,6 @@ export function createBrowserHandler({ state, reopenChrome, openEmptyBrowser, em
       return true;
     }
     if (url.pathname === '/api/chrome/open-empty') { await openEmptyBrowser(); json(response, 200, { ok: true }); return true; }
-    if (url.pathname === '/api/chrome/dismiss') { state.browserPrompt = null; emitState(); json(response, 200, { ok: true }); return true; }
     return false;
   };
 }
