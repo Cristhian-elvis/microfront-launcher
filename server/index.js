@@ -24,7 +24,6 @@ import {
   childProcesses,
   emit,
   addLog,
-  logs,
   spawnManaged,
   stopProcess,
   startStaticServer,
@@ -47,9 +46,15 @@ import { createApiRouter } from "./routes/api-router.js";
 import { createVsCodeService } from "./services/vscode-service.js";
 import { createProjectGitService } from "./services/project-git-service.js";
 import { createMicrofrontendRuntimeService } from "./services/microfrontend-runtime-service.js";
-import { assertNotCancelled, runProcessStep } from "./services/process-runner-service.js";
+import {
+  assertNotCancelled,
+  runProcessStep,
+} from "./services/process-runner-service.js";
 import { createShellRuntimeService } from "./services/shell-runtime-service.js";
-import { latestVersion, selectedVersion } from "./services/components-version-service.js";
+import {
+  latestVersion,
+  selectedVersion,
+} from "./services/components-version-service.js";
 import { createComponentsRuntimeService } from "./services/components-runtime-service.js";
 import { json, readBody } from "./lib/http.js";
 import { state } from "./state.js";
@@ -64,7 +69,9 @@ function emitRuntime() {
 }
 
 const emitState = emitRuntime;
-const environmentOperation = createEnvironmentOperation({ onChange: emitRuntime });
+const environmentOperation = createEnvironmentOperation({
+  onChange: emitRuntime,
+});
 
 function getRuntime() {
   return { ...state, preferences: readPreferences() };
@@ -74,10 +81,9 @@ function emitPreferences() {
   emit("preferences", readPreferences());
 }
 
-const {
-  updateSession,
-  runTrackedStage,
-} = createEnvironmentSessionState({ emitState });
+const { updateSession, runTrackedStage } = createEnvironmentSessionState({
+  emitState,
+});
 
 function updateMicrofrontendBranch(patch) {
   state.microfrontendBranch = { ...state.microfrontendBranch, ...patch };
@@ -104,13 +110,13 @@ function updateMicrofrontendOperation(kind, projectId, microfrontendId, patch) {
   emitState();
 }
 
-const {
-  cleanupStartedResources,
-  stopEnvironmentInternals,
-} = createEnvironmentLifecycle({
-  emitState, updateSession, getEnvironmentOperation: environmentOperation.get,
-  clearEnvironmentOperation: environmentOperation.clear,
-});
+const { cleanupStartedResources, stopEnvironmentInternals } =
+  createEnvironmentLifecycle({
+    emitState,
+    updateSession,
+    getEnvironmentOperation: environmentOperation.get,
+    clearEnvironmentOperation: environmentOperation.clear,
+  });
 
 async function stopEnvironmentProcesses() {
   const records = [...childProcesses.entries()].filter(
@@ -129,16 +135,23 @@ async function buildComponents(version, signal, { force = false } = {}) {
   let tagsSynchronized = false;
   if (!localVersion) {
     assertNotCancelled(signal);
-    addLog("MOVA Components", "stage", `El tag ${tag} no estÃ¡ disponible localmente. Sincronizando tags remotos.`);
+    addLog(
+      "MOVA Components",
+      "stage",
+      `El tag ${tag} no estÃ¡ disponible localmente. Sincronizando tags remotos.`,
+    );
     await refreshTags();
     tagsSynchronized = true;
     assertNotCancelled(signal);
     localVersion = await getVersionByTag(tag);
   }
-  if (!localVersion)
-    throw new Error(`El tag no existe localmente: ${tag}`);
+  if (!localVersion) throw new Error(`El tag no existe localmente: ${tag}`);
   if (tagsSynchronized)
-    addLog("MOVA Components", "success", `Tag ${tag} sincronizado correctamente.`);
+    addLog(
+      "MOVA Components",
+      "success",
+      `Tag ${tag} sincronizado correctamente.`,
+    );
   const config = readConfig();
   const storageDirectories = [
     { path: versionsRoot, label: "caché de versiones" },
@@ -331,7 +344,7 @@ function buildMicrofrontend(project, microfrontend) {
 }
 
 async function selectedMicrofrontends(projectId, microfrontendIds) {
-  const project = (await getProjects()).find((item) => item.id === projectId);
+  const project = getIndexedProject(projectId);
   if (!project) throw new Error("No se encontró la shell solicitada.");
   const requested = new Set(
     Array.isArray(microfrontendIds) ? microfrontendIds : [],
@@ -584,12 +597,10 @@ async function openOrRequestBrowser(project) {
   const browser = browserSettings(config);
   if (!fs.existsSync(browser.path))
     throw new Error(`No se encontró ${browser.name}: ${browser.path}`);
-  return openChrome(project, { newWindow: config.browser.openMode === "window" });
+  return openChrome(project, {
+    newWindow: config.browser.openMode === "window",
+  });
 }
-
-
-
-
 
 async function cancelAndStopAll(reason = "Entorno detenido") {
   await stopEnvironmentInternals({
@@ -625,14 +636,14 @@ async function openScaffolding(projectId) {
 }
 
 async function reopenChrome({ newWindow = true, url = null } = {}) {
-  if (state.shell.status !== "running" || !state.shell.projectId)
+  if (state.shell.status !== "running" || !state.shell.projectId) {
     throw new Error("No hay una shell activa para abrir en Chrome.");
+  }
   // AÑADIDO: await
-  const project = (await getProjects()).find(
-    (item) => item.id === state.shell.projectId,
-  );
-  if (!project)
+  const project = getIndexedProject(state.shell.projectId);
+  if (!project) {
     throw new Error("No se encontró la configuración de la shell activa.");
+  }
   await openChrome(project, { newWindow, url });
 }
 
@@ -818,7 +829,7 @@ const findProject = async (projectId) =>
   (await getProjects()).find((item) => item.id === projectId);
 const vsCodeService = createVsCodeService({ findProject, addLog });
 const projectGitService = createProjectGitService({
-  findProject
+  findProject,
 });
 const handleMicrofrontendRequest = createMicrofrontendHandler({
   openMicrofrontend: vsCodeService.openMicrofrontend,
@@ -832,7 +843,7 @@ const handleProjectsRequest = createProjectsHandler({
   getProjectGitInfo: projectGitService.getProjectGitInfo,
   selectLocalDirectory,
   openScaffolding,
-  openProjectWebapp: vsCodeService.openProjectWebapp
+  openProjectWebapp: vsCodeService.openProjectWebapp,
 });
 const handleBrowserRequest = createBrowserHandler({
   reopenChrome,
@@ -859,17 +870,14 @@ const environmentService = createEnvironmentService({
   shellRuntime,
   microfrontendRuntime,
   openOrRequestBrowser,
-  emitState
+  emitState,
 });
 const environmentModel = createEnvironmentModel({
   environmentService,
   cancelAndStopAll,
-  addLog,
 });
 const environmentHandler = createEnvironmentHandler({
   environmentModel,
-  readBody,
-  json,
 });
 const routeEnvironment = createEnvironmentRouter(environmentHandler);
 const routeApi = createApiRouter([

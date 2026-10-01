@@ -1,3 +1,5 @@
+import { json, readBody } from "./../../lib/http.js";
+
 function rejectMethod(request, response, json) {
   if (request.method === "POST") return false;
   json(response, 405, { error: "Método no permitido" });
@@ -8,7 +10,7 @@ function rejectMethod(request, response, json) {
  * Adaptador HTTP del dominio environment.
  * Cada método es invocado únicamente por su router correspondiente.
  */
-export function createEnvironmentHandler({ environmentModel, readBody, json }) {
+export function createEnvironmentHandler({ environmentModel }) {
   return {
     async start(request, response) {
       if (rejectMethod(request, response, json)) return;

@@ -1,5 +1,5 @@
 import { addLog, stopProcess } from "../lib/runtime.js";
-import { getProjects } from "../lib/core.js";
+import { getIndexedProject } from "../lib/core.js";
 import { spawn } from "node:child_process";
 
 /**
@@ -10,8 +10,7 @@ import { spawn } from "node:child_process";
  * @throws {Error} Si proyecto o microfrontend no existe
  */
 async function getMicrofrontendData(projectId, microfrontendId) {
-  const projects = await getProjects();
-  const project = projects.find((p) => p.id === projectId);
+  const project = getIndexedProject(projectId);
 
   if (!project) {
     throw new Error(`Proyecto con ID "${projectId}" no encontrado.`);

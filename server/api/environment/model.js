@@ -1,14 +1,10 @@
-/**
- * Operaciones de aplicación para el entorno.
- *
- * Mantiene el detalle de cómo se inicia, reconstruye o detiene el entorno fuera
- * de la capa HTTP. Las operaciones concretas se inyectan desde la composición
- * de la aplicación en `server/index.js`.
- */
+import {
+  addLog
+} from "./../../lib/runtime.js";
+
 export function createEnvironmentModel({
   environmentService,
   cancelAndStopAll,
-  addLog,
 }) {
   return {
     start({ projectId, microfrontendId, rebuildShell }) {
