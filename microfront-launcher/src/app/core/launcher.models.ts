@@ -33,20 +33,11 @@ export interface ProjectGitInfo {
   microfrontends?: Array<RepositoryGitInfo & { id: string }>;
 }
 
-export interface MovaVersion {
+export interface LatestMovaVersion {
   tag: string;
   version?: string;
   cached: boolean;
   date?: string;
-  preferred?: boolean;
-}
-
-export interface ComponentsVersionPreference {
-  mode: 'latest' | 'manual';
-  selectedTag: string | null;
-}
-
-export interface LatestMovaVersion extends MovaVersion {
   packageUrl: string;
   source: 'latest';
 }
@@ -68,8 +59,6 @@ export interface LauncherState {
 }
 
 export interface LauncherPreferences {
-  preferredTag?: string;
-  componentsVersion?: ComponentsVersionPreference;
   favoriteShellIds?: string[];
   favoriteMicrofrontIds?: string[];
   avatarLetters?: string;
@@ -77,20 +66,27 @@ export interface LauncherPreferences {
 
 export interface BootstrapErrors {
   projects?: string;
-  versions?: string;
   logs?: string;
   setup?: string;
+  latestVersion?: string;
 }
 
 export interface BootstrapPayload {
   runtime: LauncherState;
   preferences: LauncherPreferences;
   projects: Project[];
-  versions: MovaVersion[];
+  latestVersion: LatestMovaVersion | null;
   logs: LauncherLog[];
   setup: SetupStatus;
   errors: BootstrapErrors;
 }
+
+/** Respuesta mínima mientras falta completar la configuración inicial. */
+export interface SetupBootstrapPayload {
+  setup: SetupStatus;
+}
+
+export type BootstrapResponse = BootstrapPayload | SetupBootstrapPayload;
 
 export interface MicrofrontendOperation {
   status: 'idle' | 'running' | 'success' | 'error';
@@ -122,8 +118,18 @@ export interface SetupStatus {
 
 export interface LauncherConfig {
   rootPath?: string;
-  mova?: { sourcePath?: string };
+  mova?: {
+    sourcePath?: string;
+    cdnHost?: string;
+    stencilComponentsFolderName?: string;
+  };
   shellDefaults?: { serverPort?: number };
-  chrome?: { browser?: string; openMode?: string; openHost?: string };
+  browser?: {
+    selected?: string;
+    openMode?: string;
+    openHost?: string;
+    chrome?: { path?: string; userDataDir?: string };
+    edge?: { path?: string; userDataDir?: string };
+  };
   preferences?: { avatarLetters?: string };
 }

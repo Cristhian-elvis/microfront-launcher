@@ -24,7 +24,7 @@ export function createEnvironmentService({ session, lifecycle, operation, compon
     let microfrontend;
     let automaticBuild;
     try {
-      version = await selectedVersion(project);
+      version = await selectedVersion();
       if (!version) throw new Error("Selecciona una versión de MOVA Components antes de iniciar la shell.");
       microfrontend = options.microfrontendId
         ? project.microfrontends?.find((item) => item.id === options.microfrontendId)

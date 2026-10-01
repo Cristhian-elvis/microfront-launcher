@@ -295,10 +295,6 @@ export class ShellDetailPageComponent {
     this.runMicrofrontAction('/api/microfrontends/build', microfront);
   }
 
-  viewVersions(): void {
-    void this.router.navigate(['/shells', this.shellId(), 'versions']);
-  }
-
   back(): void {
     void this.router.navigate(['/shells']);
   }

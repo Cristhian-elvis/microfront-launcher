@@ -10,8 +10,8 @@ import {
   readPreferences,
   writeJson,
   getProjects,
-  getVersions,
   getVersionByTag,
+  refreshTags,
   versionPaths,
   safeTagName,
   assertInside,
@@ -43,7 +43,6 @@ import { createEnvironmentSessionState } from "./api/environment/session-state.j
 import { createEnvironmentLifecycle } from "./api/environment/lifecycle.js";
 import { createEnvironmentOperation } from "./api/environment/operation.js";
 import { createEnvironmentService } from "./api/environment/service.js";
-import { createVersionsAuditHandler } from "./handlers/versions-audit-handler.js";
 import { createApiRouter } from "./routes/api-router.js";
 import { createVsCodeService } from "./services/vscode-service.js";
 import { createProjectGitService } from "./services/project-git-service.js";
@@ -58,7 +57,6 @@ import { state } from "./state.js";
 const host = "127.0.0.1";
 const port = Number(process.env.PORT || 3187);
 
-let buildOperation = null;
 let branchOperation = null;
 
 function emitRuntime() {
@@ -80,11 +78,6 @@ const {
   updateSession,
   runTrackedStage,
 } = createEnvironmentSessionState({ emitState });
-
-function updateBuild(patch) {
-  state.build = { ...state.build, ...patch };
-  emitState();
-}
 
 function updateMicrofrontendBranch(patch) {
   state.microfrontendBranch = { ...state.microfrontendBranch, ...patch };
@@ -130,29 +123,22 @@ async function stopEnvironmentProcesses() {
   ]);
 }
 
-function beginBuildOperation(details = {}) {
-  if (buildOperation)
-    throw new Error("Ya hay una compilación en curso.");
-  const controller = new AbortController();
-  const next = {
-    id: `${Date.now()}-${Math.random()}`,
-    type: "build",
-    controller,
-    ...details,
-  };
-  buildOperation = next;
-  return next;
-}
-
-function endBuildOperation(id) {
-  if (buildOperation?.id === id) buildOperation = null;
-  emitState();
-}
-
 async function buildComponents(version, signal, { force = false } = {}) {
   const tag = version.tag;
-  if (!await getVersionByTag(tag))
+  let localVersion = await getVersionByTag(tag);
+  let tagsSynchronized = false;
+  if (!localVersion) {
+    assertNotCancelled(signal);
+    addLog("MOVA Components", "stage", `El tag ${tag} no estÃ¡ disponible localmente. Sincronizando tags remotos.`);
+    await refreshTags();
+    tagsSynchronized = true;
+    assertNotCancelled(signal);
+    localVersion = await getVersionByTag(tag);
+  }
+  if (!localVersion)
     throw new Error(`El tag no existe localmente: ${tag}`);
+  if (tagsSynchronized)
+    addLog("MOVA Components", "success", `Tag ${tag} sincronizado correctamente.`);
   const config = readConfig();
   const storageDirectories = [
     { path: versionsRoot, label: "caché de versiones" },
@@ -250,63 +236,13 @@ async function buildComponents(version, signal, { force = false } = {}) {
   }
 }
 
-async function compileVersion(tag) {
-  const versions = await getVersions();
-  const version = versions.find((item) => item.tag === tag);
-  if (!version) throw new Error("La versión seleccionada no existe.");
-  const current = beginBuildOperation({ tag });
-  updateBuild({
-    status: "building",
-    tag,
-    action: "compile",
-    message: `Compilando ${tag}`,
-    startedAt: new Date().toISOString(),
-  });
-  try {
-    await buildComponents(version, current.controller.signal, {
-      force: version.cached,
-    });
-    updateBuild({
-      status: "success",
-      message: `${tag} compilado correctamente`,
-      startedAt: null,
-    });
-  } catch (error) {
-    updateBuild({
-      status: current.controller.signal.aborted ? "idle" : "error",
-      message: current.controller.signal.aborted
-        ? "Compilación cancelada"
-        : error.message,
-      startedAt: null,
-    });
-    throw error;
-  } finally {
-    endBuildOperation(current.id);
-  }
-}
-
-function cancelBuild() {
-  if (!buildOperation)
-    throw new Error("No hay una compilación de MOVA en curso.");
-  addLog(
-    "Build MOVA",
-    "system",
-    `Cancelando compilación de ${buildOperation.tag}.`,
-  );
-  buildOperation.controller.abort();
-  updateBuild({ message: `Cancelando compilación de ${buildOperation.tag}` });
-}
-
 const componentsRuntime = createComponentsRuntimeService({
   buildComponents,
   emitState,
 });
 
-async function startComponentsStandalone(projectId) {
-  const project = getIndexedProject(projectId);
-  if (!project)
-    throw new Error("Selecciona una shell para resolver la versión de MOVA Components.");
-  const version = await selectedVersion(project);
+async function startComponentsStandalone() {
+  const version = await selectedVersion();
   if (!version)
     throw new Error(
       "Selecciona una versión de MOVA Components antes de iniciarlo.",
@@ -590,15 +526,15 @@ async function startMicrofrontendBranchBatch(
 const shellRuntime = createShellRuntimeService({ emitState });
 
 function browserSettings(config = readConfig()) {
-  const mode = config.chrome.browser;
+  const mode = config.browser.selected;
   const isEdge = mode.startsWith("edge");
   const insecure = mode.endsWith("-insecure");
   return {
     name: isEdge ? "Edge" : "Chrome",
-    path: isEdge ? config.chrome.edgePath : config.chrome.path,
+    path: isEdge ? config.browser.edge.path : config.browser.chrome.path,
     userDataDir: isEdge
-      ? config.chrome.edgeUserDataDir
-      : config.chrome.userDataDir,
+      ? config.browser.edge.userDataDir
+      : config.browser.chrome.userDataDir,
     insecure,
   };
 }
@@ -614,7 +550,7 @@ async function openChrome(project, { newWindow = true, url = null } = {}) {
       ? new URL(project.url)
       : new URL("chrome://newtab/");
   if (!url && project) {
-    chromeUrl.hostname = config.chrome.openHost;
+    chromeUrl.hostname = config.browser.openHost;
     chromeUrl.port = String(config.shellDefaults.serverPort || 8080);
   }
   const args = [
@@ -648,7 +584,7 @@ async function openOrRequestBrowser(project) {
   const browser = browserSettings(config);
   if (!fs.existsSync(browser.path))
     throw new Error(`No se encontró ${browser.name}: ${browser.path}`);
-  return openChrome(project, { newWindow: config.chrome.openMode === "window" });
+  return openChrome(project, { newWindow: config.browser.openMode === "window" });
 }
 
 
@@ -903,17 +839,11 @@ const handleBrowserRequest = createBrowserHandler({
   openEmptyBrowser,
 });
 const handleStateRequest = createStateHandler({
-  getRuntime
+  getRuntime,
+  getLatestVersion: latestVersion,
 });
 const handleMovaRequest = createMovaHandler({
   emitPreferences,
-  compileVersion,
-  cancelBuild,
-  getLatestVersion: async (projectId) => {
-    const project = getIndexedProject(projectId);
-    if (!project) throw new Error("Shell no encontrada.");
-    return latestVersion(project);
-  },
 });
 const handleComponentsRequest = createComponentsHandler({
   state,
@@ -942,7 +872,6 @@ const environmentHandler = createEnvironmentHandler({
   json,
 });
 const routeEnvironment = createEnvironmentRouter(environmentHandler);
-const handleVersionsAuditRequest = createVersionsAuditHandler();
 const routeApi = createApiRouter([
   handleStateRequest,
   handleProjectsRequest,
@@ -951,7 +880,6 @@ const routeApi = createApiRouter([
   handleBrowserRequest,
   handleMicrofrontendRequest,
   routeEnvironment,
-  handleVersionsAuditRequest,
 ]);
 
 async function handleApi(request, response, url) {
@@ -1008,16 +936,12 @@ server.on("error", (error) => {
 if (process.argv.includes("--check")) {
   // Envolvemos en una función asíncrona autoejecutable
   (async () => {
-    const versions = await getVersions();
     const projects = await getProjects();
     console.log(
       JSON.stringify(
         {
           ok: true,
           projectsDetected: projects.length,
-          tagsDetected: versions.length,
-          cachedVersions: versions.filter((item) => item.cached).length,
-          preferredTag: readPreferences().preferredTag,
           interfaceBuilt: fs.existsSync(path.join(distRoot, "index.html")),
         },
         null,

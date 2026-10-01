@@ -80,6 +80,27 @@
     </label>
     </section>
     <section class="grid gap-3">
+      <h3 class="m-0 text-base">MOVA Components publicado</h3>
+      <label class="grid gap-1">
+        CDN base
+        <input
+          pInputText
+          required
+          [value]="settings().mova?.cdnHost || ''"
+          (input)="updateSetting('mova', 'cdnHost', $any($event.target).value)"
+        />
+      </label>
+      <label class="grid gap-1">
+        Carpeta Stencil
+        <input
+          pInputText
+          required
+          [value]="settings().mova?.stencilComponentsFolderName || ''"
+          (input)="updateSetting('mova', 'stencilComponentsFolderName', $any($event.target).value)"
+        />
+      </label>
+    </section>
+    <section class="grid gap-3">
       <h3 class="m-0 text-base">Servidor local</h3>
     <label class="grid gap-1">
       <span class="flex items-center gap-2">
@@ -106,8 +127,8 @@
       Modo de navegador
       <select
         class="p-inputtext w-full"
-        [value]="settings().chrome?.browser || 'chrome-insecure'"
-        (change)="updateSetting('chrome', 'browser', $any($event.target).value)"
+        [value]="settings().browser?.selected || 'chrome-insecure'"
+        (change)="updateSetting('browser', 'selected', $any($event.target).value)"
       >
         <option value="chrome">Chrome</option>
         <option value="chrome-insecure">Chrome sin seguridad</option>
@@ -119,8 +140,8 @@
       Si ya hay una ventana abierta
       <select
         class="p-inputtext w-full"
-        [value]="settings().chrome?.openMode || ''"
-        (change)="updateSetting('chrome', 'openMode', $any($event.target).value)"
+        [value]="settings().browser?.openMode || ''"
+        (change)="updateSetting('browser', 'openMode', $any($event.target).value)"
       >
         <option value="">Preguntar cada vez</option>
         <option value="tab">Abrir como nueva pestaña</option>
@@ -131,8 +152,8 @@
       Dirección para abrir
       <select
         class="p-inputtext w-full"
-        [value]="settings().chrome?.openHost || 'localhost'"
-        (change)="updateSetting('chrome', 'openHost', $any($event.target).value)"
+        [value]="settings().browser?.openHost || 'localhost'"
+        (change)="updateSetting('browser', 'openHost', $any($event.target).value)"
       >
         <option value="localhost">localhost (predeterminado)</option>
         <option value="127.0.0.1">127.0.0.1</option>
@@ -166,6 +187,7 @@
       <p-button
         label="Guardar cambios"
         icon="pi pi-check"
+        [disabled]="!publishedComponentsConfigured()"
         [loading]="settingsSaving()"
         (onClick)="saveSettings()"
       />

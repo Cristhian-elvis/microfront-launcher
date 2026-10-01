@@ -15,7 +15,12 @@ export const configPath = path.join(appRoot, 'data', 'config.json');
 function hasCompletedInitialSetup() {
   try {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    return Boolean(String(config.rootPath || '').trim() && String(config.mova?.sourcePath || '').trim());
+    return Boolean(
+      String(config.rootPath || '').trim()
+      && String(config.mova?.sourcePath || '').trim()
+      && String(config.mova?.cdnHost || '').trim()
+      && String(config.mova?.stencilComponentsFolderName || '').trim(),
+    );
   } catch {
     return false;
   }
@@ -35,22 +40,22 @@ export const defaultConfig = {
     includeWithShell: true
   },
   shellDefaults: { command: 'npm run local-server', url: 'http://localhost:8080', serverPort: 8080, buildMode: 'never' },
-  chrome: {
-    browser: 'chrome-insecure',
-    path: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    userDataDir: 'C:\\chrome-dev-data',
-    edgePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    edgeUserDataDir: 'C:\\msedge-dev-data',
+  browser: {
+    selected: 'chrome-insecure',
     openHost: 'localhost',
-    openMode: null
-  },
-  projects: [],
-  hiddenProjects: []
+    openMode: null,
+    chrome: {
+      path: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      userDataDir: 'C:\\chrome-dev-data',
+    },
+    edge: {
+      path: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+      userDataDir: 'C:\\msedge-dev-data',
+    },
+  }
 };
 
 export const defaultPreferences = {
-  preferredTag: null,
-  componentsVersion: { mode: 'latest', selectedTag: null },
   favoriteShellIds: [],
   favoriteMicrofrontIds: [],
   avatarLetters: "ML"
@@ -79,6 +84,13 @@ export function writeJson(filePath, value) {
 
 export function readConfig() {
   const saved = readJson(configPath, defaultConfig);
+  const {
+    chrome: legacyChrome = {},
+    browser: savedBrowser = {},
+    projects: _legacyProjects,
+    hiddenProjects: _legacyHiddenProjects,
+    ...savedConfig
+  } = saved;
   const savedMova = { ...(saved.mova || {}) };
   delete savedMova.componentPort;
   delete savedMova.legacyServerPath;
@@ -90,40 +102,50 @@ export function readConfig() {
   if (!Number.isInteger(Number(savedShellDefaults.serverPort)) || Number(savedShellDefaults.serverPort) < 1 || Number(savedShellDefaults.serverPort) > 65535) savedShellDefaults.serverPort = defaultConfig.shellDefaults.serverPort;
   return {
     ...defaultConfig,
-    ...saved,
+    ...savedConfig,
     mova: { ...defaultConfig.mova, ...savedMova, includeWithShell: true },
     shellDefaults: { ...defaultConfig.shellDefaults, ...savedShellDefaults },
-    chrome: {
-      ...defaultConfig.chrome,
-      ...(saved.chrome || {}),
-      // Las configuraciones previas siempre abrían con perfil aislado y sin
-      // seguridad web; por compatibilidad se convierten a ese modo explícito.
-      browser: ['chrome', 'edge', 'chrome-insecure', 'edge-insecure'].includes(saved.chrome?.browser)
-        ? (saved.chrome.browser === 'chrome' ? 'chrome-insecure' : saved.chrome.browser === 'edge' ? 'edge-insecure' : saved.chrome.browser)
-        : defaultConfig.chrome.browser,
-      openHost: ['localhost', '127.0.0.1'].includes(saved.chrome?.openHost) ? saved.chrome.openHost : 'localhost',
-      openMode: ['tab', 'window'].includes(saved.chrome?.openMode) ? saved.chrome.openMode : null
-    },
-    projects: Array.isArray(saved.projects) ? saved.projects : [],
-    hiddenProjects: Array.isArray(saved.hiddenProjects) ? saved.hiddenProjects : []
+    browser: {
+      ...defaultConfig.browser,
+      ...savedBrowser,
+      chrome: {
+        ...defaultConfig.browser.chrome,
+        ...savedBrowser.chrome,
+        path: savedBrowser.chrome?.path ?? legacyChrome.path ?? defaultConfig.browser.chrome.path,
+        userDataDir: savedBrowser.chrome?.userDataDir ?? legacyChrome.userDataDir ?? defaultConfig.browser.chrome.userDataDir,
+      },
+      edge: {
+        ...defaultConfig.browser.edge,
+        ...savedBrowser.edge,
+        path: savedBrowser.edge?.path ?? legacyChrome.edgePath ?? defaultConfig.browser.edge.path,
+        userDataDir: savedBrowser.edge?.userDataDir ?? legacyChrome.edgeUserDataDir ?? defaultConfig.browser.edge.userDataDir,
+      },
+      selected: (() => {
+        const selected = savedBrowser.selected ?? savedBrowser.browser ?? legacyChrome.browser;
+        if (selected === 'chrome') return 'chrome-insecure';
+        if (selected === 'edge') return 'edge-insecure';
+        return ['chrome-insecure', 'edge-insecure'].includes(selected)
+          ? selected
+          : defaultConfig.browser.selected;
+      })(),
+      openHost: ['localhost', '127.0.0.1'].includes(savedBrowser.openHost ?? legacyChrome.openHost)
+        ? (savedBrowser.openHost ?? legacyChrome.openHost)
+        : defaultConfig.browser.openHost,
+      openMode: ['tab', 'window'].includes(savedBrowser.openMode ?? legacyChrome.openMode)
+        ? (savedBrowser.openMode ?? legacyChrome.openMode)
+        : null,
+    }
   };
 }
 
 export function readPreferences() {
   const saved = readJson(preferencesPath, defaultPreferences);
   delete saved.storybookMode;
+  delete saved.preferredTag;
+  delete saved.componentsVersion;
   const preferences = { ...defaultPreferences, ...saved };
-  const savedVersion = saved.componentsVersion || {};
-  const mode = ['latest', 'manual'].includes(savedVersion.mode)
-    ? savedVersion.mode
-    : saved.preferredTag ? 'manual' : 'latest';
-  const selectedTag = mode === 'manual'
-    ? String(savedVersion.selectedTag || saved.preferredTag || '').trim() || null
-    : null;
   return {
     ...preferences,
-    preferredTag: selectedTag,
-    componentsVersion: { mode, selectedTag },
     avatarLetters: String(preferences.avatarLetters || "ML")
       .replace(/[^a-zA-Z]/g, "")
       .slice(0, 2)
@@ -139,20 +161,12 @@ export function readPreferences() {
 
 export function writePreferences(next) {
   const current = readPreferences();
-  const requestedVersion = next.componentsVersion || {};
-  const legacyManualTag = next.preferredTag;
-  const mode = ['latest', 'manual'].includes(requestedVersion.mode)
-    ? requestedVersion.mode
-    : legacyManualTag !== undefined ? 'manual' : current.componentsVersion.mode;
-  const selectedTag = mode === 'manual'
-    ? String(requestedVersion.selectedTag ?? legacyManualTag ?? current.componentsVersion.selectedTag ?? '').trim() || null
-    : null;
   const value = {
     ...current,
     ...next,
-    preferredTag: selectedTag,
-    componentsVersion: { mode, selectedTag },
   };
+  delete value.preferredTag;
+  delete value.componentsVersion;
   writeJson(preferencesPath, value);
   return value;
 }
@@ -390,16 +404,8 @@ export async function scanShells(rootPath, defaults) {
 export async function getProjects() {
   const config = readConfig();
   const detected = await scanShells(config.rootPath, config.shellDefaults);
-  const byId = new Map(detected.map((project) => [project.id, project]));
-  
-  for (const project of config.projects) {
-    const id = project.id || projectId(project.path);
-    byId.set(id, { ...byId.get(id), ...project, id });
-  }
-  
-  const hidden = new Set(config.hiddenProjects);
   const serverPort = Number(config.shellDefaults.serverPort || 8080);
-  const projects = [...byId.values()].filter((project) => !hidden.has(project.id)).map((project) => {
+  const projects = detected.map((project) => {
     let url = project.url;
     try { const parsed = new URL(url); parsed.port = String(serverPort); url = parsed.toString(); } catch { /* ... */ }
     return { ...project, serverPort, url };
@@ -483,27 +489,6 @@ export function updateMicrofrontendGitCache(
   const indexedProject = projectIndex.get(projectId);
   if (indexedProject) projectIndex.set(projectId, updateProject(indexedProject));
 }
-export function saveProject(project) {
-  const config = readConfig();
-  const normalized = { ...project, id: project.id || projectId(project.path), detected: Boolean(project.detected) };
-  delete normalized.serverPort;
-  const index = config.projects.findIndex((item) => item.id === normalized.id);
-  if (index >= 0) config.projects[index] = normalized;
-  else config.projects.push(normalized);
-  config.hiddenProjects = config.hiddenProjects.filter((id) => id !== normalized.id);
-  writeJson(configPath, config);
-  invalidateScanCache();
-  return normalized;
-}
-
-export function hideProject(id) {
-  const config = readConfig();
-  config.projects = config.projects.filter((item) => item.id !== id);
-  config.hiddenProjects = [...new Set([...config.hiddenProjects, id])];
-  writeJson(configPath, config);
-  invalidateScanCache();
-}
-
 export function safeTagName(tag) {
   return String(tag).replace(/[^a-zA-Z0-9._-]/g, '_');
 }
@@ -591,18 +576,6 @@ export async function refreshTags() {
     throw new Error(`No se pudieron actualizar los tags.${details ? ` ${details}` : ''}`);
   }
   return cacheTags(await readTagsFromGit(sourcePath));
-}
-
-export async function getVersions() {
-  const preferences = readPreferences();
-  const cached = new Map(getCachedVersions().map((item) => [item.tag, item]));
-  const tags = await getTags();
-  return tags.map((item) => ({
-    ...item,
-    version: item.tag.replace(/^release-/, ''),
-    cached: cached.has(item.tag),
-    preferred: item.tag === preferences.preferredTag
-  }));
 }
 
 export function versionPaths(tag) {

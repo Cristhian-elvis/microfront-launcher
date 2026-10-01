@@ -38,6 +38,13 @@ export class MainLayoutComponent {
   protected readonly settings = signal<LauncherConfig>({});
   protected readonly settingsError = signal<string | null>(null);
   protected readonly settingsSaving = signal(false);
+  protected readonly publishedComponentsConfigured = computed(() => {
+    const mova = this.settings().mova;
+    return Boolean(
+      mova?.cdnHost?.trim()
+      && mova?.stencilComponentsFolderName?.trim(),
+    );
+  });
   protected readonly collapsed = signal(false);
   protected readonly projects = this.bootstrap.projects;
   protected readonly state = this.bootstrap.state;
@@ -92,7 +99,7 @@ export class MainLayoutComponent {
     });
   }
 
-  protected updateSetting(section: 'rootPath' | 'mova' | 'shellDefaults' | 'chrome' | 'preferences', key: string, value: string): void {
+  protected updateSetting(section: 'rootPath' | 'mova' | 'shellDefaults' | 'browser' | 'preferences', key: string, value: string): void {
     this.settings.update((config) => section === 'rootPath'
       ? { ...config, rootPath: value }
       : { ...config, [section]: { ...config[section], [key]: value } });
@@ -110,6 +117,10 @@ export class MainLayoutComponent {
     const settings = this.settings();
     const avatarLetters = settings.preferences?.avatarLetters ?? 'ML';
     this.settingsError.set(null);
+    if (!this.publishedComponentsConfigured()) {
+      this.settingsError.set('El CDN y la carpeta Stencil de MOVA Components son obligatorios.');
+      return;
+    }
     this.settingsSaving.set(true);
 
     this.api.put<unknown>('/api/config', settings).pipe(

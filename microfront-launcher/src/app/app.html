@@ -5,6 +5,8 @@
   </main>
 } @else if (bootstrap.bootstrapError()) {
   <app-bootstrap-error-page />
+} @else if (bootstrap.setupRequired()) {
+  <router-outlet />
 } @else {
   <p-toast position="top-right" />
   <app-main-layout />

@@ -23,13 +23,6 @@
     </div>
     <div class="flex flex-wrap gap-2 lg:justify-end">
       <p-button
-        label="Ver estado versiones"
-        icon="pi pi-search"
-        styleClass="p-button-outlined"
-        [disabled]="operating()"
-        (onClick)="viewVersions()"
-      />
-      <p-button
         [label]="pending() ? 'Actualizando Git…' : 'Actualizar Git'"
         icon="pi pi-refresh"
         styleClass="p-button-outlined"

@@ -16,7 +16,7 @@ export function createBrowserHandler({ reopenChrome, openEmptyBrowser }) {
         json(response, 200, { ok: true, message: 'Navegador abierto.' });
         return true;
       }
-      if (remember) { const config = readConfig(); writeJson(configPath, { ...config, chrome: { ...config.chrome, openMode: mode } }); }
+      if (remember) { const config = readConfig(); writeJson(configPath, { ...config, browser: { ...config.browser, openMode: mode } }); }
       json(response, 200, { ok: true, message: 'Navegador abierto.' });
       return true;
     }

@@ -1,4 +1,4 @@
-@let currentState = state()!;
+@let currentState = state();
 <section class="hero">
   <div>
     <p class="eyebrow">CENTRO DE OPERACIONES</p>
@@ -15,7 +15,7 @@
       <span>Entorno</span>
     </div>
     <div>
-      <strong [title]="currentState.shell.name ?? ''">{{ activeShellName() }}</strong>
+      <strong [title]="currentState?.shell?.name ?? ''">{{ activeShellName() }}</strong>
       <span>Shell activa</span>
     </div>
   </div>
@@ -31,62 +31,15 @@
         <span>Componentes disponibles para la shell.</span>
       }
     </div>
-    @if (versionLocked()) {
-      <p-tag class="active-version-tag" [value]="activeVersion()" severity="info" icon="pi pi-tag" />
-    } @else {
-    <p-floatlabel variant="on">
-      <p-select
-        inputId="components-version-mode"
-        [options]="[{ label: 'Última publicada', value: 'latest' }, { label: 'Elegir versión', value: 'manual' }]"
-        [ngModel]="versionPreference().mode"
-        (ngModelChange)="changeVersionMode($event)"
-        optionLabel="label"
-        optionValue="value"
-        [style]="{ width: '100%' }"
-        [disabled]="versionSelectionDisabled()"
-      />
-      <label for="components-version-mode">Estrategia</label>
-    </p-floatlabel>
-    @if (versionPreference().mode === 'latest') {
-      <span class="version-status" [class.error]="latestError()">
-        @if (latestError()) {
-          {{ latestError() }}
-        } @else if (latestVersion()) {
-          Última publicada: {{ latestVersion()!.version }} ({{ latestVersion()!.tag }})
-        } @else if (selectedProject()) {
-          Consultando última versión…
-        } @else {
-          Selecciona una shell para consultar la versión publicada.
-        }
-      </span>
-    } @else {
-      <p-floatlabel variant="on">
-        <p-select
-          inputId="components-manual-version"
-          [options]="versionGroups()"
-          [ngModel]="selectedVersionTag()"
-          (ngModelChange)="selectedVersionTag.set($event)"
-          [group]="true"
-          optionGroupLabel="label"
-          optionGroupChildren="items"
-          optionLabel="label"
-          optionValue="value"
-          [style]="{ width: '100%' }"
-          [disabled]="versionSelectionDisabled()"
-          (onChange)="saveVersion()"
-        />
-        <label for="components-manual-version">Versión</label>
-      </p-floatlabel>
-    }
-    }
     @if (!shellRunning()) {
       <div class="operation-actions">
+        <p-tag class="active-version-tag" [value]="activeVersion()" severity="info" icon="pi pi-tag" />
         @if (componentsActive()) {
           <p-button
-            [label]="currentState.components.external ? 'Externo' : 'Detener'"
+            [label]="currentState?.components?.external ? 'Externo' : 'Detener'"
             icon="pi pi-stop"
             styleClass="p-button-sm p-button-danger p-button-outlined"
-            [disabled]="currentState.components.external || actionPending()"
+            [disabled]="currentState?.components?.external || actionPending()"
             (onClick)="stopComponents()"
           />
         } @else {
@@ -94,11 +47,13 @@
             label="Iniciar"
             icon="pi pi-play"
             styleClass="p-button-sm"
-            [disabled]="!selectedProject() || !versionReady() || actionPending()"
+            [disabled]="!versionReady() || actionPending()"
             (onClick)="startComponents()"
           />
         }
       </div>
+    } @else {
+      <p-tag class="active-version-tag" [value]="activeVersion()" severity="info" icon="pi pi-tag" />
     }
   </article>
 

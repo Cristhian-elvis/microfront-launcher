@@ -14,22 +14,33 @@ function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function createStateHandler({ getRuntime }) {
+export function createStateHandler({ getRuntime, getLatestVersion }) {
   return async function handleStateRequest(request, response, url) {
     const { method, pathname } = { method: request.method, pathname: url.pathname };
     
     if (method === 'GET' && pathname === '/api/bootstrap') {
+      if (needsInitialSetup()) {
+        json(response, 200, { setup: { required: true } });
+        return true;
+      }
       const [projects] = await Promise.allSettled([getProjects()]);
+      let latestVersion = null;
+      let latestVersionError = null;
+      try {
+        latestVersion = await getLatestVersion();
+      } catch (error) {
+        latestVersionError = errorMessage(error);
+      }
       json(response, 200, {
         runtime: getRuntime(),
         preferences: readPreferences(),
         projects: projects.status === 'fulfilled' ? projects.value : [],
-        // Los tags se cargan solo al entrar a Versiones o elegir modo manual.
-        versions: [],
+        latestVersion,
         logs: logs.slice(-500),
         setup: { required: needsInitialSetup() },
         errors: {
           ...(projects.status === 'rejected' ? { projects: errorMessage(projects.reason) } : {}),
+          ...(latestVersionError ? { latestVersion: latestVersionError } : {}),
         },
       });
       return true;

@@ -1,10 +1,9 @@
-import { json, readBody } from "./../lib/http.js";
+import { json } from "./../lib/http.js";
 
 export function createComponentsHandler({ state, startComponents, stopComponents, stopEnvironment }) {
   return async function handleComponentsRequest(request, response, url) {
     if (request.method === 'POST' && url.pathname === '/api/components/start') {
-      const { projectId } = await readBody(request);
-      const result = await startComponents(projectId);
+      const result = await startComponents();
       json(response, 200, { ...result, message: `Components disponible en ${result.url}` });
       return true;
     }

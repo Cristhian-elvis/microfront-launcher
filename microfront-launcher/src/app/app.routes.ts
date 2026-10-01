@@ -7,23 +7,9 @@ export const routes: Routes = [
       import('./features/home/home-page.component').then((m) => m.HomePageComponent),
   },
   {
-    path: 'tags',
-    loadComponent: () =>
-      import('./features/tags/tags-page.component').then((m) => m.TagsPageComponent),
-  },
-  {
     path: 'microfronts',
     loadComponent: () =>
       import('./features/microfronts/microfronts-page.component').then((m) => m.MicrofrontsPageComponent),
-  },
-  {
-    path: 'shells/:shellId/versions',
-    loadComponent: () =>
-      import('./shared/pages/placeholder-page.component').then((m) => m.PlaceholderPageComponent),
-    data: {
-      title: 'Auditoría de versiones',
-      description: 'Comparación de versiones por microfrontend.',
-    },
   },
   {
     path: 'shells/:shellId',
@@ -40,8 +26,7 @@ export const routes: Routes = [
   {
     path: 'setup',
     loadComponent: () =>
-      import('./shared/pages/placeholder-page.component').then((m) => m.PlaceholderPageComponent),
-    data: { title: 'Configuración inicial', description: 'Configuración local del launcher.' },
+      import('./features/setup/setup-page.component').then((m) => m.SetupPageComponent),
   },
   {
     path: 'error',

@@ -3,16 +3,15 @@ import { computed, effect, Injectable, signal } from '@angular/core';
 import type {
   BootstrapErrors,
   BootstrapPayload,
+  BootstrapResponse,
   LauncherLog,
   LauncherPreferences,
   LauncherState,
-  MovaVersion,
   Project,
   SetupStatus,
 } from './launcher.models';
 
 const defaultPreferences: LauncherPreferences = {
-  componentsVersion: { mode: 'latest', selectedTag: null },
   favoriteShellIds: [],
   favoriteMicrofrontIds: [],
   avatarLetters: 'ML',
@@ -24,11 +23,11 @@ export class AppBootstrapService {
   private readonly booting = signal(true);
   private readonly startupError = signal<Error | null>(null);
 
-  readonly bootstrap = httpResource<BootstrapPayload>(() => '/api/bootstrap');
+  readonly bootstrap = httpResource<BootstrapResponse>(() => '/api/bootstrap');
   readonly state = signal<LauncherState | null>(null);
   readonly preferences = signal<LauncherPreferences>(defaultPreferences);
   readonly projects = signal<Project[]>([]);
-  readonly versions = signal<MovaVersion[]>([]);
+  readonly latestVersion = signal<BootstrapPayload['latestVersion']>(null);
   readonly logs = signal<LauncherLog[]>([]);
   readonly setup = signal<SetupStatus>({ required: false });
   readonly errors = signal<BootstrapErrors>({});
@@ -39,18 +38,21 @@ export class AppBootstrapService {
     const transportError = this.bootstrap.error();
     if (transportError) return transportError;
     const errors = this.errors();
-    return errors.projects || errors.setup
-      ? new Error(errors.projects ?? errors.setup)
+    return errors.projects || errors.setup || errors.latestVersion
+      ? new Error(errors.projects ?? errors.setup ?? errors.latestVersion)
       : this.startupError();
   });
 
   constructor() {
     effect(() => {
+      const status = this.bootstrap.status();
+      if (status === 'idle' || status === 'loading' || status === 'reloading') return;
+
       const payload = this.bootstrap.value();
       if (payload) {
         this.applyBootstrap(payload);
         this.booting.set(false);
-      } else if (this.bootstrap.error()) {
+      } else if (status === 'error') {
         this.booting.set(false);
       }
     });
@@ -64,10 +66,6 @@ export class AppBootstrapService {
     this.preferences.set(preferences);
   }
 
-  setVersions(versions: MovaVersion[]): void {
-    this.versions.set(versions);
-  }
-
   appendLog(log: LauncherLog): void {
     this.logs.update((logs) =>
       logs.some((entry) => entry.id === log.id) ? logs : [...logs.slice(-499), log],
@@ -75,6 +73,7 @@ export class AppBootstrapService {
   }
 
   reload(): void {
+    this.booting.set(true);
     this.bootstrap.reload();
   }
 
@@ -88,15 +87,23 @@ export class AppBootstrapService {
     this.startupError.set(new Error(message));
   }
 
-  private applyBootstrap(payload: BootstrapPayload): void {
+  private applyBootstrap(payload: BootstrapResponse): void {
+    if (!('runtime' in payload)) {
+      this.setup.set(payload.setup);
+      this.state.set(null);
+      this.preferences.set(defaultPreferences);
+      this.projects.set([]);
+      this.latestVersion.set(null);
+      this.logs.set([]);
+      this.errors.set({});
+      return;
+    }
     this.state.set(payload.runtime);
     this.preferences.set(payload.preferences);
     this.projects.set(payload.projects);
-    // El bootstrap no transporta tags: se cargan bajo demanda desde Inicio
-    // (modo manual) o la página de Versiones. No sobrescribimos una carga
-    // diferida que haya terminado antes que el bootstrap.
+    this.latestVersion.set(payload.latestVersion);
     this.logs.set(payload.logs);
-    this.setup.set(payload.setup);
     this.errors.set(payload.errors);
+    this.setup.set(payload.setup);
   }
 }

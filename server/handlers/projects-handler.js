@@ -5,8 +5,6 @@ import {
   syncProject,
   invalidateScanCache,
   readConfig,
-  saveProject,
-  hideProject,
   needsInitialSetup,
   completeInitialSetup,
   writeJson,
@@ -37,6 +35,26 @@ export function createProjectsHandler({
     const { method, pathname } = request.method === 'OPTIONS' ? request : { method: request.method, pathname: url.pathname };
     if (method === 'GET' && pathname === '/api/config') { json(response, 200, readConfig()); return true; }
     if (method === 'GET' && pathname === '/api/setup') { json(response, 200, { required: needsInitialSetup() }); return true; }
+    if (method === 'POST' && pathname === '/api/setup') {
+      const body = await readBody(request);
+      const current = readConfig();
+      const next = { ...current, ...body, mova: { ...current.mova, ...(body.mova || {}) }, browser: { ...current.browser, ...(body.browser || {}) } };
+      delete next.chrome;
+      delete next.projects;
+      delete next.hiddenProjects;
+      if (!String(next.rootPath || '').trim()
+        || !String(next.mova.sourcePath || '').trim()
+        || !String(next.mova.cdnHost || '').trim()
+        || !String(next.mova.stencilComponentsFolderName || '').trim()) {
+        json(response, 400, { error: 'La raíz de shells, el repositorio MOVA, el CDN y la carpeta Stencil son obligatorios.' });
+        return true;
+      }
+      writeJson(configPath, next);
+      invalidateScanCache();
+      completeInitialSetup();
+      json(response, 200, { ok: true });
+      return true;
+    }
     if (method === 'GET' && pathname === '/api/projects') { json(response, 200, await getProjects()); return true; }
     if (method === 'POST' && pathname === '/api/projects/refresh') {
       json(response, 200, await refreshProjects());
@@ -76,7 +94,17 @@ export function createProjectsHandler({
     if (method === 'PUT' && pathname === '/api/config') {
       const body = await readBody(request);
       const current = readConfig();
-      const next = { ...current, ...body, mova: { ...current.mova, ...(body.mova || {}) }, projects: current.projects, hiddenProjects: current.hiddenProjects };
+      const next = { ...current, ...body, mova: { ...current.mova, ...(body.mova || {}) }, browser: { ...current.browser, ...(body.browser || {}) } };
+      delete next.chrome;
+      delete next.projects;
+      delete next.hiddenProjects;
+      if (!String(next.rootPath || '').trim()
+        || !String(next.mova.sourcePath || '').trim()
+        || !String(next.mova.cdnHost || '').trim()
+        || !String(next.mova.stencilComponentsFolderName || '').trim()) {
+        json(response, 400, { error: 'La raíz de shells, el repositorio MOVA, el CDN y la carpeta Stencil son obligatorios.' });
+        return true;
+      }
       delete next.mova.componentPort;
       delete next.preferences;
       writeJson(configPath, next);
@@ -85,7 +113,6 @@ export function createProjectsHandler({
       json(response, 200, { ok: true });
       return true;
     }
-    if (method === 'POST' && pathname === '/api/projects') { json(response, 200, saveProject(await readBody(request))); return true; }
     if (method === 'POST' && pathname === '/api/projects/scaffolding') {
       const { projectId } = await readBody(request);
       openScaffolding(projectId);
@@ -102,11 +129,6 @@ export function createProjectsHandler({
       const { target } = await readBody(request);
       const description = target === 'mova' ? 'Selecciona el repositorio MOVA UI Components' : 'Selecciona la carpeta raíz de tus shells';
       json(response, 200, { path: await selectLocalDirectory(description) });
-      return true;
-    }
-    if (method === 'DELETE' && pathname.startsWith('/api/projects/')) {
-      hideProject(decodeURIComponent(pathname.split('/').pop()));
-      json(response, 200, { ok: true });
       return true;
     }
     return false;
