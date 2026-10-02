@@ -27,11 +27,15 @@
     />
   </header>
   <div class="console-body">
-    @for (log of visibleLogs().slice(-250); track log.id) {
-      <div class="log-line" [class.error]="log.level === 'error'">
-        <time>{{ log.at | date: 'HH:mm:ss' }}</time>
-        <b>{{ log.source }}</b>
-        <span>{{ log.message }}</span>
+    @for (item of renderedLogs(); track item.log.id) {
+      <div class="log-line" [class]="'log-line level-' + item.log.level">
+        <time>{{ item.log.at | date: 'HH:mm:ss' }}</time>
+        <b>{{ item.log.source }}</b>
+        <span class="log-message">
+          @for (segment of item.segments; track $index) {
+            <span [class]="segment.colorClass">{{ segment.text }}</span>
+          }
+        </span>
       </div>
     }
     @if (!visibleLogs().length) {

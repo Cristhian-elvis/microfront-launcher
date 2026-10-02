@@ -57,6 +57,7 @@ export class ShellDetailPageComponent {
   
   readonly loading = signal(false);
   readonly pending = signal(false);
+  readonly favoriteSaving = signal(false);
   readonly search = signal('');
   readonly selectedIds = signal<string[]>([]);
   readonly bulkAction = signal<BulkAction>('');
@@ -178,11 +179,11 @@ export class ShellDetailPageComponent {
     const favoriteShellIds = current.includes(project.id)
       ? current.filter((id) => id !== project.id)
       : [...current, project.id];
-    this.pending.set(true);
+    this.favoriteSaving.set(true);
     this.launcher
       .saveFavoriteShells(favoriteShellIds)
       .pipe(
-        finalize(() => this.pending.set(false)),
+        finalize(() => this.favoriteSaving.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({

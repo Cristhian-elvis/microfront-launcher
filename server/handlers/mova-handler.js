@@ -8,9 +8,9 @@ export function createMovaHandler({ emitPreferences }) {
       const body = await readBody(request);
       delete body.componentsVersion;
       delete body.preferredTag;
-      const preferences = writePreferences(body);
+      writePreferences(body);
       emitPreferences();
-      json(response, 200, preferences);
+      json(response, 200, { message: 'Preferencias guardadas.' });
       return true;
     }
     return false;

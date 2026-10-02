@@ -1,12 +1,11 @@
+@reference "./../../../../styles.css";
+
 :host {
   display: block;
 }
 
 .console-panel {
-  overflow: hidden;
-  border: 1px solid #284861;
-  border-radius: 12px;
-  background: #091725;
+  @apply overflow-hidden rounded-xl border border-surface-200 bg-surface-0 shadow-sm dark:border-surface-700 dark:bg-surface-900;
 }
 
 .console-panel header,
@@ -16,9 +15,7 @@
 }
 
 .console-panel header {
-  justify-content: space-between;
-  padding: 13px 16px;
-  border-bottom: 1px solid #284861;
+  @apply justify-between border-b border-surface-200 px-4 py-3 dark:border-surface-700;
 }
 
 .console-panel header div {
@@ -27,7 +24,7 @@
 
 .console-icon,
 .log-line b {
-  color: #55ddd6;
+  @apply text-primary;
 }
 
 .console-icon {
@@ -35,42 +32,48 @@
 }
 
 .console-panel header span {
-  color: #7894aa;
-  font-size: 12px;
+  @apply text-xs text-surface-500;
 }
 
 .console-body {
-  max-height: 330px;
-  overflow: auto;
-  padding: 8px 16px;
+  @apply max-h-[330px] overflow-auto bg-surface-50 px-4 py-1.5 dark:bg-surface-950;
+  font-family: Consolas, 'Cascadia Code', ui-monospace, SFMono-Regular, monospace;
 }
 
 .log-line {
-  display: grid;
-  grid-template-columns: 78px 120px 1fr;
-  gap: 10px;
-  padding: 7px 0;
-  border-bottom: 1px solid rgba(40, 72, 97, 0.48);
-  color: #abc1d3;
-  font-size: 12px;
+  @apply grid grid-cols-[78px_120px_minmax(0,1fr)] gap-2.5 border-b border-surface-200 py-1.5 text-xs text-surface-800 dark:border-surface-800 dark:text-surface-100;
+  line-height: 1.45;
 }
 
-.log-line.error {
-  color: #ff9ba1;
-}
+.level-error { @apply text-red-600 dark:text-red-300; }
+
+.level-success { @apply text-emerald-700 dark:text-emerald-300; }
+.level-stage, .level-system { @apply text-surface-600 dark:text-surface-300; }
 
 .log-line time {
-  color: #708ba1;
+  @apply text-surface-500;
+  font-family: Inter, sans-serif;
 }
 
+.log-message { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+.ansi-black { @apply text-surface-700 dark:text-surface-400; }
+.ansi-red, .ansi-bright-red { @apply text-red-600 dark:text-red-300; }
+.ansi-green, .ansi-bright-green { @apply text-green-700 dark:text-green-400; }
+.ansi-yellow, .ansi-bright-yellow { @apply text-yellow-700 dark:text-yellow-300; }
+.ansi-blue, .ansi-bright-blue { @apply text-blue-700 dark:text-blue-400; }
+.ansi-magenta, .ansi-bright-magenta { @apply text-fuchsia-700 dark:text-fuchsia-300; }
+.ansi-cyan, .ansi-bright-cyan { @apply text-cyan-700 dark:text-cyan-300; }
+.ansi-white, .ansi-bright-white { @apply text-surface-900 dark:text-surface-0; }
+.ansi-gray { @apply text-surface-500; }
+
 .empty {
-  color: #7894aa;
-  text-align: center;
+  @apply text-center text-surface-500;
 }
 
 @media (max-width: 640px) {
   .log-line {
-    grid-template-columns: 70px 1fr;
+    grid-template-columns: 70px minmax(0, 1fr);
   }
 
   .log-line span {

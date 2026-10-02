@@ -2,7 +2,7 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import type { Signal } from '@angular/core';
 import { Observable } from 'rxjs';
-import type { ApiMessage, Project, ProjectGitInfo } from './launcher.models';
+import type { ApiMessage, LauncherPreferences, Project, ProjectGitInfo } from './launcher.models';
 
 /** Shared HTTP boundary for launcher data and commands. */
 @Injectable({ providedIn: 'root' })
@@ -44,7 +44,7 @@ export class LauncherService {
     return this.http.put<ApiMessage>('/api/mova/preferences', { favoriteShellIds });
   }
 
-  savePreferences(preferences: { favoriteShellIds?: string[]; favoriteMicrofrontIds?: string[]; avatarLetters?: string }): Observable<ApiMessage> {
+  savePreferences(preferences: Partial<LauncherPreferences>): Observable<ApiMessage> {
     return this.http.put<ApiMessage>('/api/mova/preferences', preferences);
   }
 }

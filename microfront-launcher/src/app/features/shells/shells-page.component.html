@@ -22,8 +22,8 @@
         label="Actualizar"
         icon="pi pi-refresh"
         styleClass="p-button-outlined"
-        [loading]="pending"
-        [disabled]="pending"
+        [loading]="pending()"
+        [disabled]="pending()"
         (onClick)="refreshProjects()"
       ></p-button>
     </div>
@@ -49,7 +49,7 @@
                 ? 'p-button-rounded p-button-text favorite selected'
                 : 'p-button-rounded p-button-text favorite'
             "
-            [disabled]="pending"
+            [disabled]="pending()"
             [attr.aria-label]="isFavorite(project) ? 'Quitar de favoritos' : 'Agregar a favoritos'"
             (onClick)="toggleFavorite(project)"
           ></p-button>

@@ -14,7 +14,7 @@
               ? 'p-button-rounded p-button-text detail-favorite is-selected'
               : 'p-button-rounded p-button-text detail-favorite'
           "
-          [disabled]="operating()"
+          [disabled]="favoriteSaving()"
           [ariaLabel]="favorite() ? 'Quitar de favoritos' : 'Agregar a favoritos'"
           (onClick)="toggleFavorite()"
         />

@@ -103,7 +103,7 @@ export interface LauncherLog {
   id: string;
   at: string;
   source: string;
-  level: 'success' | 'error' | 'stage' | 'info';
+  level: 'success' | 'error' | 'stage' | 'info' | 'system' | 'stdout' | 'stderr';
   message: string;
 }
 

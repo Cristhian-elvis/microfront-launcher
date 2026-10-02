@@ -2,7 +2,11 @@
 <section class="hero">
   <div>
     <p class="eyebrow">CENTRO DE OPERACIONES</p>
-    <h1>Tu entorno local,<br /><em>bajo control.</em></h1>
+    <h1>
+      Tu entorno local,
+      <br />
+      <em>bajo control.</em>
+    </h1>
     <p>Gestiona las dependencias de MOVA y la shell de trabajo desde un único lugar.</p>
   </div>
   <div class="status-summary">
@@ -10,8 +14,9 @@
       <strong
         [class.ready]="environmentLabel() === 'Listo'"
         [class.error]="environmentLabel() === 'Error'"
-        >{{ environmentLabel() }}</strong
       >
+        {{ environmentLabel() }}
+      </strong>
       <span>Entorno</span>
     </div>
     <div>
@@ -27,13 +32,16 @@
     <div class="operation-copy">
       <small>DEPENDENCIA COMPARTIDA</small>
       <strong>MOVA Components</strong>
-      @if (componentsActive()) {
-        <span>Componentes disponibles para la shell.</span>
-      }
+      <span>Librería de componentes para la shell.</span>
     </div>
-    @if (!shellRunning()) {
-      <div class="operation-actions">
-        <p-tag class="active-version-tag" [value]="activeVersion()" severity="info" icon="pi pi-tag" />
+    <div class="operation-actions">
+      <p-tag
+        class="active-version-tag"
+        [value]="activeVersion()"
+        severity="info"
+        icon="pi pi-tag"
+      />
+      @if (!shellRunning()) {
         @if (componentsActive()) {
           <p-button
             [label]="currentState?.components?.external ? 'Externo' : 'Detener'"
@@ -51,10 +59,8 @@
             (onClick)="startComponents()"
           />
         }
-      </div>
-    } @else {
-      <p-tag class="active-version-tag" [value]="activeVersion()" severity="info" icon="pi pi-tag" />
-    }
+      }
+    </div>
   </article>
 
   <article
@@ -66,13 +72,15 @@
     <div class="operation-copy">
       <small>ENTORNO DE TRABAJO</small>
       <strong>Shell</strong>
-      <span>{{
-        shellReady()
-          ? activeShellName() + ' se encuentra en ejecución.'
-          : shellStarting()
-            ? activeShellName() + ' se está iniciando.'
-            : 'Selecciona un proyecto configurado para iniciar.'
-      }}</span>
+      <span>
+        {{
+          shellReady()
+            ? activeShellName() + ' se encuentra en ejecución.'
+            : shellStarting()
+              ? activeShellName() + ' se está iniciando.'
+              : 'Selecciona un proyecto configurado para iniciar.'
+        }}
+      </span>
     </div>
 
     @if (!shellReady()) {
@@ -118,9 +126,7 @@
           [label]="shellStarting() ? 'Iniciando…' : 'Iniciar'"
           icon="pi pi-play"
           styleClass="p-button-sm"
-          [disabled]="
-            !selectedProject() || !versionReady() || actionPending() || shellStarting()
-          "
+          [disabled]="!selectedProject() || !versionReady() || actionPending() || shellStarting()"
           (onClick)="startShell()"
         />
       }

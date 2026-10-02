@@ -19,7 +19,9 @@ export function addLog(source, level, message) {
     id: `${Date.now()}-${Math.random()}`,
     source,
     level,
-    message: String(message).replace(/\u001b\[[0-9;]*m/g, '').trimEnd(),
+    // Conservamos las secuencias ANSI para que la consola web pueda representar
+    // los colores que emiten las herramientas de línea de comandos.
+    message: String(message).trimEnd(),
     at: new Date().toISOString()
   };
   if (!entry.message) return;
@@ -36,7 +38,9 @@ export function spawnManaged({ key, label, file, args = [], cwd, shell = false, 
   const useShell = shell || (process.platform === 'win32' && /\.(cmd|bat)$/i.test(file));
   const child = spawn(file, args, {
     cwd, shell: useShell, windowsHide: true,
-    env: { ...process.env, FORCE_COLOR: '0' }
+    // stdout no es un TTY, por lo que varias herramientas desactivan el color
+    // automáticamente. Lo habilitamos para conservar la salida de la terminal.
+    env: { ...process.env, FORCE_COLOR: '1' }
   });
   let resolveDone;
   const done = new Promise((resolve) => { resolveDone = resolve; });

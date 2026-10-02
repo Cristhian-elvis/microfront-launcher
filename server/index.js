@@ -636,12 +636,11 @@ async function openScaffolding(projectId) {
 }
 
 async function reopenChrome({ newWindow = true, url = null } = {}) {
-  if (state.shell.status !== "running" || !state.shell.projectId) {
-    throw new Error("No hay una shell activa para abrir en Chrome.");
-  }
-  // AÑADIDO: await
-  const project = getIndexedProject(state.shell.projectId);
-  if (!project) {
+  // Si no hay shell activa, el navegador abre una pestaña nueva.
+  const project = state.shell.status === "running" && state.shell.projectId
+    ? getIndexedProject(state.shell.projectId)
+    : null;
+  if (state.shell.projectId && !project) {
     throw new Error("No se encontró la configuración de la shell activa.");
   }
   await openChrome(project, { newWindow, url });

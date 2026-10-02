@@ -15,7 +15,7 @@ import { FloatLabel } from 'primeng/floatlabel';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { Observable } from 'rxjs';
-import { finalize, tap } from 'rxjs/operators';
+import { finalize } from 'rxjs/operators';
 import type { ApiMessage } from '../../core/launcher.models';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { LauncherService } from '../../core/launcher.service';
@@ -70,9 +70,7 @@ export class HomePageComponent {
   protected readonly sessionBusy = computed(() =>
     ['starting', 'building', 'stopping'].includes(this.state()?.session.status ?? ''),
   );
-  protected readonly activeVersion = computed(
-    () => this.state()?.components.version ?? this.latestVersion()?.tag ?? 'No disponible',
-  );
+  protected readonly activeVersion = computed(() => this.latestVersion()?.tag ?? 'No disponible');
   protected readonly versionReady = computed(() => Boolean(this.latestVersion()));
   protected readonly projectOptions = computed<ProjectOption[]>(() =>
     this.projects().map((project) => ({
@@ -98,7 +96,8 @@ export class HomePageComponent {
       if (!state) return;
 
       if (state.shell.projectId) this.selectedProjectId.set(state.shell.projectId);
-      else if (!this.selectedProjectId() && this.projects().length) this.selectedProjectId.set(this.projects()[0].id);
+      else if (!this.selectedProjectId() && this.projects().length)
+        this.selectedProjectId.set(this.projects()[0].id);
     });
   }
 
@@ -148,7 +147,6 @@ export class HomePageComponent {
     const detail = error instanceof Error ? error.message : 'No se pudo completar la operación.';
     this.messages.add({ severity: 'error', summary: 'Error', detail });
   }
-
 
   private projectDisplayName(name: string | null | undefined): string {
     const value = String(name ?? '');

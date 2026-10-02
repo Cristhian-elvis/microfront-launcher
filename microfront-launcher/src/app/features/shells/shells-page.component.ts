@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MessageService, PrimeTemplate } from 'primeng/api';
 import type { MenuItem } from 'primeng/api';
@@ -34,7 +34,7 @@ export class ShellsPageComponent {
   readonly state = this.bootstrap.state;
   readonly preferences = this.bootstrap.preferences;
   filter = '';
-  pending = false;
+  readonly pending = signal(false);
 
   breadCrumbItems: MenuItem[] = [
     { label: 'Shells' }
@@ -77,11 +77,11 @@ export class ShellsPageComponent {
   }
 
   refreshProjects(): void {
-    this.pending = true;
+    this.pending.set(true);
     this.launcher
       .refreshProjects()
       .pipe(
-        finalize(() => (this.pending = false)),
+        finalize(() => this.pending.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
@@ -95,11 +95,11 @@ export class ShellsPageComponent {
     const favoriteShellIds = previous.includes(project.id)
       ? previous.filter((id) => id !== project.id)
       : [...previous, project.id];
-    this.pending = true;
+    this.pending.set(true);
     this.launcher
       .saveFavoriteShells(favoriteShellIds)
       .pipe(
-        finalize(() => (this.pending = false)),
+        finalize(() => this.pending.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
