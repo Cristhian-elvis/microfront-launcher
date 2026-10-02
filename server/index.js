@@ -7,7 +7,6 @@ import {
   versionsRoot,
   workRoot,
   readConfig,
-  readPreferences,
   writeJson,
   getProjects,
   getVersionByTag,
@@ -17,15 +16,12 @@ import {
   assertInside,
   getIndexedProject,
   gitBranchInfo,
-  exactGitTag,
   updateMicrofrontendGitCache,
 } from "./lib/core.js";
 import {
-  childProcesses,
   emit,
   addLog,
   spawnManaged,
-  stopProcess,
   startStaticServer,
   stopStaticServer,
 } from "./lib/runtime.js";
@@ -38,14 +34,13 @@ import { createComponentsHandler } from "./handlers/components-handler.js";
 import { createEnvironmentModel } from "./api/environment/model.js";
 import { createEnvironmentHandler } from "./api/environment/handler.js";
 import { createEnvironmentRouter } from "./api/environment/router.js";
-import { createEnvironmentSessionState } from "./api/environment/session-state.js";
-import { createEnvironmentLifecycle } from "./api/environment/lifecycle.js";
-import { createEnvironmentOperation } from "./api/environment/operation.js";
+import { EnvironmentLifecycleService } from "./api/environment/lifecycle.js";
 import { createEnvironmentService } from "./api/environment/service.js";
 import { createApiRouter } from "./routes/api-router.js";
 import { createVsCodeService } from "./services/vscode-service.js";
 import { createProjectGitService } from "./services/project-git-service.js";
-import { createMicrofrontendRuntimeService } from "./services/microfrontend-runtime-service.js";
+import { MicrofrontendRuntimeService } from "./services/microfrontend-runtime-service.js";
+import { RuntimeStateService } from "./services/runtime-state-service.js";
 import {
   assertNotCancelled,
   runProcessStep,
@@ -56,78 +51,13 @@ import {
   selectedVersion,
 } from "./services/components-version-service.js";
 import { createComponentsRuntimeService } from "./services/components-runtime-service.js";
-import { json, readBody } from "./lib/http.js";
+import { json } from "./lib/http.js";
 import { state } from "./state.js";
 
 const host = "127.0.0.1";
 const port = Number(process.env.PORT || 3187);
 
 let branchOperation = null;
-
-function emitRuntime() {
-  emit("runtime", getRuntime());
-}
-
-const emitState = emitRuntime;
-const environmentOperation = createEnvironmentOperation({
-  onChange: emitRuntime,
-});
-
-function getRuntime() {
-  return { ...state, preferences: readPreferences() };
-}
-
-function emitPreferences() {
-  emit("preferences", readPreferences());
-}
-
-const { updateSession, runTrackedStage } = createEnvironmentSessionState({
-  emitState,
-});
-
-function updateMicrofrontendBranch(patch) {
-  state.microfrontendBranch = { ...state.microfrontendBranch, ...patch };
-  emitState();
-}
-
-function updateMicrofrontendBuild(patch) {
-  state.microfrontendBuild = { ...state.microfrontendBuild, ...patch };
-  emitState();
-}
-
-function updateMicrofrontendOperation(kind, projectId, microfrontendId, patch) {
-  const key = `${kind}:${microfrontendId}`;
-  state.microfrontendOperations = {
-    ...state.microfrontendOperations,
-    [key]: {
-      ...(state.microfrontendOperations[key] || {}),
-      kind,
-      projectId,
-      microfrontendId,
-      ...patch,
-    },
-  };
-  emitState();
-}
-
-const { cleanupStartedResources, stopEnvironmentInternals } =
-  createEnvironmentLifecycle({
-    emitState,
-    updateSession,
-    getEnvironmentOperation: environmentOperation.get,
-    clearEnvironmentOperation: environmentOperation.clear,
-  });
-
-async function stopEnvironmentProcesses() {
-  const records = [...childProcesses.entries()].filter(
-    ([key]) => !key.startsWith("build:"),
-  );
-  for (const [key] of records) stopProcess(key);
-  await Promise.race([
-    Promise.all(records.map(([, record]) => record.done)),
-    new Promise((resolve) => setTimeout(resolve, 3500)),
-  ]);
-}
 
 async function buildComponents(version, signal, { force = false } = {}) {
   const tag = version.tag;
@@ -138,7 +68,7 @@ async function buildComponents(version, signal, { force = false } = {}) {
     addLog(
       "MOVA Components",
       "stage",
-      `El tag ${tag} no estÃ¡ disponible localmente. Sincronizando tags remotos.`,
+      `El tag ${tag} no está disponible localmente. Sincronizando tags remotos.`,
     );
     await refreshTags();
     tagsSynchronized = true;
@@ -251,7 +181,7 @@ async function buildComponents(version, signal, { force = false } = {}) {
 
 const componentsRuntime = createComponentsRuntimeService({
   buildComponents,
-  emitState,
+  emitState: RuntimeStateService.emitState,
 });
 
 async function startComponentsStandalone() {
@@ -277,7 +207,7 @@ async function startComponentsStandalone() {
     tag: version.tag,
     external: false,
   };
-  emitState();
+  RuntimeStateService.emitState();
   return state.components;
 }
 
@@ -290,13 +220,8 @@ async function stopComponents() {
     tag: null,
     external: false,
   };
-  emitState();
+  RuntimeStateService.emitState();
 }
-
-const microfrontendRuntime = createMicrofrontendRuntimeService({
-  emitState,
-});
-const { startMicrofrontend } = microfrontendRuntime;
 
 function buildMicrofrontend(project, microfrontend) {
   if (branchOperation || state.microfrontendBuild.status === "running") {
@@ -307,7 +232,7 @@ function buildMicrofrontend(project, microfrontend) {
       `El microfrontend ${microfrontend?.name || ""} no define npm run build.`,
     );
   const key = `microfrontend-build:${project.id}:${microfrontend.id}`;
-  updateMicrofrontendBuild({
+  RuntimeStateService.updateMicrofrontendBuild({
     status: "running",
     projectId: project.id,
     microfrontendId: microfrontend.id,
@@ -327,13 +252,13 @@ function buildMicrofrontend(project, microfrontend) {
   record.done.then(({ code }) => {
     if (state.microfrontendBuild.microfrontendId !== microfrontend.id) return;
     if (code === 0) {
-      updateMicrofrontendBuild({
+      RuntimeStateService.updateMicrofrontendBuild({
         status: "success",
         message: `${microfrontend.name} compilado correctamente.`,
         error: null,
       });
     } else {
-      updateMicrofrontendBuild({
+      RuntimeStateService.updateMicrofrontendBuild({
         status: "error",
         message: "La compilación no se completó.",
         error: `${microfrontend.name} terminó con código ${code ?? "-"}.`,
@@ -375,13 +300,18 @@ async function startMicrofrontendBuildBatch(projectId, microfrontendIds) {
   const run = async () => {
     const results = await Promise.all(
       microfrontends.map(async (microfrontend) => {
-        updateMicrofrontendOperation("build", projectId, microfrontend.id, {
-          status: "running",
-          phase: "build",
-          message: "Compilando",
-          error: null,
-          startedAt,
-        });
+        RuntimeStateService.updateMicrofrontendOperation(
+          "build",
+          projectId,
+          microfrontend.id,
+          {
+            status: "running",
+            phase: "build",
+            message: "Compilando",
+            error: null,
+            startedAt,
+          },
+        );
         const record = spawnManaged({
           key: `microfrontend-build:${project.id}:${microfrontend.id}`,
           label: `Build · ${microfrontend.name}`,
@@ -392,30 +322,40 @@ async function startMicrofrontendBuildBatch(projectId, microfrontendIds) {
         });
         const { code } = await record.done;
         if (code === 0) {
-          updateMicrofrontendOperation("build", projectId, microfrontend.id, {
-            status: "success",
-            phase: "done",
-            message: "Completado",
-            error: null,
-            startedAt,
-          });
+          RuntimeStateService.updateMicrofrontendOperation(
+            "build",
+            projectId,
+            microfrontend.id,
+            {
+              status: "success",
+              phase: "done",
+              message: "Completado",
+              error: null,
+              startedAt,
+            },
+          );
           return true;
         }
         const error = `Terminó con código ${code ?? "-"}.`;
-        updateMicrofrontendOperation("build", projectId, microfrontend.id, {
-          status: "error",
-          phase: "error",
-          message: "No se completó la compilación",
-          error,
-          startedAt,
-        });
+        RuntimeStateService.updateMicrofrontendOperation(
+          "build",
+          projectId,
+          microfrontend.id,
+          {
+            status: "error",
+            phase: "error",
+            message: "No se completó la compilación",
+            error,
+            startedAt,
+          },
+        );
         return false;
       }),
     );
     const completedIds = microfrontends
       .filter((_, index) => results[index])
       .map((item) => item.id);
-    updateMicrofrontendBuild({
+    RuntimeStateService.updateMicrofrontendBuild({
       status: results.every(Boolean) ? "success" : "error",
       projectId,
       microfrontendId: microfrontends.at(-1).id,
@@ -429,7 +369,7 @@ async function startMicrofrontendBuildBatch(projectId, microfrontendIds) {
   };
   microfrontendBatchOperation = run()
     .catch((error) => {
-      updateMicrofrontendBuild({
+      RuntimeStateService.updateMicrofrontendBuild({
         status: "error",
         error: error.message,
         message: "La compilación por lote no se completó.",
@@ -462,12 +402,17 @@ async function startMicrofrontendBranchBatch(
     const results = await Promise.all(
       microfrontends.map(async (microfrontend) => {
         const report = (patch) =>
-          updateMicrofrontendOperation("branch", projectId, microfrontend.id, {
-            status: "running",
-            branch,
-            startedAt,
-            ...patch,
-          });
+          RuntimeStateService.updateMicrofrontendOperation(
+            "branch",
+            projectId,
+            microfrontend.id,
+            {
+              status: "running",
+              branch,
+              startedAt,
+              ...patch,
+            },
+          );
         report({
           phase: "validating",
           message: "Preparando cambio",
@@ -481,24 +426,34 @@ async function startMicrofrontendBranchBatch(
             null,
             report,
           );
-          updateMicrofrontendOperation("branch", projectId, microfrontend.id, {
-            status: "success",
-            branch,
-            phase: "done",
-            message: "Completado",
-            error: null,
-            startedAt,
-          });
+          RuntimeStateService.updateMicrofrontendOperation(
+            "branch",
+            projectId,
+            microfrontend.id,
+            {
+              status: "success",
+              branch,
+              phase: "done",
+              message: "Completado",
+              error: null,
+              startedAt,
+            },
+          );
           return true;
         } catch (error) {
-          updateMicrofrontendOperation("branch", projectId, microfrontend.id, {
-            status: "error",
-            branch,
-            phase: "error",
-            message: "No se pudo cambiar la rama",
-            error: error.message,
-            startedAt,
-          });
+          RuntimeStateService.updateMicrofrontendOperation(
+            "branch",
+            projectId,
+            microfrontend.id,
+            {
+              status: "error",
+              branch,
+              phase: "error",
+              message: "No se pudo cambiar la rama",
+              error: error.message,
+              startedAt,
+            },
+          );
           return false;
         }
       }),
@@ -506,7 +461,7 @@ async function startMicrofrontendBranchBatch(
     const completedIds = microfrontends
       .filter((_, index) => results[index])
       .map((item) => item.id);
-    updateMicrofrontendBranch({
+    RuntimeStateService.updateMicrofrontendBranch({
       status: results.every(Boolean) ? "success" : "error",
       projectId,
       microfrontendId: microfrontends.at(-1).id,
@@ -521,7 +476,7 @@ async function startMicrofrontendBranchBatch(
   };
   branchOperation = run()
     .catch((error) => {
-      updateMicrofrontendBranch({
+      RuntimeStateService.updateMicrofrontendBranch({
         status: "error",
         branch,
         error: error.message,
@@ -536,7 +491,7 @@ async function startMicrofrontendBranchBatch(
     });
 }
 
-const shellRuntime = createShellRuntimeService({ emitState });
+const shellRuntime = createShellRuntimeService();
 
 function browserSettings(config = readConfig()) {
   const mode = config.browser.selected;
@@ -603,7 +558,7 @@ async function openOrRequestBrowser(project) {
 }
 
 async function cancelAndStopAll(reason = "Entorno detenido") {
-  await stopEnvironmentInternals({
+  await EnvironmentLifecycleService.stopEnvironmentInternals({
     reason,
     emitFinalSession: true,
   });
@@ -637,9 +592,10 @@ async function openScaffolding(projectId) {
 
 async function reopenChrome({ newWindow = true, url = null } = {}) {
   // Si no hay shell activa, el navegador abre una pestaña nueva.
-  const project = state.shell.status === "running" && state.shell.projectId
-    ? getIndexedProject(state.shell.projectId)
-    : null;
+  const project =
+    state.shell.status === "running" && state.shell.projectId
+      ? getIndexedProject(state.shell.projectId)
+      : null;
   if (state.shell.projectId && !project) {
     throw new Error("No se encontró la configuración de la shell activa.");
   }
@@ -690,7 +646,7 @@ async function switchMicrofrontendBranch(
     return `${message} (paso ${step}/4${batch})`;
   };
   const updatePhase = (phase, message) => {
-    updateMicrofrontendBranch({ phase, message });
+    RuntimeStateService.updateMicrofrontendBranch({ phase, message });
     report?.({ phase, message });
   };
   updatePhase("validating", progressMessage("Comprobando cambios locales", 1));
@@ -752,7 +708,7 @@ function startMicrofrontendBranchSwitch(projectId, microfrontendId, branch) {
   }
   const id = `${Date.now()}-${Math.random()}`;
   branchOperation = { id };
-  updateMicrofrontendBranch({
+  RuntimeStateService.updateMicrofrontendBranch({
     status: "running",
     projectId,
     microfrontendId,
@@ -767,7 +723,7 @@ function startMicrofrontendBranchSwitch(projectId, microfrontendId, branch) {
     total: 1,
   })
     .then(() =>
-      updateMicrofrontendBranch({
+      RuntimeStateService.updateMicrofrontendBranch({
         status: "success",
         branch,
         phase: "done",
@@ -777,7 +733,7 @@ function startMicrofrontendBranchSwitch(projectId, microfrontendId, branch) {
     )
     .catch((error) => {
       addLog("Microfronts", "error", error.message);
-      updateMicrofrontendBranch({
+      RuntimeStateService.updateMicrofrontendBranch({
         status: "error",
         phase: "error",
         message: "No se pudo cambiar la rama.",
@@ -786,7 +742,7 @@ function startMicrofrontendBranchSwitch(projectId, microfrontendId, branch) {
     })
     .finally(() => {
       if (branchOperation?.id === id) branchOperation = null;
-      emitState();
+      RuntimeStateService.emitState();
     });
 }
 
@@ -823,8 +779,7 @@ function selectLocalDirectory(description) {
   );
 }
 
-const findProject = async (projectId) =>
-  getIndexedProject(projectId) ||
+const findProject = async (projectId) => getIndexedProject(projectId) ||
   (await getProjects()).find((item) => item.id === projectId);
 const vsCodeService = createVsCodeService({ findProject, addLog });
 const projectGitService = createProjectGitService({
@@ -836,7 +791,7 @@ const handleMicrofrontendRequest = createMicrofrontendHandler({
   startBuildBatch: startMicrofrontendBuildBatch,
   startBranchSwitch: startMicrofrontendBranchSwitch,
   startBranchBatch: startMicrofrontendBranchBatch,
-  startWatch: startMicrofrontend,
+  startWatch: MicrofrontendRuntimeService.startMicrofrontend,
 });
 const handleProjectsRequest = createProjectsHandler({
   getProjectGitInfo: projectGitService.getProjectGitInfo,
@@ -849,11 +804,11 @@ const handleBrowserRequest = createBrowserHandler({
   openEmptyBrowser,
 });
 const handleStateRequest = createStateHandler({
-  getRuntime,
+  getRuntime: RuntimeStateService.getRuntime,
   getLatestVersion: latestVersion,
 });
 const handleMovaRequest = createMovaHandler({
-  emitPreferences,
+  emitPreferences: RuntimeStateService.emitPreferences,
 });
 const handleComponentsRequest = createComponentsHandler({
   state,
@@ -862,14 +817,9 @@ const handleComponentsRequest = createComponentsHandler({
   stopEnvironment: cancelAndStopAll,
 });
 const environmentService = createEnvironmentService({
-  session: { updateSession, runTrackedStage },
-  lifecycle: { cleanupStartedResources },
-  operation: environmentOperation,
   componentsRuntime,
   shellRuntime,
-  microfrontendRuntime,
   openOrRequestBrowser,
-  emitState,
 });
 const environmentModel = createEnvironmentModel({
   environmentService,

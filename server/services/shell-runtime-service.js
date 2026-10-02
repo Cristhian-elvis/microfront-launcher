@@ -9,12 +9,13 @@ import {
 } from "../lib/runtime.js";
 import { state } from "../state.js";
 import { assertNotCancelled } from "./process-runner-service.js";
+import { RuntimeStateService } from "./runtime-state-service.js";
 
 function shellBuildIndex(project) {
   return path.join(project.serverPath, project.appName || "", "index.html");
 }
 
-export function createShellRuntimeService({ emitState }) {
+export function createShellRuntimeService() {
   function needsShellBuild(project) {
     return !project.appName || !fs.existsSync(shellBuildIndex(project));
   }
@@ -47,7 +48,7 @@ export function createShellRuntimeService({ emitState }) {
       status: "starting", url: shellUrl.toString(), projectId: project.id,
       name: project.name, appName: project.appName, external: false,
     };
-    emitState();
+    RuntimeStateService.emitState();
     await startStaticServer({
       key: "shell", label: project.name, root: project.serverPath,
       port: configuredPort, fallbackIndex: false,
@@ -58,7 +59,7 @@ export function createShellRuntimeService({ emitState }) {
       status: "running", url: shellUrl.toString(), projectId: project.id,
       name: project.name, appName: project.appName, external: false,
     };
-    emitState();
+    RuntimeStateService.emitState();
   }
 
   return { needsShellBuild, startShell };

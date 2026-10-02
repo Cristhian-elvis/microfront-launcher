@@ -1,34 +1,36 @@
-/** Controla una única operación activa del entorno y su cancelación. */
-export function createEnvironmentOperation({ onChange }) {
-  let current = null;
+import { RuntimeStateService } from '../../services/runtime-state-service.js';
 
-  function start(details = {}) {
-    if (current) throw new Error("Ya hay una operación de entorno en curso.");
-    current = {
+export class EnvironmentOperationService {
+  static current = null;
+
+  static start(details = {}) {
+    if (EnvironmentOperationService.current)
+      throw new Error('Ya hay una operación de entorno en curso.');
+    EnvironmentOperationService.current = {
       id: `${Date.now()}-${Math.random()}`,
       controller: new AbortController(),
       ...details,
     };
-    onChange();
-    return current;
+    RuntimeStateService.emitState();
+    return EnvironmentOperationService.current;
   }
 
-  function end(id) {
-    if (current?.id !== id) return;
-    current = null;
-    onChange();
+  static end(id) {
+    if (EnvironmentOperationService.current?.id !== id) return;
+    EnvironmentOperationService.current = null;
+    RuntimeStateService.emitState();
   }
 
-  function clear() {
-    current = null;
-    onChange();
+  static clear() {
+    EnvironmentOperationService.current = null;
+    RuntimeStateService.emitState();
   }
 
-  return {
-    start,
-    end,
-    get: () => current,
-    isRunning: () => Boolean(current),
-    clear,
-  };
+  static get() {
+    return EnvironmentOperationService.current;
+  }
+
+  static isRunning() {
+    return Boolean(EnvironmentOperationService.current);
+  }
 }
