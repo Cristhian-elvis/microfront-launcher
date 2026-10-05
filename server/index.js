@@ -19,7 +19,6 @@ import {
   updateMicrofrontendGitCache,
 } from "./lib/core.js";
 import {
-  emit,
   addLog,
   spawnManaged,
   startStaticServer,
