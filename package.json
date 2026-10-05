@@ -1,22 +1,13 @@
 {
-  "name": "microfront-launcher",
+  "name": "microfront-launcher-workspace",
   "version": "2.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "build": "node build.mjs",
-    "start": "node server/index.js"
-  },
-  "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/material": "^9.4.0",
-    "chokidar": "^5.0.0",
-    "react-router-dom": "^6.30.1"
+    "start": "concurrently --kill-others-on-fail \"npm run start:api\" \"npm run start:web\"",
+    "start:api": "npm --prefix microfront-launcher-api start",
+    "start:web": "npm --prefix microfront-launcher start"
   },
   "devDependencies": {
-    "esbuild": "0.28.2",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "concurrently": "^9.2.4"
   }
 }

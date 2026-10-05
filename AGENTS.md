@@ -2,18 +2,19 @@
 
 ## Project Structure & Module Organization
 
-The Node.js launcher API lives in `server/`: request handlers are in `server/handlers/`, orchestration services in `server/services/`, and shared configuration/runtime utilities in `server/lib/`. Runtime-only state belongs in `storage/`; local machine configuration is `data/config.json` and must not contain secrets.
+The Node.js launcher API lives in `microfront-launcher-api/`: request handlers are in `handlers/`, orchestration services in `services/`, and shared configuration/runtime utilities in `lib/`. Runtime-only state belongs in `storage/`; local machine configuration is `data/config.json` and must not contain secrets.
 
-The active UI is the Angular application in `microfront-launcher/`. Keep feature pages in `src/app/features/`, shell/layout components in `src/app/layout/`, shared UI in `src/app/shared/`, and HTTP/state boundaries in `src/app/core/`. The root React dependencies and `src/` directory are legacy; do not add product work there unless explicitly requested.
+The UI is the Angular application in `microfront-launcher/`. Keep feature pages in `src/app/features/`, shell/layout components in `src/app/layout/`, shared UI in `src/app/shared/`, and HTTP/state boundaries in `src/app/core/`.
 
 ## Build, Test, and Development Commands
 
-- `npm run start` (repository root): starts the Node API at its configured local address.
-- `npm run build` (repository root): builds the legacy root bundle; use only when changing that code.
+- `npm start` (repository root): starts the API and Angular development server together.
+- `npm run start:api` (repository root): starts only the Node API.
+- `npm run start:web` (repository root): starts only Angular.
 - `npm start` (from `microfront-launcher/`): starts Angular development server.
 - `npm run build` (from `microfront-launcher/`): production Angular build; run after UI or TypeScript changes.
 - `npm test` (from `microfront-launcher/`): runs Angular/Vitest unit tests.
-- `node --check server/index.js`: quick syntax check for backend changes. Check every edited server module similarly.
+- `node --check microfront-launcher-api/index.js`: quick syntax check for backend changes. Check every edited API module similarly.
 
 ## Coding Style & Naming Conventions
 

@@ -18,7 +18,5 @@ dist-angular/
 .DS_Store
 Thumbs.db
 
-# graphify-axet
+# Herramientas locales
 .graphify/
-/frontend-angular
-/nombre-de-tu-proyecto

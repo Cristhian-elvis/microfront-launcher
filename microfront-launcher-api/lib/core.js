@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const execFileAsync = promisify(execFile);
 
 const libDir = path.dirname(fileURLToPath(import.meta.url));
-export const appRoot = path.resolve(libDir, '..', '..');
+export const appRoot = path.resolve(libDir, '..', '..', '..');
 export const distRoot = path.join(appRoot, 'dist');
 export const configPath = path.join(appRoot, 'data', 'config.json');
 function hasCompletedInitialSetup() {
