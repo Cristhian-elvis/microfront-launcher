@@ -9,8 +9,7 @@ import { fileURLToPath } from 'node:url';
 const execFileAsync = promisify(execFile);
 
 const libDir = path.dirname(fileURLToPath(import.meta.url));
-export const appRoot = path.resolve(libDir, '..', '..', '..');
-export const distRoot = path.join(appRoot, 'dist');
+export const appRoot = path.resolve(libDir, '..', '..');
 export const configPath = path.join(appRoot, 'data', 'config.json');
 function hasCompletedInitialSetup() {
   try {
@@ -32,6 +31,11 @@ export const preferencesPath = path.join(storageRoot, 'preferences.json');
 export const movaStorageRoot = path.join(storageRoot, 'mova-components');
 export const versionsRoot = path.join(movaStorageRoot, 'versions');
 export const workRoot = path.join(movaStorageRoot, 'work');
+
+export function ensureRuntimeDirectories() {
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.mkdirSync(storageRoot, { recursive: true });
+}
 
 export const defaultConfig = {
   rootPath: '',

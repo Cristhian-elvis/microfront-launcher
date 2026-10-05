@@ -1,9 +1,7 @@
-import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { spawn, execFile } from "node:child_process";
 import {
-  distRoot,
   versionsRoot,
   workRoot,
   readConfig,
@@ -24,18 +22,16 @@ import {
   startStaticServer,
   stopStaticServer,
 } from "./lib/runtime.js";
-import { createMicrofrontendHandler } from "./handlers/microfrontend-handler.js";
-import { createProjectsHandler } from "./handlers/projects-handler.js";
-import { createBrowserHandler } from "./handlers/browser-handler.js";
-import { createStateHandler } from "./handlers/state-handler.js";
-import { createMovaHandler } from "./handlers/mova-handler.js";
-import { createComponentsHandler } from "./handlers/components-handler.js";
 import { createEnvironmentModel } from "./api/environment/model.js";
-import { createEnvironmentHandler } from "./api/environment/handler.js";
 import { createEnvironmentRouter } from "./api/environment/router.js";
+import { createBrowserRouter } from "./api/browser/router.js";
+import { createComponentsRouter } from "./api/components/router.js";
+import { createMicrofrontendsRouter } from "./api/microfrontends/router.js";
+import { createMovaRouter } from "./api/mova/router.js";
+import { createProjectsRouter } from "./api/projects/router.js";
+import { createStateRouter } from "./api/state/router.js";
 import { EnvironmentLifecycleService } from "./api/environment/lifecycle.js";
 import { createEnvironmentService } from "./api/environment/service.js";
-import { createApiRouter } from "./routes/api-router.js";
 import { createVsCodeService } from "./services/vscode-service.js";
 import { createProjectGitService } from "./services/project-git-service.js";
 import { MicrofrontendRuntimeService } from "./services/microfrontend-runtime-service.js";
@@ -52,9 +48,6 @@ import {
 import { createComponentsRuntimeService } from "./services/components-runtime-service.js";
 import { json } from "./lib/http.js";
 import { state } from "./state.js";
-
-const host = "127.0.0.1";
-const port = Number(process.env.PORT || 3187);
 
 let branchOperation = null;
 
@@ -177,7 +170,6 @@ async function buildComponents(version, signal, { force = false } = {}) {
     }
   }
 }
-
 const componentsRuntime = createComponentsRuntimeService({
   buildComponents,
   emitState: RuntimeStateService.emitState,
@@ -556,7 +548,7 @@ async function openOrRequestBrowser(project) {
   });
 }
 
-async function cancelAndStopAll(reason = "Entorno detenido") {
+export async function cancelAndStopAll(reason = "Entorno detenido") {
   await EnvironmentLifecycleService.stopEnvironmentInternals({
     reason,
     emitFinalSession: true,
@@ -784,7 +776,7 @@ const vsCodeService = createVsCodeService({ findProject, addLog });
 const projectGitService = createProjectGitService({
   findProject,
 });
-const handleMicrofrontendRequest = createMicrofrontendHandler({
+export const microfrontendsRouter = createMicrofrontendsRouter({
   openMicrofrontend: vsCodeService.openMicrofrontend,
   buildMicrofrontend,
   startBuildBatch: startMicrofrontendBuildBatch,
@@ -792,24 +784,24 @@ const handleMicrofrontendRequest = createMicrofrontendHandler({
   startBranchBatch: startMicrofrontendBranchBatch,
   startWatch: MicrofrontendRuntimeService.startMicrofrontend,
 });
-const handleProjectsRequest = createProjectsHandler({
+export const projectsRouter = createProjectsRouter({
   getProjectGitInfo: projectGitService.getProjectGitInfo,
   selectLocalDirectory,
   openScaffolding,
   openProjectWebapp: vsCodeService.openProjectWebapp,
 });
-const handleBrowserRequest = createBrowserHandler({
+export const browserRouter = createBrowserRouter({
   reopenChrome,
   openEmptyBrowser,
 });
-const handleStateRequest = createStateHandler({
+export const stateRouter = createStateRouter({
   getRuntime: RuntimeStateService.getRuntime,
   getLatestVersion: latestVersion,
 });
-const handleMovaRequest = createMovaHandler({
+export const movaRouter = createMovaRouter({
   emitPreferences: RuntimeStateService.emitPreferences,
 });
-const handleComponentsRequest = createComponentsHandler({
+export const componentsRouter = createComponentsRouter({
   state,
   startComponents: startComponentsStandalone,
   stopComponents,
@@ -824,106 +816,20 @@ const environmentModel = createEnvironmentModel({
   environmentService,
   cancelAndStopAll,
 });
-const environmentHandler = createEnvironmentHandler({
+export const environmentRouter = createEnvironmentRouter({
   environmentModel,
 });
-const routeEnvironment = createEnvironmentRouter(environmentHandler);
-const routeApi = createApiRouter([
-  handleStateRequest,
-  handleProjectsRequest,
-  handleMovaRequest,
-  handleComponentsRequest,
-  handleBrowserRequest,
-  handleMicrofrontendRequest,
-  routeEnvironment,
-]);
-
-async function handleApi(request, response, url) {
-  if (await routeApi(request, response, url)) return;
-  return json(response, 404, { error: "Ruta no encontrada" });
-}
-
-const mime = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".json": "application/json; charset=utf-8",
-};
-function serveInterface(response, pathname) {
-  const requested =
-    pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
-  let filePath = path.resolve(distRoot, requested);
-  const relation = path.relative(distRoot, filePath);
-  if (relation.startsWith("..") || path.isAbsolute(relation))
-    return json(response, 403, { error: "Acceso denegado" });
-  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory())
-    filePath = path.join(distRoot, "index.html");
-  if (!fs.existsSync(filePath))
-    return json(response, 503, { error: "Ejecuta npm run build." });
-  response.writeHead(200, {
-    "Content-Type": mime[path.extname(filePath)] || "application/octet-stream",
-  });
-  fs.createReadStream(filePath).pipe(response);
-}
-
-const server = http.createServer(async (request, response) => {
+export function handleRequest(request, response) {
   const url = new URL(
     request.url,
-    `http://${request.headers.host || `${host}:${port}`}`,
+    `http://${request.headers.host || "127.0.0.1:3187"}`,
   );
-  try {
-    if (url.pathname.startsWith("/api/"))
-      await handleApi(request, response, url);
-    else serveInterface(response, url.pathname);
-  } catch (error) {
-    addLog("Launcher", "error", error.message);
-    json(response, 500, { error: error.message || "Error interno" });
+  if (url.pathname.startsWith("/api/")) {
+    json(response, 404, { error: "Ruta no encontrada" });
+    return;
   }
-});
-
-server.on("error", (error) => {
-  console.error(
-    error.code === "EADDRINUSE" ? `El puerto ${port} ya está en uso.` : error,
-  );
-  process.exit(1);
-});
-
-if (process.argv.includes("--check")) {
-  // Envolvemos en una función asíncrona autoejecutable
-  (async () => {
-    const projects = await getProjects();
-    console.log(
-      JSON.stringify(
-        {
-          ok: true,
-          projectsDetected: projects.length,
-          interfaceBuilt: fs.existsSync(path.join(distRoot, "index.html")),
-        },
-        null,
-        2,
-      ),
-    );
-    process.exit(0);
-  })();
-} else {
-  server.listen(port, host, async () => {
-    console.log(`Microfront Launcher V2 disponible en http://${host}:${port}`);
-    if (process.env.NO_OPEN !== "1") {
-      const browser = spawn(
-        "cmd.exe",
-        ["/c", "start", "", `http://${host}:${port}`],
-        { detached: true, stdio: "ignore", windowsHide: true },
-      );
-      browser.unref();
-    }
+  json(response, 404, {
+    error: "Esta dirección expone solo la API local.",
+    frontend: "http://localhost:4200",
   });
-
-  async function cleanupAndExit() {
-    await cancelAndStopAll("Launcher cerrado");
-    server.close(() => process.exit(0));
-  }
-
-  process.on("SIGINT", cleanupAndExit);
-  process.on("SIGTERM", cleanupAndExit);
 }

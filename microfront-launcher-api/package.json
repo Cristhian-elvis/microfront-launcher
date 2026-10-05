@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js",
+    "check": "node server.js --check"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
   }
 }

@@ -1,20 +1,31 @@
-/**
- * Router exclusivo del recurso environment.
- * Devuelve false cuando la ruta no pertenece a este dominio para que el router
- * principal pueda continuar con los demás módulos.
- */
-export function createEnvironmentRouter(handler) {
-  const routes = new Map([
-    ["/api/environment/start", handler.start],
-    ["/api/shell/rebuild", handler.rebuildShell],
-    ["/api/environment/cancel", handler.cancel],
-    ["/api/environment/stop", handler.stop],
-  ]);
+import { json, Router } from 'express';
 
-  return async function routeEnvironment(request, response, url) {
-    const route = routes.get(url.pathname);
-    if (!route) return false;
-    await route(request, response);
-    return true;
-  };
+export function createEnvironmentRouter({ environmentModel }) {
+  const router = Router();
+
+  router.post('/environment/start', json(), (request, response) => {
+    const { projectId, microfrontendId, rebuildShell } = request.body;
+    environmentModel.start({ projectId, microfrontendId, rebuildShell });
+    response.status(202).json({ ok: true });
+  });
+
+  router.post('/shell/rebuild', json(), (request, response) => {
+    environmentModel.rebuildShell({ projectId: request.body.projectId });
+    response.status(202).json({
+      ok: true,
+      message: 'Reconstrucción del servidor iniciada.',
+    });
+  });
+
+  router.post('/environment/cancel', json(), async (request, response) => {
+    await environmentModel.stop('Inicio cancelado');
+    response.json({ ok: true });
+  });
+
+  router.post('/environment/stop', json(), async (request, response) => {
+    await environmentModel.stop('Entorno detenido');
+    response.json({ ok: true });
+  });
+
+  return router;
 }

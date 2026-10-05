@@ -14,7 +14,8 @@ The UI is the Angular application in `microfront-launcher/`. Keep feature pages 
 - `npm start` (from `microfront-launcher/`): starts Angular development server.
 - `npm run build` (from `microfront-launcher/`): production Angular build; run after UI or TypeScript changes.
 - `npm test` (from `microfront-launcher/`): runs Angular/Vitest unit tests.
-- `node --check microfront-launcher-api/index.js`: quick syntax check for backend changes. Check every edited API module similarly.
+- `npm --prefix microfront-launcher-api run check`: validates the API bootstrap without opening its HTTP port.
+- `node --check microfront-launcher-api/server.js`: quick syntax check for backend changes. Check every edited API module similarly.
 
 ## Coding Style & Naming Conventions
 

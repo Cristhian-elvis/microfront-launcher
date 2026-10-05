@@ -5,7 +5,7 @@
   "scripts": {
     "start": "concurrently --kill-others-on-fail \"npm run start:api\" \"npm run start:web\"",
     "start:api": "npm --prefix microfront-launcher-api start",
-    "start:web": "npm --prefix microfront-launcher start"
+    "start:web": "npm --prefix microfront-launcher start -- --open"
   },
   "devDependencies": {
     "concurrently": "^9.2.4"
