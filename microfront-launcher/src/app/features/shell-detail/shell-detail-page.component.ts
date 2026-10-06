@@ -17,15 +17,15 @@ import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { Select } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
-import { ApiService } from '../../core/api.service';
+import { finalize, Observable } from 'rxjs';
 import type {
   ApiMessage,
   MicrofrontendOperation,
   Project,
 } from '../../core/launcher.models';
-import { LauncherService } from '../../core/launcher.service';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
+import { MovaService } from '../../core/services/mova.service';
+import { ProjectService } from '../../core/services/project.service';
 
 type Microfront = NonNullable<Project['microfrontends']>[number];
 type BulkAction = '' | 'build' | 'branch';
@@ -49,8 +49,8 @@ export class ShellDetailPageComponent {
   readonly shellId = input<string>('');
 
   private readonly router = inject(Router);
-  private readonly api = inject(ApiService);
-  private readonly launcher = inject(LauncherService);
+  private readonly mova = inject(MovaService);
+  private readonly projectsApi = inject(ProjectService);
   private readonly messages = inject(MessageService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly bootstrap = inject(AppBootstrapService);
@@ -65,7 +65,7 @@ export class ShellDetailPageComponent {
 
   readonly state = this.bootstrap.state;
   readonly preferences = this.bootstrap.preferences;
-  readonly infoBranches = this.launcher.getInfoBranchesByShellId(this.shellId);
+  readonly infoBranches = this.projectsApi.getInfoBranchesByShellId(this.shellId);
   protected readonly projects = this.bootstrap.projects;
   
   readonly microfronts = computed(() => {
@@ -143,8 +143,8 @@ export class ShellDetailPageComponent {
 
   refresh(): void {
     this.pending.set(true);
-    this.api
-      .get<Project>(`/api/projects/${encodeURIComponent(this.shellId())}/refresh`)
+    this.projectsApi
+      .refresh(this.shellId())
       .pipe(
         finalize(() => this.pending.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -164,12 +164,12 @@ export class ShellDetailPageComponent {
   
   openWebapp(): void {
     const project = this.project();
-    if (project) this.run('/api/projects/open-webapp', { projectId: project.id }, false);
+    if (project) this.run(this.projectsApi.openWebapp(project.id), false);
   }
 
   rebuild(): void {
     const project = this.project();
-    if (project) this.run('/api/shell/rebuild', { projectId: project.id });
+    if (project) this.run(this.projectsApi.rebuildShell(project.id));
   }
 
   toggleFavorite(): void {
@@ -180,8 +180,8 @@ export class ShellDetailPageComponent {
       ? current.filter((id) => id !== project.id)
       : [...current, project.id];
     this.favoriteSaving.set(true);
-    this.launcher
-      .saveFavoriteShells(favoriteShellIds)
+    this.mova
+      .savePreferences({ favoriteShellIds })
       .pipe(
         finalize(() => this.favoriteSaving.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -223,17 +223,14 @@ export class ShellDetailPageComponent {
     if (this.bulkAction() === 'build') {
       const ids = selected.filter((item) => item.localBuildAvailable).map((item) => item.id);
       if (ids.length)
-        this.run('/api/microfrontends/build-batch', {
-          projectId: project.id,
-          microfrontendIds: ids,
-        });
+        this.run(this.projectsApi.buildMicrofronts(project.id, ids));
     }
     if (this.bulkAction() === 'branch' && this.targetBranch())
-      this.run('/api/microfrontends/branch-batch', {
-        projectId: project.id,
-        microfrontendIds: selected.map((item) => item.id),
-        branch: this.targetBranch(),
-      });
+      this.run(this.projectsApi.changeMicrofrontBranches(
+        project.id,
+        selected.map((item) => item.id),
+        this.targetBranch(),
+      ));
   }
 
   operationFor(microfront: Microfront): MicrofrontendOperation | undefined {
@@ -285,25 +282,27 @@ export class ShellDetailPageComponent {
   }
 
   openMicrofrontFolder(microfront: Microfront): void {
-    this.runMicrofrontAction('/api/microfrontends/open-folder', microfront, false);
+    const project = this.project();
+    if (project) this.run(this.projectsApi.openMicrofrontFolder(project.id, microfront.id), false);
   }
 
   openMicrofrontInVsCode(microfront: Microfront): void {
-    this.runMicrofrontAction('/api/microfrontends/open', microfront, false);
+    const project = this.project();
+    if (project) this.run(this.projectsApi.openMicrofrontInVsCode(project.id, microfront.id), false);
   }
 
   buildMicrofront(microfront: Microfront): void {
-    this.runMicrofrontAction('/api/microfrontends/build', microfront);
+    const project = this.project();
+    if (project) this.run(this.projectsApi.buildMicrofront(project.id, microfront.id));
   }
 
   back(): void {
     void this.router.navigate(['/shells']);
   }
 
-  private run(url: string, body: object, reload = true): void {
+  private run(request: Observable<ApiMessage>, reload = true): void {
     this.pending.set(true);
-    this.api
-      .post<ApiMessage>(url, body)
+    request
       .pipe(
         finalize(() => this.pending.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -321,11 +320,6 @@ export class ShellDetailPageComponent {
       });
   }
 
-  private runMicrofrontAction(url: string, microfront: Microfront, reload = true): void {
-    const project = this.project();
-    if (!project) return;
-    this.run(url, { projectId: project.id, microfrontendId: microfront.id }, reload);
-  }
   private projectDisplayName(name: string | null | undefined): string {
     const value = String(name ?? '');
     const match = /^([a-z0-9]{4})_webapp_/i.exec(value);

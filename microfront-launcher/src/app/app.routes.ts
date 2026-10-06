@@ -26,7 +26,7 @@ export const routes: Routes = [
   {
     path: 'setup',
     loadComponent: () =>
-      import('./features/setup/setup-page.component').then((m) => m.SetupPageComponent),
+      import('./features/setup/setup').then((m) => m.SetupPageComponent),
   },
   {
     path: 'error',

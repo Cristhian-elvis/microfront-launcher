@@ -6,7 +6,8 @@ import { finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import type { Project } from '../../core/launcher.models';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
-import { LauncherService } from '../../core/launcher.service';
+import { MovaService } from '../../core/services/mova.service';
+import { ProjectService } from '../../core/services/project.service';
 import { FormsModule } from '@angular/forms';
 import { InputText } from 'primeng/inputtext';
 import { Button } from 'primeng/button';
@@ -25,7 +26,8 @@ import { BreadcrumbModule } from 'primeng/breadcrumb';
 })
 export class ShellsPageComponent {
   private readonly bootstrap = inject(AppBootstrapService);
-  private readonly launcher = inject(LauncherService);
+  private readonly mova = inject(MovaService);
+  private readonly projectsApi = inject(ProjectService);
   private readonly messages = inject(MessageService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -78,8 +80,8 @@ export class ShellsPageComponent {
 
   refreshProjects(): void {
     this.pending.set(true);
-    this.launcher
-      .refreshProjects()
+    this.projectsApi
+      .refreshAll()
       .pipe(
         finalize(() => this.pending.set(false)),
         takeUntilDestroyed(this.destroyRef),
@@ -96,8 +98,8 @@ export class ShellsPageComponent {
       ? previous.filter((id) => id !== project.id)
       : [...previous, project.id];
     this.pending.set(true);
-    this.launcher
-      .saveFavoriteShells(favoriteShellIds)
+    this.mova
+      .savePreferences({ favoriteShellIds })
       .pipe(
         finalize(() => this.pending.set(false)),
         takeUntilDestroyed(this.destroyRef),

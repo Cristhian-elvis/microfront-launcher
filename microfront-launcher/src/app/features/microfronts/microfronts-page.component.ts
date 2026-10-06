@@ -12,9 +12,9 @@ import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { finalize } from 'rxjs';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
-import { ApiService } from '../../core/api.service';
-import { LauncherService } from '../../core/launcher.service';
-import type { ApiMessage, Project } from '../../core/launcher.models';
+import { MovaService } from '../../core/services/mova.service';
+import { ProjectService } from '../../core/services/project.service';
+import type { Project } from '../../core/launcher.models';
 
 type DirectoryItem = NonNullable<Project['microfrontends']>[number] & { project: Project };
 
@@ -37,8 +37,8 @@ type DirectoryItem = NonNullable<Project['microfrontends']>[number] & { project:
 })
 export class MicrofrontsPageComponent {
   private readonly bootstrap = inject(AppBootstrapService);
-  private readonly api = inject(ApiService);
-  private readonly launcher = inject(LauncherService);
+  private readonly mova = inject(MovaService);
+  private readonly projectsApi = inject(ProjectService);
   private readonly route = inject(ActivatedRoute);
   readonly projects = this.bootstrap.projects;
   readonly state = this.bootstrap.state;
@@ -93,17 +93,33 @@ export class MicrofrontsPageComponent {
       ? previous.filter((id) => id !== key)
       : [...previous, key];
     this.pending.set(true);
-    this.launcher
+    this.mova
       .savePreferences({ favoriteMicrofrontIds })
       .pipe(finalize(() => this.pending.set(false)))
       .subscribe({
         next: () => undefined,
       });
   }
-  run(url: string, item: DirectoryItem): void {
+  openFolder(item: DirectoryItem): void {
     this.pending.set(true);
-    this.api
-      .post<ApiMessage>(url, { projectId: item.project.id, microfrontendId: item.id })
+    this.projectsApi
+      .openMicrofrontFolder(item.project.id, item.id)
+      .pipe(finalize(() => this.pending.set(false)))
+      .subscribe();
+  }
+
+  openInVsCode(item: DirectoryItem): void {
+    this.pending.set(true);
+    this.projectsApi
+      .openMicrofrontInVsCode(item.project.id, item.id)
+      .pipe(finalize(() => this.pending.set(false)))
+      .subscribe();
+  }
+
+  build(item: DirectoryItem): void {
+    this.pending.set(true);
+    this.projectsApi
+      .buildMicrofront(item.project.id, item.id)
       .pipe(finalize(() => this.pending.set(false)))
       .subscribe();
   }

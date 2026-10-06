@@ -64,13 +64,13 @@
             icon="pi pi-folder-open"
             styleClass="p-button-rounded p-button-text"
             [disabled]="pending()"
-            (onClick)="run('/api/microfrontends/open-folder', item)"
+            (onClick)="openFolder(item)"
           />
           <p-button
             icon="pi pi-code"
             styleClass="p-button-rounded p-button-text"
             [disabled]="pending()"
-            (onClick)="run('/api/microfrontends/open', item)"
+            (onClick)="openInVsCode(item)"
           />
           @if (item.buildAvailable || item.localBuildAvailable) {
             <p-button
@@ -78,7 +78,7 @@
               styleClass="p-button-rounded p-button-text"
               [loading]="pending()"
               [disabled]="pending()"
-              (onClick)="run('/api/microfrontends/build', item)"
+              (onClick)="build(item)"
             />
           }
         </td>

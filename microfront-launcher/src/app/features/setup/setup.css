@@ -1,0 +1,104 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  background: #091725;
+  color: #edf5fc;
+}
+.setup-page {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 32px;
+  background: radial-gradient(circle at 15% 10%, #153856 0, transparent 34%), #091725;
+}
+.setup-panel {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.9fr) minmax(360px, 1.1fr);
+  width: min(920px, 100%);
+  overflow: hidden;
+  border: 1px solid #31516c;
+  border-radius: 18px;
+  background: #101f2e;
+  box-shadow: 0 24px 70px #03080dcc;
+}
+.setup-intro {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  padding: 48px 42px;
+  background: linear-gradient(145deg, #123a58, #102536);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #74e6df;
+  font-weight: 700;
+}
+.eyebrow {
+  margin: 20px 0 0;
+  color: #74e6df;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1.05;
+}
+.setup-intro p:last-child {
+  margin: 0;
+  color: #b5cadb;
+  line-height: 1.6;
+}
+.setup-form {
+  display: grid;
+  gap: 18px;
+  padding: 42px;
+  background: #111a24;
+}
+h2,
+.setup-form p {
+  margin: 0;
+}
+h2 {
+  font-size: 20px;
+}
+.setup-form > div p {
+  margin-top: 5px;
+  color: #9eb2c3;
+}
+label {
+  display: grid;
+  gap: 7px;
+  color: #d9e5ef;
+  font-size: 13px;
+  font-weight: 700;
+}
+input {
+  width: 100%;
+}
+.error {
+  margin: 0;
+  color: #ffb4ab;
+  font-size: 13px;
+}
+@media (max-width: 720px) {
+  .setup-page {
+    padding: 16px;
+  }
+  .setup-panel {
+    grid-template-columns: 1fr;
+  }
+  .setup-intro,
+  .setup-form {
+    padding: 30px 24px;
+  }
+  .setup-intro {
+    gap: 12px;
+  }
+  .eyebrow {
+    margin: 8px 0 0;
+  }
+}

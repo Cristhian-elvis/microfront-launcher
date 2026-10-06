@@ -18,13 +18,10 @@ import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import type { ApiMessage } from '../../core/launcher.models';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
-import { LauncherService } from '../../core/launcher.service';
+import { EnvironmentService } from '../../core/services/environment.service';
+import { MovaService } from '../../core/services/mova.service';
 import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
-
-interface ProjectOption {
-  label: string;
-  value: string;
-}
+import type { Option } from '../../shared/types/global.types';
 
 @Component({
   selector: 'app-home-page',
@@ -35,7 +32,8 @@ interface ProjectOption {
 })
 export class HomePageComponent {
   private readonly bootstrap = inject(AppBootstrapService);
-  private readonly launcher = inject(LauncherService);
+  private readonly environment = inject(EnvironmentService);
+  private readonly mova = inject(MovaService);
   private readonly messages = inject(MessageService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -77,7 +75,7 @@ export class HomePageComponent {
   );
   protected readonly activeVersion = computed(() => this.latestVersion()?.tag ?? 'No disponible');
   protected readonly versionReady = computed(() => Boolean(this.latestVersion()));
-  protected readonly projectOptions = computed<ProjectOption[]>(() =>
+  protected readonly projectOptions = computed<Option[]>(() =>
     this.projects().map((project) => ({
       label: this.projectDisplayName(project.name),
       value: project.id,
@@ -107,26 +105,26 @@ export class HomePageComponent {
   }
 
   protected startComponents(): void {
-    this.run(this.launcher.startComponents(), 'MOVA Components se está iniciando.');
+    this.run(this.mova.startComponents(), 'MOVA Components se está iniciando.');
   }
 
   protected stopComponents(): void {
-    this.run(this.launcher.stopComponents(), 'Components detenido.');
+    this.run(this.mova.stopComponents(), 'Components detenido.');
   }
 
   protected startShell(): void {
     const project = this.selectedProject();
     if (!project) return;
     localStorage.setItem('microfront-last-shell-id', project.id);
-    this.run(this.launcher.startEnvironment(project.id), 'La shell se está iniciando.');
+    this.run(this.environment.start(project.id), 'La shell se está iniciando.');
   }
 
   protected stopEnvironment(): void {
-    this.run(this.launcher.stopEnvironment(), 'El entorno se está deteniendo.');
+    this.run(this.environment.stop(), 'El entorno se está deteniendo.');
   }
 
   protected openBrowser(mode: 'tab' | 'window'): void {
-    this.run(this.launcher.openBrowser(mode), 'Navegador abierto.');
+    this.run(this.environment.openBrowser(mode), 'Navegador abierto.');
   }
 
   private run(request: Observable<ApiMessage>, success: string): void {

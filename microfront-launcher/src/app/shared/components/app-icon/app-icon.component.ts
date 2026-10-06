@@ -26,8 +26,7 @@ type AppIconName = 'console';
     }
   `,
   host: {
-    class: 'inline-flex items-center',
-    'aria-hidden': 'true',
+    class: 'inline-flex items-center', 'aria-hidden': 'true',
   },
 })
 export class AppIconComponent {

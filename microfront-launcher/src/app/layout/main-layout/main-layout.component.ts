@@ -12,12 +12,12 @@ import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
 import { AppIconComponent } from '../../shared/components/app-icon/app-icon.component';
 import { ThemeService } from '../../shared/services/theme.service';
-import { LauncherEventsService } from '../../core/launcher-events.service';
+import { LauncherEventsService } from '../../core/services/launcher-events.service';
 import type { LauncherConfig, LauncherLog, LauncherPreferences, LauncherState, Project } from '../../core/launcher.models';
-import { ApiService } from '../../core/api.service';
+import { EnvironmentService } from '../../core/services/environment.service';
+import { MovaService } from '../../core/services/mova.service';
 import { SidebarComponent } from '../sidebar/sidebar.component';
-
-type BrowserMode = 'chrome' | 'chrome-insecure' | 'edge' | 'edge-insecure';
+import type { BrowserMode } from './types/browser.type';
 
 @Component({
   selector: 'app-main-layout',
@@ -76,7 +76,8 @@ export class MainLayoutComponent {
   ));
   protected readonly avatarLetters = computed(() => (this.preferences().avatarLetters ?? 'ML').slice(0, 2).toUpperCase());
   private readonly events = inject(LauncherEventsService);
-  private readonly api = inject(ApiService);
+  private readonly environment = inject(EnvironmentService);
+  private readonly mova = inject(MovaService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly browserActions: MenuItem[] = [
     { label: 'Chrome', icon: 'pi pi-chrome', command: () => this.openBrowser('chrome') },
@@ -102,7 +103,7 @@ export class MainLayoutComponent {
   }
 
   protected openSettings(): void {
-    this.api.get<LauncherConfig>('/api/config').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.environment.getConfig().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (config) => {
         const avatarLetters = this.preferences().avatarLetters ?? 'ML';
         this.initialAvatarLetters = avatarLetters;
@@ -141,9 +142,9 @@ export class MainLayoutComponent {
     }
     this.settingsSaving.set(true);
 
-    this.api.put<unknown>('/api/config', settings).pipe(
+    this.environment.saveConfig(settings).pipe(
       concatMap(() => avatarLetters !== this.initialAvatarLetters
-        ? this.api.put<unknown>('/api/mova/preferences', { avatarLetters })
+        ? this.mova.savePreferences({ avatarLetters })
         : of(null)),
       finalize(() => this.settingsSaving.set(false)),
       takeUntilDestroyed(this.destroyRef),
@@ -157,7 +158,7 @@ export class MainLayoutComponent {
   }
 
   protected openBrowser(browser: BrowserMode = 'chrome-insecure'): void {
-    this.api.post<unknown>('/api/chrome/open', { mode: 'tab', browser })
+    this.environment.openBrowser('tab', browser)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe();
   }

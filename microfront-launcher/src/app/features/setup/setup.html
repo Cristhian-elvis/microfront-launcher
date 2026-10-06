@@ -1,0 +1,65 @@
+<section class="setup-page">
+  <main class="setup-panel">
+    <div class="setup-intro">
+      <div class="brand">
+        <i class="pi pi-box"></i>
+        Microfront Launcher
+      </div>
+      <p class="eyebrow">CONFIGURACIÓN INICIAL</p>
+      <h1>Prepara tu entorno local.</h1>
+      <p>Completa estos datos una sola vez para compilar MOVA Components y detectar tus shells.</p>
+    </div>
+    <form class="setup-form" (submit)="$event.preventDefault(); save()">
+      <div>
+        <h2>Datos del entorno</h2>
+        <p>Todos los campos son obligatorios.</p>
+      </div>
+      <label>
+        Raíz de shells
+        <input
+          pInputText
+          required
+          [value]="config().rootPath || ''"
+          (input)="updateRoot($any($event.target).value)"
+        />
+      </label>
+      <label>
+        Repositorio MOVA UI Components
+        <input
+          pInputText
+          required
+          [value]="config().mova?.sourcePath || ''"
+          (input)="updateMova('sourcePath', $any($event.target).value)"
+        />
+      </label>
+      <label>
+        CDN base de MOVA Components
+        <input
+          pInputText
+          required
+          [value]="config().mova?.cdnHost || ''"
+          (input)="updateMova('cdnHost', $any($event.target).value)"
+        />
+      </label>
+      <label>
+        Carpeta Stencil
+        <input
+          pInputText
+          required
+          [value]="config().mova?.stencilComponentsFolderName || ''"
+          (input)="updateMova('stencilComponentsFolderName', $any($event.target).value)"
+        />
+      </label>
+      @if (error(); as message) {
+      <p class="error">{{ message }}</p>
+      }
+      <p-button
+        type="submit"
+        label="Guardar y continuar"
+        icon="pi pi-arrow-right"
+        [disabled]="!valid()"
+        [loading]="saving()"
+      />
+    </form>
+  </main>
+</section>
