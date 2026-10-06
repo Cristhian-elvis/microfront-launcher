@@ -1,7 +1,8 @@
 import { json, Router } from 'express';
 import { writePreferences } from '../../lib/core.js';
+import { RuntimeStateService } from "./../../services/runtime-state-service.js";
 
-export function createMovaRouter({ emitPreferences }) {
+export function createMovaRouter() {
   const router = Router();
 
   router.put('/mova/preferences', json(), (request, response) => {
@@ -9,7 +10,7 @@ export function createMovaRouter({ emitPreferences }) {
     delete preferences.componentsVersion;
     delete preferences.preferredTag;
     writePreferences(preferences);
-    emitPreferences();
+    RuntimeStateService.emitPreferences();
     response.json({ message: 'Preferencias guardadas.' });
   });
 

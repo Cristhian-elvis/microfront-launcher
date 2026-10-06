@@ -9,13 +9,21 @@ function validMode(mode, response) {
   return false;
 }
 
+function validBrowserMode(browser, response) {
+  if (browser === undefined || ['chrome', 'chrome-insecure', 'edge', 'edge-insecure'].includes(browser)) {
+    return true;
+  }
+  response.status(400).json({ error: 'El navegador seleccionado no es válido.' });
+  return false;
+}
+
 export function createBrowserRouter({ openEmptyBrowser, reopenChrome }) {
   const router = Router();
 
   router.post('/chrome/open', json(), async (request, response) => {
-    const { mode, remember } = request.body ?? {};
-    if (!validMode(mode, response)) return;
-    await reopenChrome({ newWindow: mode === 'window' });
+    const { mode, remember, browser } = request.body ?? {};
+    if (!validMode(mode, response) || !validBrowserMode(browser, response)) return;
+    await reopenChrome({ newWindow: mode === 'window', browserMode: browser });
     if (remember) {
       const config = readConfig();
       writeJson(configPath, {

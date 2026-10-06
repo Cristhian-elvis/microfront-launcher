@@ -1,12 +1,12 @@
 import { json, Router } from 'express';
-import { getProjects } from '../../lib/core.js';
+import { getIndexedProject } from '../../lib/core.js';
 import {
   openMicrofrontendFolder,
   stopMicrofrontendWatch,
 } from '../../operations/microfrontend-ops.js';
 
-async function findMicrofrontend(projectId, microfrontendId) {
-  const project = (await getProjects()).find((item) => item.id === projectId);
+function findMicrofrontend(projectId, microfrontendId) {
+  const project = getIndexedProject(projectId);
   const microfrontend = project?.microfrontends?.find(
     (item) => item.id === microfrontendId,
   );
@@ -34,7 +34,7 @@ export function createMicrofrontendsRouter({
   });
   router.post('/microfrontends/build', json(), async (request, response) => {
     const { projectId, microfrontendId } = request.body ?? {};
-    const { project, microfrontend } = await findMicrofrontend(projectId, microfrontendId);
+    const { project, microfrontend } = findMicrofrontend(projectId, microfrontendId);
     buildMicrofrontend(project, microfrontend);
     response.status(202).json({
       ok: true,
@@ -58,7 +58,7 @@ export function createMicrofrontendsRouter({
   });
   router.post('/microfrontends/watch', json(), async (request, response) => {
     const { projectId, microfrontendId } = request.body ?? {};
-    const { project, microfrontend } = await findMicrofrontend(projectId, microfrontendId);
+    const { project, microfrontend } = findMicrofrontend(projectId, microfrontendId);
     startWatch(project, microfrontend);
     response.status(202).json({ ok: true, message: 'Watch iniciado para el microfrontend.' });
   });

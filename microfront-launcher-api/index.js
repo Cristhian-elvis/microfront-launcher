@@ -42,10 +42,12 @@ import {
 } from "./services/process-runner-service.js";
 import { createShellRuntimeService } from "./services/shell-runtime-service.js";
 import {
-  latestVersion,
   selectedVersion,
 } from "./services/components-version-service.js";
 import { createComponentsRuntimeService } from "./services/components-runtime-service.js";
+import { createBrowserService } from "./services/browser-service.js";
+import { createLocalDirectoryPicker } from "./services/local-directory-picker-service.js";
+import { createMicrofrontendBuildService } from "./services/microfrontend-build-service.js";
 import { json } from "./lib/http.js";
 import { state } from "./state.js";
 
@@ -171,8 +173,7 @@ async function buildComponents(version, signal, { force = false } = {}) {
   }
 }
 const componentsRuntime = createComponentsRuntimeService({
-  buildComponents,
-  emitState: RuntimeStateService.emitState,
+  buildComponents
 });
 
 async function startComponentsStandalone() {
@@ -214,165 +215,10 @@ async function stopComponents() {
   RuntimeStateService.emitState();
 }
 
-function buildMicrofrontend(project, microfrontend) {
-  if (branchOperation || state.microfrontendBuild.status === "running") {
-    throw new Error("Ya hay una operación de microfrontend en curso.");
-  }
-  if (!microfrontend?.buildAvailable)
-    throw new Error(
-      `El microfrontend ${microfrontend?.name || ""} no define npm run build.`,
-    );
-  const key = `microfrontend-build:${project.id}:${microfrontend.id}`;
-  RuntimeStateService.updateMicrofrontendBuild({
-    status: "running",
-    projectId: project.id,
-    microfrontendId: microfrontend.id,
-    phase: "build",
-    message: "Compilando.",
-    error: null,
-    startedAt: new Date().toISOString(),
-  });
-  const record = spawnManaged({
-    key,
-    label: `Build · ${microfrontend.name}`,
-    file: process.platform === "win32" ? "npm.cmd" : "npm",
-    args: ["run", "build"],
-    cwd: microfrontend.path,
-    longRunning: false,
-  });
-  record.done.then(({ code }) => {
-    if (state.microfrontendBuild.microfrontendId !== microfrontend.id) return;
-    if (code === 0) {
-      RuntimeStateService.updateMicrofrontendBuild({
-        status: "success",
-        message: `${microfrontend.name} compilado correctamente.`,
-        error: null,
-      });
-    } else {
-      RuntimeStateService.updateMicrofrontendBuild({
-        status: "error",
-        message: "La compilación no se completó.",
-        error: `${microfrontend.name} terminó con código ${code ?? "-"}.`,
-      });
-    }
-  });
-  return record;
-}
+const microfrontendBuildService = createMicrofrontendBuildService({
+  isBranchOperationRunning: () => Boolean(branchOperation),
+});
 
-async function selectedMicrofrontends(projectId, microfrontendIds) {
-  const project = getIndexedProject(projectId);
-  if (!project) throw new Error("No se encontró la shell solicitada.");
-  const requested = new Set(
-    Array.isArray(microfrontendIds) ? microfrontendIds : [],
-  );
-  const microfrontends = (project.microfrontends || []).filter((item) =>
-    requested.has(item.id),
-  );
-  if (!microfrontends.length || microfrontends.length !== requested.size)
-    throw new Error("La selección de microfronts no es válida.");
-  return { project, microfrontends };
-}
-
-async function startMicrofrontendBuildBatch(projectId, microfrontendIds) {
-  if (branchOperation || state.microfrontendBuild.status === "running")
-    throw new Error("Ya hay una operación de microfrontend en curso.");
-
-  // AÑADIDO: await
-  const { project, microfrontends } = await selectedMicrofrontends(
-    projectId,
-    microfrontendIds,
-  );
-
-  if (microfrontends.some((item) => !item.buildAvailable))
-    throw new Error(
-      "La selección contiene microfronts sin el script npm run build.",
-    );
-  const startedAt = new Date().toISOString();
-  const run = async () => {
-    const results = await Promise.all(
-      microfrontends.map(async (microfrontend) => {
-        RuntimeStateService.updateMicrofrontendOperation(
-          "build",
-          projectId,
-          microfrontend.id,
-          {
-            status: "running",
-            phase: "build",
-            message: "Compilando",
-            error: null,
-            startedAt,
-          },
-        );
-        const record = spawnManaged({
-          key: `microfrontend-build:${project.id}:${microfrontend.id}`,
-          label: `Build · ${microfrontend.name}`,
-          file: process.platform === "win32" ? "npm.cmd" : "npm",
-          args: ["run", "build"],
-          cwd: microfrontend.path,
-          longRunning: false,
-        });
-        const { code } = await record.done;
-        if (code === 0) {
-          RuntimeStateService.updateMicrofrontendOperation(
-            "build",
-            projectId,
-            microfrontend.id,
-            {
-              status: "success",
-              phase: "done",
-              message: "Completado",
-              error: null,
-              startedAt,
-            },
-          );
-          return true;
-        }
-        const error = `Terminó con código ${code ?? "-"}.`;
-        RuntimeStateService.updateMicrofrontendOperation(
-          "build",
-          projectId,
-          microfrontend.id,
-          {
-            status: "error",
-            phase: "error",
-            message: "No se completó la compilación",
-            error,
-            startedAt,
-          },
-        );
-        return false;
-      }),
-    );
-    const completedIds = microfrontends
-      .filter((_, index) => results[index])
-      .map((item) => item.id);
-    RuntimeStateService.updateMicrofrontendBuild({
-      status: results.every(Boolean) ? "success" : "error",
-      projectId,
-      microfrontendId: microfrontends.at(-1).id,
-      phase: "done",
-      message: `${completedIds.length}/${microfrontends.length} microfronts compilados.`,
-      error: null,
-      startedAt,
-      batchIds: microfrontendIds,
-      completedIds,
-    });
-  };
-  microfrontendBatchOperation = run()
-    .catch((error) => {
-      RuntimeStateService.updateMicrofrontendBuild({
-        status: "error",
-        error: error.message,
-        message: "La compilación por lote no se completó.",
-        startedAt,
-        batchIds: microfrontendIds,
-      });
-      addLog("Microfronts", "error", error.message);
-    })
-    .finally(() => {
-      microfrontendBatchOperation = null;
-    });
-}
 
 async function startMicrofrontendBranchBatch(
   projectId,
@@ -483,67 +329,11 @@ async function startMicrofrontendBranchBatch(
 }
 
 const shellRuntime = createShellRuntimeService();
-
-function browserSettings(config = readConfig()) {
-  const mode = config.browser.selected;
-  const isEdge = mode.startsWith("edge");
-  const insecure = mode.endsWith("-insecure");
-  return {
-    name: isEdge ? "Edge" : "Chrome",
-    path: isEdge ? config.browser.edge.path : config.browser.chrome.path,
-    userDataDir: isEdge
-      ? config.browser.edge.userDataDir
-      : config.browser.chrome.userDataDir,
-    insecure,
-  };
-}
-
-async function openChrome(project, { newWindow = true, url = null } = {}) {
-  const config = readConfig();
-  const browser = browserSettings(config);
-  if (!fs.existsSync(browser.path))
-    throw new Error(`No se encontró ${browser.name}: ${browser.path}`);
-  const chromeUrl = url
-    ? new URL(url)
-    : project
-      ? new URL(project.url)
-      : new URL("chrome://newtab/");
-  if (!url && project) {
-    chromeUrl.hostname = config.browser.openHost;
-    chromeUrl.port = String(config.shellDefaults.serverPort || 8080);
-  }
-  const args = [
-    ...(browser.insecure
-      ? [`--user-data-dir=${browser.userDataDir}`, "--disable-web-security"]
-      : []),
-    ...(newWindow ? ["--new-window"] : []),
-    chromeUrl.toString(),
-  ];
-  await new Promise((resolve, reject) => {
-    const chrome = spawn(browser.path, args, {
-      detached: true,
-      stdio: "ignore",
-      windowsHide: false,
-    });
-    chrome.once("error", reject);
-    chrome.once("spawn", () => {
-      chrome.unref();
-      resolve();
-    });
-  });
-  addLog(
-    browser.name,
-    "system",
-    `Ejecutando: "${browser.path}" ${args.join(" ")}`,
-  );
-}
+const browserService = createBrowserService({ addLog, readConfig });
 
 async function openOrRequestBrowser(project) {
   const config = readConfig();
-  const browser = browserSettings(config);
-  if (!fs.existsSync(browser.path))
-    throw new Error(`No se encontró ${browser.name}: ${browser.path}`);
-  return openChrome(project, {
+  return browserService.open(project, {
     newWindow: config.browser.openMode === "window",
   });
 }
@@ -581,7 +371,7 @@ async function openScaffolding(projectId) {
   );
 }
 
-async function reopenChrome({ newWindow = true, url = null } = {}) {
+async function reopenChrome({ newWindow = true, url = null, browserMode = null } = {}) {
   // Si no hay shell activa, el navegador abre una pestaña nueva.
   const project =
     state.shell.status === "running" && state.shell.projectId
@@ -590,11 +380,11 @@ async function reopenChrome({ newWindow = true, url = null } = {}) {
   if (state.shell.projectId && !project) {
     throw new Error("No se encontró la configuración de la shell activa.");
   }
-  await openChrome(project, { newWindow, url });
+  await browserService.open(project, { newWindow, url, browserMode });
 }
 
 async function openEmptyBrowser({ newWindow = true, url = null } = {}) {
-  await openChrome(null, { newWindow, url });
+  await browserService.open(null, { newWindow, url });
 }
 
 function runGit(args, cwd) {
@@ -737,38 +527,7 @@ function startMicrofrontendBranchSwitch(projectId, microfrontendId, branch) {
     });
 }
 
-function selectLocalDirectory(description) {
-  if (process.platform !== "win32")
-    throw new Error("El selector de carpetas solo está disponible en Windows.");
-  const script = [
-    "Add-Type -AssemblyName System.Windows.Forms",
-    "Add-Type -AssemblyName System.Drawing",
-    "$owner = New-Object System.Windows.Forms.Form",
-    "$owner.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual",
-    "$owner.Location = New-Object System.Drawing.Point(-32000, -32000)",
-    "$owner.Size = New-Object System.Drawing.Size(1, 1)",
-    "$owner.ShowInTaskbar = $false",
-    "$owner.Opacity = 0",
-    "$owner.TopMost = $true",
-    "$owner.Show()",
-    "$owner.Activate()",
-    "$dialog = New-Object System.Windows.Forms.FolderBrowserDialog",
-    `$dialog.Description = '${description}'`,
-    "$dialog.ShowNewFolderButton = $false",
-    "try { if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($dialog.SelectedPath) } } finally { $dialog.Dispose(); $owner.Close(); $owner.Dispose() }",
-  ].join("; ");
-  return new Promise((resolve, reject) =>
-    execFile(
-      "powershell.exe",
-      ["-NoProfile", "-STA", "-Command", script],
-      { windowsHide: false },
-      (error, stdout) => {
-        if (error) return reject(error);
-        resolve(stdout.trim());
-      },
-    ),
-  );
-}
+const selectLocalDirectory = createLocalDirectoryPicker();
 
 const findProject = async (projectId) => getIndexedProject(projectId) ||
   (await getProjects()).find((item) => item.id === projectId);
@@ -778,8 +537,8 @@ const projectGitService = createProjectGitService({
 });
 export const microfrontendsRouter = createMicrofrontendsRouter({
   openMicrofrontend: vsCodeService.openMicrofrontend,
-  buildMicrofrontend,
-  startBuildBatch: startMicrofrontendBuildBatch,
+  buildMicrofrontend: microfrontendBuildService.buildMicrofrontend,
+  startBuildBatch: microfrontendBuildService.startBatch,
   startBranchSwitch: startMicrofrontendBranchSwitch,
   startBranchBatch: startMicrofrontendBranchBatch,
   startWatch: MicrofrontendRuntimeService.startMicrofrontend,
@@ -794,13 +553,8 @@ export const browserRouter = createBrowserRouter({
   reopenChrome,
   openEmptyBrowser,
 });
-export const stateRouter = createStateRouter({
-  getRuntime: RuntimeStateService.getRuntime,
-  getLatestVersion: latestVersion,
-});
-export const movaRouter = createMovaRouter({
-  emitPreferences: RuntimeStateService.emitPreferences,
-});
+export const stateRouter = createStateRouter();
+export const movaRouter = createMovaRouter();
 export const componentsRouter = createComponentsRouter({
   state,
   startComponents: startComponentsStandalone,

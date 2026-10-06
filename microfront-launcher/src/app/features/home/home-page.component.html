@@ -134,4 +134,8 @@
   </article>
 </section>
 
-<app-process-console [logs]="logs()" />
+<app-process-console
+  [logs]="logs()"
+  [clearedAt]="logsClearedAt()"
+  (clearRequested)="clearLogsView()"
+/>

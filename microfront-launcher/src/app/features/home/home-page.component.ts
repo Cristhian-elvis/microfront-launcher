@@ -43,11 +43,16 @@ export class HomePageComponent {
   protected readonly preferences = this.bootstrap.preferences;
   protected readonly projects = this.bootstrap.projects;
   protected readonly logs = this.bootstrap.logs;
+  protected readonly logsClearedAt = this.bootstrap.logsClearedAt;
   protected readonly latestVersion = this.bootstrap.latestVersion;
   protected readonly selectedProjectId = signal(
     localStorage.getItem('microfront-last-shell-id') ?? '',
   );
   protected readonly actionPending = signal(false);
+
+  protected clearLogsView(): void {
+    this.bootstrap.clearLogsView();
+  }
 
   protected readonly selectedProject = computed(() =>
     this.projects().find((project) => project.id === this.selectedProjectId()),

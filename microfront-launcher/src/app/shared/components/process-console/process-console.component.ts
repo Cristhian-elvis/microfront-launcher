@@ -1,7 +1,8 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { Button } from 'primeng/button';
 import type { LauncherLog } from '../../../core/launcher.models';
+import { AppIconComponent } from '../app-icon/app-icon.component';
 
 export interface ConsoleSegment {
   text: string;
@@ -43,14 +44,15 @@ export function parseAnsi(message: string): ConsoleSegment[] {
 @Component({
   selector: 'app-process-console',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Button, DatePipe],
+  imports: [Button, DatePipe, AppIconComponent],
   templateUrl: './process-console.component.html',
   styleUrl: './process-console.component.css',
 })
 export class ProcessConsoleComponent {
   readonly logs = input.required<LauncherLog[]>();
+  readonly clearedAt = input(0);
+  readonly clearRequested = output<void>();
 
-  private readonly clearedAt = signal(0);
   protected readonly visibleLogs = computed(() => {
     const clearedAt = this.clearedAt();
     return this.logs().filter((log) => Date.parse(log.at) > clearedAt);
@@ -60,6 +62,6 @@ export class ProcessConsoleComponent {
   );
 
   protected clearView(): void {
-    this.clearedAt.set(Date.now());
+    this.clearRequested.emit();
   }
 }

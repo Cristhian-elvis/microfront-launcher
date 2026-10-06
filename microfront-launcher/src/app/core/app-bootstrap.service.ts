@@ -29,6 +29,7 @@ export class AppBootstrapService {
   readonly projects = signal<Project[]>([]);
   readonly latestVersion = signal<BootstrapPayload['latestVersion']>(null);
   readonly logs = signal<LauncherLog[]>([]);
+  readonly logsClearedAt = signal(0);
   readonly setup = signal<SetupStatus>({ required: false });
   readonly errors = signal<BootstrapErrors>({});
 
@@ -70,6 +71,10 @@ export class AppBootstrapService {
     this.logs.update((logs) =>
       logs.some((entry) => entry.id === log.id) ? logs : [...logs.slice(-499), log],
     );
+  }
+
+  clearLogsView(): void {
+    this.logsClearedAt.set(Date.now());
   }
 
   reload(): void {

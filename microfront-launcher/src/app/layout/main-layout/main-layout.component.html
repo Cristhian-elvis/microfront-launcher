@@ -2,40 +2,36 @@
   <app-sidebar (settingsRequested)="openSettings()" />
   <main class="min-w-0 flex-1">
     <header
-      class="flex items-center justify-between gap-4 border-b border-surface-200 bg-surface-0 px-7 py-4 text-sm text-surface-500 dark:border-surface-700 dark:bg-surface-900 max-md:px-4"
+      class="flex items-center justify-end gap-4 border-b border-surface-200 bg-surface-0 px-7 py-4 text-sm text-surface-500 dark:border-surface-700 dark:bg-surface-900 max-md:px-4"
     >
-      <div class="flex items-center gap-2 text-surface-900 dark:text-surface-0">
-        <i class="pi pi-terminal text-primary"></i>
-        <span>
-          <strong class="block">Microfront</strong>
-          <small>Launcher V2</small>
-        </span>
-      </div>
       <div class="flex items-center gap-2">
         <button
           pButton
           type="button"
+          size="small"
+          [outlined]="true"
           [icon]="theme.isDark() ? 'pi pi-sun' : 'pi pi-moon'"
           [label]="theme.isDark() ? 'Claro' : 'Oscuro'"
-          class="p-button-sm p-button-outlined"
           (click)="theme.toggle()"
         ></button>
-        <button
-          pButton
-          type="button"
+        <p-splitbutton
           label="Abrir navegador"
           icon="pi pi-external-link"
-          class="p-button-sm p-button-outlined"
-          (click)="openBrowser()"
-        ></button>
+          size="small"
+          [outlined]="true"
+          [model]="browserActions"
+          (onClick)="openBrowser()"
+        />
         <button
           pButton
           type="button"
-          label="Visualizar consola"
-          icon="pi pi-terminal"
-          class="p-button-sm p-button-outlined"
+          size="small"
+          [outlined]="true"
           (click)="consoleVisible.set(true)"
-        ></button>
+        >
+          <app-icon name="console" />
+          <span class="p-button-label">Visualizar consola</span>
+        </button>
       </div>
     </header>
     <section class="p-7 max-md:p-4"><router-outlet /></section>
@@ -48,7 +44,11 @@
   [draggable]="false"
   (visibleChange)="consoleVisible.set($event)"
 >
-  <app-process-console [logs]="bootstrap.logs()" />
+  <app-process-console
+    [logs]="bootstrap.logs()"
+    [clearedAt]="bootstrap.logsClearedAt()"
+    (clearRequested)="bootstrap.clearLogsView()"
+  />
 </p-dialog>
 <p-dialog
   header="Configuración"
@@ -60,24 +60,33 @@
 >
   <div class="grid gap-5">
     <p class="m-0 text-sm text-surface-500">Preferencias globales del launcher.</p>
+    @if (settingsReadOnly()) {
+      <p
+        class="m-0 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+      >
+        La configuración se muestra en modo solo lectura mientras hay un entorno en ejecución.
+      </p>
+    }
     <section class="grid gap-3">
       <h3 class="m-0 text-base">Rutas del entorno</h3>
-    <label class="grid gap-1">
-      Raíz de shells
-      <input
-        pInputText
-        [value]="settings().rootPath || ''"
-        (input)="updateSetting('rootPath', '', $any($event.target).value)"
-      />
-    </label>
-    <label class="grid gap-1">
-      Repositorio MOVA UI Components
-      <input
-        pInputText
-        [value]="settings().mova?.sourcePath || ''"
-        (input)="updateSetting('mova', 'sourcePath', $any($event.target).value)"
-      />
-    </label>
+      <label class="grid gap-1">
+        Raíz de shells
+        <input
+          pInputText
+          [disabled]="settingsReadOnly()"
+          [value]="settings().rootPath || ''"
+          (input)="updateSetting('rootPath', '', $any($event.target).value)"
+        />
+      </label>
+      <label class="grid gap-1">
+        Repositorio MOVA UI Components
+        <input
+          pInputText
+          [disabled]="settingsReadOnly()"
+          [value]="settings().mova?.sourcePath || ''"
+          (input)="updateSetting('mova', 'sourcePath', $any($event.target).value)"
+        />
+      </label>
     </section>
     <section class="grid gap-3">
       <h3 class="m-0 text-base">MOVA Components publicado</h3>
@@ -86,6 +95,7 @@
         <input
           pInputText
           required
+          [disabled]="settingsReadOnly()"
           [value]="settings().mova?.cdnHost || ''"
           (input)="updateSetting('mova', 'cdnHost', $any($event.target).value)"
         />
@@ -95,6 +105,7 @@
         <input
           pInputText
           required
+          [disabled]="settingsReadOnly()"
           [value]="settings().mova?.stencilComponentsFolderName || ''"
           (input)="updateSetting('mova', 'stencilComponentsFolderName', $any($event.target).value)"
         />
@@ -102,78 +113,88 @@
     </section>
     <section class="grid gap-3">
       <h3 class="m-0 text-base">Servidor local</h3>
-    <label class="grid gap-1">
-      <span class="flex items-center gap-2">
-        Puerto del servidor local
-        <i
-          class="pi pi-info-circle cursor-help text-primary"
-          tabindex="0"
-          pTooltip="Se aplica globalmente a todas las shells y a MOVA Components."
-          tooltipPosition="top"
-          aria-label="Información sobre el puerto local"
-        ></i>
-      </span>
-      <input
-        pInputText
-        type="number"
-        [value]="settings().shellDefaults?.serverPort || ''"
-        (input)="updateSetting('shellDefaults', 'serverPort', $any($event.target).value)"
-      />
-    </label>
+      <label class="grid gap-1">
+        <span class="flex items-center gap-2">
+          Puerto del servidor local
+          <i
+            class="pi pi-info-circle cursor-help text-primary"
+            tabindex="0"
+            pTooltip="Se aplica globalmente a todas las shells y a MOVA Components."
+            tooltipPosition="top"
+            aria-label="Información sobre el puerto local"
+          ></i>
+        </span>
+        <input
+          pInputText
+          type="number"
+          [disabled]="settingsReadOnly()"
+          [value]="settings().shellDefaults?.serverPort || ''"
+          (input)="updateSetting('shellDefaults', 'serverPort', $any($event.target).value)"
+        />
+      </label>
     </section>
     <section class="grid gap-3">
-      <h3 class="m-0 text-base">Navegador</h3>
-    <label class="grid gap-1">
-      Modo de navegador
-      <select
-        class="p-inputtext w-full"
-        [value]="settings().browser?.selected || 'chrome-insecure'"
-        (change)="updateSetting('browser', 'selected', $any($event.target).value)"
-      >
-        <option value="chrome">Chrome</option>
-        <option value="chrome-insecure">Chrome sin seguridad</option>
-        <option value="edge">Edge</option>
-        <option value="edge-insecure">Edge sin seguridad</option>
-      </select>
-    </label>
-    <label class="grid gap-1">
-      Si ya hay una ventana abierta
-      <select
-        class="p-inputtext w-full"
-        [value]="settings().browser?.openMode || ''"
-        (change)="updateSetting('browser', 'openMode', $any($event.target).value)"
-      >
-        <option value="">Preguntar cada vez</option>
-        <option value="tab">Abrir como nueva pestaña</option>
-        <option value="window">Abrir como nueva ventana</option>
-      </select>
-    </label>
-    <label class="grid gap-1">
-      Dirección para abrir
-      <select
-        class="p-inputtext w-full"
-        [value]="settings().browser?.openHost || 'localhost'"
-        (change)="updateSetting('browser', 'openHost', $any($event.target).value)"
-      >
-        <option value="localhost">localhost (predeterminado)</option>
-        <option value="127.0.0.1">127.0.0.1</option>
-    </select>
-    </label>
+      <h3 class="m-0 text-base">Navegador para el arranque del entorno</h3>
+      <p class="m-0 text-sm text-surface-500">
+        Se usa cuando el launcher abre el navegador durante el arranque del servidor.
+      </p>
+      <label class="grid gap-1">
+        Modo de navegador
+        <select
+          class="p-inputtext w-full"
+          [disabled]="settingsReadOnly()"
+          [value]="settings().browser?.selected || 'chrome-insecure'"
+          (change)="updateSetting('browser', 'selected', $any($event.target).value)"
+        >
+          <option value="chrome">Chrome</option>
+          <option value="chrome-insecure">Chrome sin seguridad</option>
+          <option value="edge">Edge</option>
+          <option value="edge-insecure">Edge sin seguridad</option>
+        </select>
+      </label>
+      <label class="grid gap-1">
+        Si ya hay una ventana abierta
+        <select
+          class="p-inputtext w-full"
+          [disabled]="settingsReadOnly()"
+          [value]="settings().browser?.openMode || ''"
+          (change)="updateSetting('browser', 'openMode', $any($event.target).value)"
+        >
+          <option value="">Preguntar cada vez</option>
+          <option value="tab">Abrir como nueva pestaña</option>
+          <option value="window">Abrir como nueva ventana</option>
+        </select>
+      </label>
+      <label class="grid gap-1">
+        Dirección para abrir
+        <select
+          class="p-inputtext w-full"
+          [disabled]="settingsReadOnly()"
+          [value]="settings().browser?.openHost || 'localhost'"
+          (change)="updateSetting('browser', 'openHost', $any($event.target).value)"
+        >
+          <option value="localhost">localhost (predeterminado)</option>
+          <option value="127.0.0.1">127.0.0.1</option>
+        </select>
+      </label>
     </section>
     <section class="grid gap-3">
       <h3 class="m-0 text-base">Avatar</h3>
-    <label class="grid gap-1">
-      Iniciales
-      <input
-        pInputText
-        maxlength="2"
-        [value]="settings().preferences?.avatarLetters || ''"
-        (input)="updateAvatarLetters($any($event.target).value)"
-      />
-    </label>
+      <label class="grid gap-1">
+        Iniciales
+        <input
+          pInputText
+          maxlength="2"
+          [disabled]="settingsReadOnly()"
+          [value]="settings().preferences?.avatarLetters || ''"
+          (input)="updateAvatarLetters($any($event.target).value)"
+        />
+      </label>
     </section>
     @if (settingsError(); as error) {
-      <p class="m-0 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+      <p
+        class="m-0 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+      >
         {{ error }}
       </p>
     }
@@ -187,7 +208,7 @@
       <p-button
         label="Guardar cambios"
         icon="pi pi-check"
-        [disabled]="!publishedComponentsConfigured()"
+        [disabled]="settingsReadOnly() || !publishedComponentsConfigured()"
         [loading]="settingsSaving()"
         (onClick)="saveSettings()"
       />

@@ -6,12 +6,16 @@ import {
   readPreferences,
 } from '../../lib/core.js';
 import { eventClients, logs } from '../../lib/runtime.js';
+import { RuntimeStateService } from "./../../services/runtime-state-service.js";
+import {
+  latestVersion,
+} from "./../../services/components-version-service.js";
 
 function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function createStateRouter({ getRuntime, getLatestVersion }) {
+export function createStateRouter() {
   const router = Router();
 
   router.get('/bootstrap', async (request, response) => {
@@ -21,19 +25,19 @@ export function createStateRouter({ getRuntime, getLatestVersion }) {
     }
 
     const [projects] = await Promise.allSettled([getProjects()]);
-    let latestVersion = null;
+    let latestComponentsVersion = null;
     let latestVersionError = null;
     try {
-      latestVersion = await getLatestVersion();
+      latestComponentsVersion = await latestVersion();
     } catch (error) {
       latestVersionError = errorMessage(error);
     }
 
     response.json({
-      runtime: getRuntime(),
+      runtime: RuntimeStateService.getRuntime(),
       preferences: readPreferences(),
       projects: projects.status === 'fulfilled' ? projects.value : [],
-      latestVersion,
+      latestVersion: latestComponentsVersion,
       logs: logs.slice(-500),
       setup: { required: needsInitialSetup() },
       errors: {
@@ -45,7 +49,7 @@ export function createStateRouter({ getRuntime, getLatestVersion }) {
     });
   });
 
-  router.get('/state', (request, response) => response.json(getRuntime()));
+  router.get('/state', (request, response) => response.json(RuntimeStateService.getRuntime()));
   router.get('/config', (request, response) => response.json(readConfig()));
   router.get('/setup', (request, response) => {
     response.json({ required: needsInitialSetup() });

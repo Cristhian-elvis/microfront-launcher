@@ -22,13 +22,8 @@
   gap: 10px;
 }
 
-.console-icon,
 .log-line b {
   @apply text-primary;
-}
-
-.console-icon {
-  flex: 0 0 auto;
 }
 
 .console-panel header span {

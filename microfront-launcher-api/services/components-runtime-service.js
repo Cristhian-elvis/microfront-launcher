@@ -4,6 +4,7 @@ import { assertInside, versionsRoot } from "../lib/core.js";
 import { addLog } from "../lib/runtime.js";
 import { state } from "../state.js";
 import { assertNotCancelled } from "./process-runner-service.js";
+import { RuntimeStateService } from "./../services/runtime-state-service.js";
 
 function componentsLinkPath(project) {
   return path.join(project.serverPath, "cudc-lib-componentes-stencil-VAL");
@@ -53,7 +54,7 @@ function replaceManagedComponentsLink(link) {
   );
 }
 
-export function createComponentsRuntimeService({ buildComponents, emitState }) {
+export function createComponentsRuntimeService({ buildComponents }) {
   async function ensureComponents(project, version, signal) {
     assertNotCancelled(signal);
     if (!version)
@@ -71,7 +72,7 @@ export function createComponentsRuntimeService({ buildComponents, emitState }) {
       tag: version.tag, external: false,
     };
     addLog("MOVA Components", "success", "Asociación creada correctamente.");
-    emitState();
+    RuntimeStateService.emitState();
   }
 
   return { ensureComponents };
