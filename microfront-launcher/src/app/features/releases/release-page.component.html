@@ -1,0 +1,249 @@
+<section class="app-page">
+  <p-breadcrumb [home]="{ icon: 'pi pi-home', routerLink: '/home' }" [model]="breadCrumbItems" />
+  <header class="app-page-header">
+    <div>
+      <h1>Generar versión</h1>
+      <p>Define el incremento individual de cada microfront y, opcionalmente, de la webapp.</p>
+    </div>
+    <p-tag value="Solo planificación" severity="secondary" icon="pi pi-info-circle" />
+  </header>
+
+  <div class="grid items-start gap-6 xl:grid-cols-[minmax(20rem,0.7fr)_minmax(0,1.3fr)]">
+    <article
+      class="grid content-start gap-4 rounded-xl border border-surface-200 bg-surface-0 p-5 shadow-sm dark:border-surface-700 dark:bg-surface-900"
+    >
+      <h2 class="m-0 text-xl font-semibold">1. Configuración</h2>
+      <label class="text-sm font-semibold" for="release-project">Shell / webapp</label>
+      <p-select
+        inputId="release-project"
+        [options]="projectOptions()"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Selecciona una shell"
+        [ngModel]="selectedProjectId()"
+        (ngModelChange)="selectProject($event)"
+        styleClass="w-full"
+      />
+
+      <h3 class="mb-0 mt-2 text-sm font-semibold">Acciones incluidas</h3>
+      <div class="grid gap-3">
+        <label class="flex items-center gap-2 text-sm font-semibold">
+          <p-checkbox
+            [binary]="true"
+            [ngModel]="hasOption('createTags')"
+            (ngModelChange)="updateOption('createTags', $event)"
+          />
+          Crear tags locales
+        </label>
+        <label class="flex items-center gap-2 text-sm font-semibold">
+          <p-checkbox
+            [binary]="true"
+            [ngModel]="hasOption('updateWebapp')"
+            (ngModelChange)="updateOption('updateWebapp', $event)"
+          />
+          Actualizar versión del webapp
+        </label>
+        <label class="flex items-center gap-2 text-sm font-semibold">
+          <p-checkbox
+            [binary]="true"
+            [ngModel]="hasOption('push')"
+            (ngModelChange)="updateOption('push', $event)"
+          />
+          Hacer push de commits y tags
+        </label>
+      </div>
+
+      @if (hasOption('updateWebapp')) {
+        <div class="grid gap-2">
+          <label class="text-sm font-semibold" for="webapp-release-type">
+            Incremento de webapp
+          </label>
+          <div class="flex items-center gap-2">
+            <p-select
+              inputId="webapp-release-type"
+              [options]="releaseTypeSelectOptions"
+              optionLabel="label"
+              optionValue="value"
+              [ngModel]="webappReleaseType()"
+              (ngModelChange)="selectWebappReleaseType($event)"
+              styleClass="w-full"
+            />
+            <p-button
+              icon="pi pi-question-circle"
+              severity="secondary"
+              [text]="true"
+              ariaLabel="Ayuda sobre tipos de versión"
+              (onClick)="versionTypeHelp.toggle($event)"
+            />
+            <p-popover #versionTypeHelp>
+              <div class="grid gap-2 text-sm">
+                <div>
+                  <strong>Patch</strong>
+                  : correcciones sin cambios funcionales.
+                </div>
+                <div>
+                  <strong>Minor</strong>
+                  : funcionalidad nueva compatible.
+                </div>
+                <div>
+                  <strong>Major</strong>
+                  : cambios incompatibles.
+                </div>
+              </div>
+            </p-popover>
+          </div>
+          <small class="text-surface-500">
+            La versión actual de la webapp se resolverá al validar la operación en backend.
+          </small>
+        </div>
+      }
+    </article>
+
+    <article
+      class="rounded-xl border border-surface-200 bg-surface-0 p-5 shadow-sm dark:border-surface-700 dark:bg-surface-900"
+    >
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 class="m-0 text-xl font-semibold">2. Microfronts</h2>
+          <p class="mb-0 mt-1 text-surface-500">
+            Selecciona cada repositorio y define el tipo de incremento que requiere.
+          </p>
+        </div>
+        @if (selectedProject()) {
+          <p-tag [value]="selectedMicrofrontIds().length + ' seleccionados'" severity="info" />
+        }
+      </div>
+
+      <p-table [value]="microfronts()" dataKey="id" [rowHover]="true">
+        <ng-template pTemplate="header">
+          <tr>
+            <th class="w-12">
+              <p-checkbox
+                [binary]="true"
+                [ngModel]="allSelected()"
+                (ngModelChange)="toggleAll($event)"
+              />
+            </th>
+            <th>Microfront</th>
+            <th>Rama</th>
+            <th>Versión actual</th>
+            <th>Incremento</th>
+            <th>Nueva versión</th>
+            <th>Estado</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-microfront>
+          <tr>
+            <td>
+              <p-checkbox
+                [binary]="true"
+                [ngModel]="isSelected(microfront)"
+                (ngModelChange)="toggleMicrofront(microfront.id, $event)"
+              />
+            </td>
+            <td>
+              <strong>{{ microfront.name }}</strong>
+              <code class="block max-w-52 truncate text-xs text-surface-500">
+                {{ microfront.path }}
+              </code>
+            </td>
+            <td>
+              <code class="text-xs text-surface-500">{{ microfront.branch ?? '—' }}</code>
+            </td>
+            <td>
+              <code class="text-xs text-surface-500">
+                {{ microfront.version ?? 'Sin versión' }}
+              </code>
+            </td>
+            <td>
+              <p-select
+                [options]="releaseTypeSelectOptions"
+                optionLabel="label"
+                optionValue="value"
+                [ngModel]="releaseTypeFor(microfront)"
+                (ngModelChange)="selectMicrofrontReleaseType(microfront.id, $event)"
+                [disabled]="!isSelected(microfront)"
+                styleClass="release-type-select"
+              />
+            </td>
+            <td>
+              <code class="text-xs text-surface-500">v{{ targetVersionFor(microfront) }}</code>
+            </td>
+            <td>
+              <p-tag
+                [value]="microfront.outOfSync ? 'Sin sincronizar' : 'Listo'"
+                [severity]="microfront.outOfSync ? 'warn' : 'success'"
+              />
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="7" class="py-10 text-center text-surface-500">
+              Selecciona una shell para ver sus microfronts.
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </article>
+  </div>
+
+  <article
+    class="flex flex-col flex-wrap gap-4 rounded-xl border border-surface-200 bg-surface-0 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-surface-700 dark:bg-surface-900"
+  >
+    <div>
+      <h2 class="m-0 text-xl font-semibold">3. Resumen de la operación</h2>
+      <p class="mb-0 mt-1 text-surface-500">
+        Confirma exactamente qué se ejecutará de forma secuencial cuando esté disponible el backend.
+      </p>
+    </div>
+    <p-button
+      label="Ver resumen"
+      icon="pi pi-list-check"
+      [disabled]="!canGeneratePlan()"
+      (onClick)="generatePlan()"
+    />
+    @if (planVisible()) {
+      <div class="grid w-full gap-4 rounded-lg bg-surface-50 p-4 dark:bg-surface-800">
+        <div class="flex justify-between gap-3">
+          <span class="text-sm text-surface-500">Webapp</span>
+          <strong>{{ selectedProject()?.name }}</strong>
+        </div>
+        @if (hasOption('updateWebapp')) {
+          <div class="flex justify-between gap-3">
+            <span class="text-sm text-surface-500">Incremento webapp</span>
+            <strong>{{ webappReleaseType() }}</strong>
+          </div>
+        }
+        <div class="flex justify-between gap-3">
+          <span class="text-sm text-surface-500">Microfronts</span>
+          <strong>{{ selectedMicrofronts().length }}</strong>
+        </div>
+        <ul class="m-0 grid list-none gap-2 p-0 text-sm">
+          @for (microfront of selectedMicrofronts(); track microfront.id) {
+            <li class="flex items-center gap-2">
+              <i class="pi pi-tag"></i>
+              {{ microfront.name }}:
+              <code>v{{ microfront.version ?? '0.0.0' }}</code>
+              →
+              <code>v{{ targetVersionFor(microfront) }}</code>
+              ({{ releaseTypeFor(microfront) }}).
+            </li>
+          }
+          @if (hasOption('updateWebapp')) {
+            <li class="flex items-center gap-2">
+              <i class="pi pi-pencil"></i>
+              Actualizar versión del webapp con incremento {{ webappReleaseType() }}.
+            </li>
+          }
+          @if (hasOption('push')) {
+            <li class="flex items-center gap-2">
+              <i class="pi pi-upload"></i>
+              Publicar commits y tags en remoto.
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </article>
+</section>

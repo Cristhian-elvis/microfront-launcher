@@ -53,6 +53,18 @@
         <p-badge [value]="microfrontCount()" severity="secondary" />
       }
     </a>
+    <a
+      pButton
+      class="nav-link"
+      routerLink="/releases"
+      routerLinkActive="nav-link-active"
+      [attr.aria-label]="collapsed() ? 'Versiones' : null"
+    >
+      <i class="pi pi-tag"></i>
+      @if (!collapsed()) {
+        <span>Versiones</span>
+      }
+    </a>
   </nav>
 
   @if (!collapsed()) {

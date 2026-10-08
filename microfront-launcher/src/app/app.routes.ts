@@ -12,6 +12,11 @@ export const routes: Routes = [
       import('./features/microfronts/microfronts-page.component').then((m) => m.MicrofrontsPageComponent),
   },
   {
+    path: 'releases',
+    loadComponent: () =>
+      import('./features/releases/release-page.component').then((m) => m.ReleasePageComponent),
+  },
+  {
     path: 'shells/:shellId',
     loadComponent: () =>
       import('./features/shell-detail/shell-detail-page.component').then(

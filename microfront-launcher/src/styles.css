@@ -13,3 +13,27 @@ body {
   margin: 0;
   font-weight: 400;
 }
+
+@utility app-page {
+  @apply grid min-w-0 gap-4;
+}
+
+@utility app-page-header {
+  @apply flex flex-col gap-4 md:flex-row md:items-end md:justify-between;
+}
+
+@utility app-page-title {
+  @apply m-0 text-xl font-semibold tracking-tight;
+}
+
+@utility app-page-description {
+  @apply mb-0 mt-1 text-surface-500;
+}
+
+.app-page-header > div > h1 {
+  @apply m-0 text-xl font-semibold tracking-tight;
+}
+
+.app-page-header > div > p {
+  @apply mb-0 mt-1 text-surface-500;
+}
