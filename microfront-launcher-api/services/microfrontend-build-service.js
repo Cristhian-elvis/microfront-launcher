@@ -1,5 +1,6 @@
 import { isBranchOperationRunning } from '../application/microfrontends/branch-use-cases.js';
-import { addLog, spawnManaged } from '../lib/runtime.js';
+import { addLog } from '../lib/runtime-events.js';
+import { spawnManaged } from '../lib/process-manager.js';
 import { state } from '../state.js';
 import { RuntimeStateService } from './runtime-state-service.js';
 import { selectMicrofrontends } from './microfrontend-selection-service.js';

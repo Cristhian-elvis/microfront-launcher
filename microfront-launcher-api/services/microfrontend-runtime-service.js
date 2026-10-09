@@ -1,4 +1,4 @@
-import { spawnManaged } from '../lib/runtime.js';
+import { spawnManaged } from '../lib/process-manager.js';
 import { state } from '../state.js';
 import { assertNotCancelled } from './process-runner-service.js';
 import { RuntimeStateService } from './runtime-state-service.js';

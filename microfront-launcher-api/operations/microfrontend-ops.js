@@ -1,4 +1,5 @@
-import { addLog, stopProcess } from "../lib/runtime.js";
+import { addLog } from '../lib/runtime-events.js';
+import { stopProcess } from '../lib/process-manager.js';
 import { getIndexedProject } from "../lib/core.js";
 import { spawn } from "node:child_process";
 

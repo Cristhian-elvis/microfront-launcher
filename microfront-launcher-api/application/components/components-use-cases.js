@@ -9,7 +9,8 @@ import {
   assertInside,
 } from '../../lib/core.js';
 import { movaTagsService } from '../../services/mova-tags-service.js';
-import { addLog, startStaticServer, stopStaticServer } from '../../lib/runtime.js';
+import { addLog } from '../../lib/runtime-events.js';
+import { startStaticServer, stopStaticServer } from '../../lib/static-server.js';
 import { selectedVersion } from '../../services/components-version-service.js';
 import { RuntimeStateService } from '../../services/runtime-state-service.js';
 import { assertNotCancelled, runProcessStep } from '../../services/process-runner-service.js';

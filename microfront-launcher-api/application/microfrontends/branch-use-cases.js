@@ -4,7 +4,7 @@ import {
   gitBranchInfo,
   updateMicrofrontendGitCache,
 } from '../../lib/core.js';
-import { addLog } from '../../lib/runtime.js';
+import { addLog } from '../../lib/runtime-events.js';
 import { runGit } from '../../services/git-service.js';
 import { selectMicrofrontends } from '../../services/microfrontend-selection-service.js';
 import { RuntimeStateService } from '../../services/runtime-state-service.js';

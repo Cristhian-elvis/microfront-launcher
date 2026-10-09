@@ -1,4 +1,4 @@
-import { spawnManaged, stopProcess } from "../lib/runtime.js";
+import { spawnManaged, stopProcess } from '../lib/process-manager.js';
 
 export function assertNotCancelled(signal) {
   if (signal?.aborted) throw new Error("Operación cancelada");

@@ -1,10 +1,6 @@
-import {
-  addLog,
-  childProcesses,
-  stopAllStaticServers,
-  stopProcess,
-  stopStaticServer,
-} from '../../lib/runtime.js';
+import { addLog } from '../../lib/runtime-events.js';
+import { childProcesses, stopProcess } from '../../lib/process-manager.js';
+import { stopAllStaticServers, stopStaticServer } from '../../lib/static-server.js';
 import { state } from '../../state.js';
 import { RuntimeStateService } from '../../services/runtime-state-service.js';
 import { EnvironmentOperationService } from './operation.js';

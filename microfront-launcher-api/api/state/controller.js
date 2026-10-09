@@ -4,7 +4,7 @@ import {
   readConfig,
   readPreferences,
 } from '../../lib/core.js';
-import { eventClients, logs } from '../../lib/runtime.js';
+import { eventClients, logs } from '../../lib/runtime-events.js';
 import { latestVersion } from '../../services/components-version-service.js';
 import { RuntimeStateService } from '../../services/runtime-state-service.js';
 

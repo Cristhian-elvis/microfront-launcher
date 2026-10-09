@@ -1,5 +1,5 @@
 import { getIndexedProject, readConfig } from "../../lib/core.js";
-import { addLog } from "../../lib/runtime.js";
+import { addLog } from '../../lib/runtime-events.js';
 import { state } from "../../state.js";
 import { openBrowser } from "../../services/browser-service.js";
 import { selectedVersion } from "../../services/components-version-service.js";

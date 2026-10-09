@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { buildComponents } from '../application/components/components-use-cases.js';
 import { assertInside, versionsRoot } from '../lib/core.js';
-import { addLog } from '../lib/runtime.js';
+import { addLog } from '../lib/runtime-events.js';
 import { state } from '../state.js';
 import { assertNotCancelled } from './process-runner-service.js';
 import { RuntimeStateService } from './runtime-state-service.js';

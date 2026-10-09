@@ -2,9 +2,7 @@ import {
   readPreferences
 } from "./../lib/core.js";
 import { state } from "./../state.js";
-import {
-  emit
-} from "./../lib/runtime.js";
+import { emit } from '../lib/runtime-events.js';
 
 export class RuntimeStateService {
   static getState() {

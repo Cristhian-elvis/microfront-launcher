@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { spawn } from 'node:child_process';
 
 import { readConfig } from '../lib/core.js';
-import { addLog } from '../lib/runtime.js';
+import { addLog } from '../lib/runtime-events.js';
 
 function browserSettings(config, mode = config.browser.selected) {
   const isEdge = mode.startsWith('edge');

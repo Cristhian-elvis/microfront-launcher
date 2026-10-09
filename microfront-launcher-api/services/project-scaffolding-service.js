@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 
 import { getIndexedProject, getProjects } from '../lib/core.js';
-import { addLog } from '../lib/runtime.js';
+import { addLog } from '../lib/runtime-events.js';
 
 async function findProject(projectId) {
   return getIndexedProject(projectId)

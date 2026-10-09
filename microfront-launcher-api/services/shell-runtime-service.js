@@ -2,12 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { readConfig } from '../lib/core.js';
-import {
-  addLog,
-  inspectHttp,
-  startStaticServer,
-  waitForUrl,
-} from '../lib/runtime.js';
+import { addLog } from '../lib/runtime-events.js';
+import { waitForUrl } from '../lib/process-manager.js';
+import { startStaticServer } from '../lib/static-server.js';
+import { inspectHttp } from '../lib/http-client.js';
 import { state } from '../state.js';
 import { assertNotCancelled } from './process-runner-service.js';
 import { RuntimeStateService } from './runtime-state-service.js';
