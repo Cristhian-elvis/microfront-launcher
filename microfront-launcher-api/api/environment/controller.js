@@ -1,14 +1,18 @@
-import { environmentModel } from '../../services/launcher-service.js';
+import { EnvironmentLifecycleService } from './lifecycle.js';
+import {
+  rebuildShellInBackground,
+  startInBackground,
+} from './service.js';
 
 function startEnvironment(request, response) {
   const { projectId, microfrontendId, rebuildShell } = request.body;
 
-  environmentModel.start({ projectId, microfrontendId, rebuildShell });
+  startInBackground(projectId, { microfrontendId, rebuildShell });
   response.status(202).json({ ok: true });
 }
 
 function rebuildShell(request, response) {
-  environmentModel.rebuildShell({ projectId: request.body.projectId });
+  rebuildShellInBackground(request.body.projectId);
 
   response.status(202).json({
     ok: true,
@@ -17,12 +21,18 @@ function rebuildShell(request, response) {
 }
 
 async function cancelEnvironment(request, response) {
-  await environmentModel.stop('Inicio cancelado');
+  await EnvironmentLifecycleService.stopEnvironmentInternals({
+    reason: 'Inicio cancelado',
+    emitFinalSession: true,
+  });
   response.json({ ok: true });
 }
 
 async function stopEnvironment(request, response) {
-  await environmentModel.stop('Entorno detenido');
+  await EnvironmentLifecycleService.stopEnvironmentInternals({
+    reason: 'Entorno detenido',
+    emitFinalSession: true,
+  });
   response.json({ ok: true });
 }
 

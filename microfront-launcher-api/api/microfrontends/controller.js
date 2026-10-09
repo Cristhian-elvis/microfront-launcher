@@ -1,9 +1,18 @@
+import {
+  startMicrofrontendBranchBatch,
+  startMicrofrontendBranchSwitch,
+} from '../../application/microfrontends/branch-use-cases.js';
 import { getIndexedProject } from '../../lib/core.js';
 import {
   openMicrofrontendFolder as openMicrofrontendFolderOperation,
   stopMicrofrontendWatch as stopMicrofrontendWatchOperation,
 } from '../../operations/microfrontend-ops.js';
-import { launcherService } from '../../services/launcher-service.js';
+import {
+  buildMicrofrontend as buildMicrofrontendOperation,
+  startBatch as startBuildBatch,
+} from '../../services/microfrontend-build-service.js';
+import { MicrofrontendRuntimeService } from '../../services/microfrontend-runtime-service.js';
+import { openMicrofrontendInVsCode } from '../../services/vscode-service.js';
 
 function findMicrofrontend(projectId, microfrontendId) {
   const project = getIndexedProject(projectId);
@@ -19,7 +28,7 @@ function findMicrofrontend(projectId, microfrontendId) {
 }
 
 async function openMicrofrontend(request, response) {
-  await launcherService.openMicrofrontend(
+  await openMicrofrontendInVsCode(
     request.body?.projectId,
     request.body?.microfrontendId,
   );
@@ -40,7 +49,7 @@ async function buildMicrofrontend(request, response) {
   const { projectId, microfrontendId } = request.body ?? {};
   const { project, microfrontend } = findMicrofrontend(projectId, microfrontendId);
 
-  launcherService.buildMicrofrontend(project, microfrontend);
+  buildMicrofrontendOperation(project, microfrontend);
 
   response.status(202).json({
     ok: true,
@@ -51,7 +60,7 @@ async function buildMicrofrontend(request, response) {
 function buildMicrofrontendBatch(request, response) {
   const { projectId, microfrontendIds } = request.body ?? {};
 
-  launcherService.startBuildBatch(projectId, microfrontendIds);
+  startBuildBatch(projectId, microfrontendIds);
 
   response.status(202).json({ ok: true, message: 'Compilación por lote iniciada.' });
 }
@@ -59,7 +68,7 @@ function buildMicrofrontendBatch(request, response) {
 function switchMicrofrontendBranch(request, response) {
   const { projectId, microfrontendId, branch } = request.body ?? {};
 
-  launcherService.startBranchSwitch(
+  startMicrofrontendBranchSwitch(
     projectId,
     microfrontendId,
     String(branch || ''),
@@ -74,7 +83,7 @@ function switchMicrofrontendBranch(request, response) {
 function switchMicrofrontendBranchBatch(request, response) {
   const { projectId, microfrontendIds, branch } = request.body ?? {};
 
-  launcherService.startBranchBatch(
+  startMicrofrontendBranchBatch(
     projectId,
     microfrontendIds,
     String(branch || ''),
@@ -90,7 +99,7 @@ async function startMicrofrontendWatch(request, response) {
   const { projectId, microfrontendId } = request.body ?? {};
   const { project, microfrontend } = findMicrofrontend(projectId, microfrontendId);
 
-  launcherService.startWatch(project, microfrontend);
+  MicrofrontendRuntimeService.startMicrofrontend(project, microfrontend);
 
   response.status(202).json({
     ok: true,

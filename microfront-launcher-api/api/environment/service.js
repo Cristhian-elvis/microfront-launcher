@@ -1,27 +1,25 @@
 import { getIndexedProject, readConfig } from "../../lib/core.js";
 import { addLog } from "../../lib/runtime.js";
 import { state } from "../../state.js";
+import { openBrowser } from "../../services/browser-service.js";
 import { selectedVersion } from "../../services/components-version-service.js";
+import { ensureComponents } from "../../services/components-runtime-service.js";
 import {
   assertNotCancelled,
   runProcessStep,
 } from "../../services/process-runner-service.js";
 import { RuntimeStateService } from "../../services/runtime-state-service.js";
 import { MicrofrontendRuntimeService } from "../../services/microfrontend-runtime-service.js";
+import {
+  needsShellBuild,
+  startShell,
+} from "../../services/shell-runtime-service.js";
 import { EnvironmentLifecycleService } from "./lifecycle.js";
 import { EnvironmentOperationService } from "./operation.js";
 import { EnvironmentSessionStateService } from "./session-state.js";
 
 /** Orquesta el inicio y la reconstrucción de un entorno. */
-export function createEnvironmentService({
-  componentsRuntime,
-  shellRuntime,
-  openOrRequestBrowser,
-}) {
-  const { ensureComponents } = componentsRuntime;
-  const { needsShellBuild, startShell } = shellRuntime;
-
-  async function runEnvironment(projectId, options = {}) {
+export async function runEnvironment(projectId, options = {}) {
     if (state.shell.status !== "stopped")
       throw new Error(`Ya hay una shell activa: ${state.shell.name}`);
     const project = getIndexedProject(projectId);
@@ -186,7 +184,9 @@ export function createEnvironmentService({
         message: "Abriendo navegador autorizado.",
         task: async () => {
           assertNotCancelled(signal);
-          await openOrRequestBrowser(project);
+          await openBrowser(project, {
+            newWindow: readConfig().browser.openMode === 'window',
+          });
           assertNotCancelled(signal);
         },
       });
@@ -219,7 +219,7 @@ export function createEnvironmentService({
     }
   }
 
-  async function rebuildShellServer(projectId) {
+export async function rebuildShellServer(projectId) {
     const project = getIndexedProject(projectId);
     if (!project)
       throw new Error(
@@ -306,5 +306,22 @@ export function createEnvironmentService({
     }
   }
 
-  return { runEnvironment, rebuildShellServer };
-}
+export function startInBackground(projectId, options = {}) {
+    void runEnvironment(projectId, options).catch((error) => {
+      addLog(
+        'Entorno',
+        'error',
+        error instanceof Error ? error.message : String(error),
+      );
+    });
+  }
+
+export function rebuildShellInBackground(projectId) {
+    void rebuildShellServer(projectId).catch((error) => {
+      addLog(
+        'Reconstruir servidor',
+        'error',
+        error instanceof Error ? error.message : String(error),
+      );
+    });
+  }

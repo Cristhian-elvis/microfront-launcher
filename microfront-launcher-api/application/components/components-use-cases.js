@@ -6,24 +6,21 @@ import {
   workRoot,
   readConfig,
   writeJson,
-  getVersionByTag,
-  refreshTags,
-  versionPaths,
-  safeTagName,
   assertInside,
 } from '../../lib/core.js';
+import { movaTagsService } from '../../services/mova-tags-service.js';
 import { addLog, startStaticServer, stopStaticServer } from '../../lib/runtime.js';
 import { selectedVersion } from '../../services/components-version-service.js';
 import { RuntimeStateService } from '../../services/runtime-state-service.js';
 import { assertNotCancelled, runProcessStep } from '../../services/process-runner-service.js';
 import { ConflictError, ValidationError } from '../../app/errors/app-error.js';
 
-export function createComponentsUseCases() {
-  const state = RuntimeStateService.getState();
+const state = RuntimeStateService.getState();
+let startOperation = null;
 
-  async function buildComponents(version, signal, { force = false } = {}) {
+export async function buildComponents(version, signal, { force = false } = {}) {
     const tag = version.tag;
-    let localVersion = await getVersionByTag(tag);
+    let localVersion = await movaTagsService.getVersionByTag(tag);
     let tagsSynchronized = false;
 
     if (!localVersion) {
@@ -33,10 +30,10 @@ export function createComponentsUseCases() {
         'stage',
         `El tag ${tag} no está disponible localmente. Sincronizando tags remotos.`,
       );
-      await refreshTags();
+      await movaTagsService.refreshTags();
       tagsSynchronized = true;
       assertNotCancelled(signal);
-      localVersion = await getVersionByTag(tag);
+      localVersion = await movaTagsService.getVersionByTag(tag);
     }
 
     if (!localVersion) throw new ValidationError({ message: `El tag no existe localmente: ${tag}` });
@@ -58,10 +55,13 @@ export function createComponentsUseCases() {
       addLog('Versiones', 'success', `${directory.label} creada.`);
     }
 
-    const working = path.join(workRoot, `${safeTagName(tag)}-${Date.now()}`);
+    const working = path.join(
+      workRoot,
+      `${movaTagsService.safeTagName(tag)}-${Date.now()}`,
+    );
     assertInside(workRoot, working);
 
-    const destination = versionPaths(tag);
+    const destination = movaTagsService.versionPaths(tag);
     const hasCachedBuild =
       fs.existsSync(destination.manifest) && fs.existsSync(destination.dist);
 
@@ -136,7 +136,7 @@ export function createComponentsUseCases() {
     }
   }
 
-  async function startComponentsStandalone() {
+async function startComponentsStandalone() {
     if (state.components?.status === 'running') {
       throw new ConflictError({ message: 'Components ya está en ejecución.' });
     }
@@ -170,14 +170,42 @@ export function createComponentsUseCases() {
     return state.components;
   }
 
-  async function stopComponents() {
+export function startComponentsInBackground() {
+    if (startOperation || state.components?.status === 'running') {
+      throw new ConflictError({
+        message: 'MOVA Components ya está iniciándose o en ejecución.',
+      });
+    }
+
+    RuntimeStateService.setComponentsState({
+      status: 'starting',
+      url: null,
+      version: null,
+      tag: null,
+      external: false,
+    });
+
+    startOperation = startComponentsStandalone()
+      .catch((error) => {
+        RuntimeStateService.setComponentsState({
+          status: 'error',
+          url: null,
+          version: null,
+          tag: null,
+          external: false,
+        });
+        addLog(
+          'MOVA Components',
+          'error',
+          error instanceof Error ? error.message : String(error),
+        );
+      })
+      .finally(() => {
+        startOperation = null;
+      });
+  }
+
+export async function stopComponents() {
     await stopStaticServer('components');
     RuntimeStateService.resetComponentsState();
   }
-
-  return {
-    buildComponents,
-    startComponentsStandalone,
-    stopComponents,
-  };
-}

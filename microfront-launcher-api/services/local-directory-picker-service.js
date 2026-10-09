@@ -1,7 +1,6 @@
 import { execFile } from 'node:child_process';
 
-export function createLocalDirectoryPicker() {
-  return function selectLocalDirectory(description) {
+export function selectLocalDirectory(description) {
     if (process.platform !== 'win32') {
       throw new Error('El selector de carpetas solo está disponible en Windows.');
     }
@@ -35,5 +34,4 @@ export function createLocalDirectoryPicker() {
         },
       );
     });
-  };
 }

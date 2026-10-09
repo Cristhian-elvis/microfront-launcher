@@ -1,12 +1,10 @@
+import { isBranchOperationRunning } from '../application/microfrontends/branch-use-cases.js';
 import { addLog, spawnManaged } from '../lib/runtime.js';
 import { state } from '../state.js';
 import { RuntimeStateService } from './runtime-state-service.js';
 import { selectMicrofrontends } from './microfrontend-selection-service.js';
 
-export function createMicrofrontendBuildService({
-  isBranchOperationRunning,
-}) {
-  function buildMicrofrontend(project, microfrontend) {
+export function buildMicrofrontend(project, microfrontend) {
     if (isBranchOperationRunning() || state.microfrontendBuild.status === 'running') {
       throw new Error('Ya hay una operación de microfrontend en curso.');
     }
@@ -52,7 +50,7 @@ export function createMicrofrontendBuildService({
     return record;
   }
 
-  async function startBatch(projectId, microfrontendIds) {
+export async function startBatch(projectId, microfrontendIds) {
     if (isBranchOperationRunning() || state.microfrontendBuild.status === 'running') {
       throw new Error('Ya hay una operación de microfrontend en curso.');
     }
@@ -98,6 +96,3 @@ export function createMicrofrontendBuildService({
       addLog('Microfronts', 'error', error.message);
     });
   }
-
-  return { buildMicrofrontend, startBatch };
-}

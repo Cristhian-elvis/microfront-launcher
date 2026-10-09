@@ -10,7 +10,10 @@ import {
   syncProject,
   writeJson,
 } from '../../lib/core.js';
-import { launcherService } from '../../services/launcher-service.js';
+import { selectLocalDirectory } from '../../services/local-directory-picker-service.js';
+import { getProjectGitInfo as getProjectGitInfoOperation } from '../../services/project-git-service.js';
+import { openScaffolding as openScaffoldingOperation } from '../../services/project-scaffolding-service.js';
+import { openProjectWebappInVsCode } from '../../services/vscode-service.js';
 
 function runGit(args, cwd) {
   return new Promise((resolve, reject) => {
@@ -83,7 +86,7 @@ async function refreshProjectList(request, response) {
 
 async function getProjectGitInfo(request, response) {
   response.json(
-    await launcherService.getProjectGitInfo(request.params.projectId),
+    await getProjectGitInfoOperation(request.params.projectId),
   );
 }
 
@@ -121,7 +124,7 @@ async function getProject(request, response) {
 }
 
 function openScaffolding(request, response) {
-  launcherService.openScaffolding(request.body?.projectId);
+  void openScaffoldingOperation(request.body?.projectId);
   response.json({
     ok: true,
     message: 'Completa la configuración en la terminal y luego pulsa Actualizar.',
@@ -129,7 +132,7 @@ function openScaffolding(request, response) {
 }
 
 async function openProjectWebapp(request, response) {
-  await launcherService.openProjectWebapp(request.body?.projectId);
+  await openProjectWebappInVsCode(request.body?.projectId);
   response.json({ ok: true, message: 'Webapp asociada abierta en VS Code.' });
 }
 
@@ -139,7 +142,7 @@ async function selectDirectory(request, response) {
     : 'Selecciona la carpeta raíz de tus shells';
 
   response.json({
-    path: await launcherService.selectLocalDirectory(description),
+    path: await selectLocalDirectory(description),
   });
 }
 

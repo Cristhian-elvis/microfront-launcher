@@ -1,11 +1,18 @@
-import { launcherService } from '../../services/launcher-service.js';
+import {
+  startComponentsInBackground,
+  stopComponents,
+} from '../../application/components/components-use-cases.js';
+import { EnvironmentLifecycleService } from '../../api/environment/lifecycle.js';
 import { RuntimeStateService } from '../../services/runtime-state-service.js';
 
 export function createComponentsController() {
-  async function start(request, response, next) {
+  function start(request, response, next) {
     try {
-      const result = await launcherService.startComponents();
-      response.json({ ...result, message: `Components disponible en ${result.url}` });
+      startComponentsInBackground();
+      response.status(202).json({
+        ok: true,
+        message: 'Inicio de MOVA Components solicitado.',
+      });
     } catch (error) {
       next(error);
     }
@@ -15,11 +22,14 @@ export function createComponentsController() {
     try {
       const state = RuntimeStateService.getState();
       if (state.shell.status !== 'stopped') {
-        await launcherService.stopEnvironment('Entorno detenido');
+        await EnvironmentLifecycleService.stopEnvironmentInternals({
+          reason: 'Entorno detenido',
+          emitFinalSession: true,
+        });
         response.json({ ok: true, message: 'Shell y Components detenidos.' });
         return;
       }
-      await launcherService.stopComponents();
+      await stopComponents();
       response.json({ ok: true, message: 'Servidor de Components detenido.' });
     } catch (error) {
       next(error);

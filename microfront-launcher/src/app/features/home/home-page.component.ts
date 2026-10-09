@@ -18,6 +18,7 @@ import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import type { ApiMessage } from '../../core/launcher.models';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
+import { getHttpErrorMessage } from '../../core/http-error.util';
 import { EnvironmentService } from '../../core/services/environment.service';
 import { MovaService } from '../../core/services/mova.service';
 import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
@@ -147,8 +148,11 @@ export class HomePageComponent {
   }
 
   private notifyError(error: unknown): void {
-    const detail = error instanceof Error ? error.message : 'No se pudo completar la operación.';
-    this.messages.add({ severity: 'error', summary: 'Error', detail });
+    this.messages.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: getHttpErrorMessage(error),
+    });
   }
 
   private projectDisplayName(name: string | null | undefined): string {

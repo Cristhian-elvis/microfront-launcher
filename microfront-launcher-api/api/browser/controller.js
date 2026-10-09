@@ -1,5 +1,11 @@
-import { configPath, readConfig, writeJson } from '../../lib/core.js';
-import { launcherService } from '../../services/launcher-service.js';
+import {
+  configPath,
+  getIndexedProject,
+  readConfig,
+  writeJson,
+} from '../../lib/core.js';
+import { state } from '../../state.js';
+import { openBrowser as openBrowserService } from '../../services/browser-service.js';
 
 function validMode(mode, response) {
   if (['tab', 'window'].includes(mode)) return true;
@@ -29,7 +35,15 @@ async function openBrowser(request, response) {
     return;
   }
 
-  await launcherService.reopenBrowser({
+  const project = state.shell.status === 'running' && state.shell.projectId
+    ? getIndexedProject(state.shell.projectId)
+    : null;
+
+  if (state.shell.projectId && !project) {
+    throw new Error('No se encontró la configuración de la shell activa.');
+  }
+
+  await openBrowserService(project, {
     newWindow: mode === 'window',
     browserMode: browser,
   });
@@ -50,7 +64,7 @@ async function openProfessionalBrowser(request, response) {
 
   if (!validMode(mode, response)) return;
 
-  await launcherService.openEmptyBrowser({
+  await openBrowserService(null, {
     newWindow: mode === 'window',
     url: 'https://gestiona.val.comunidad.madrid/hsta_webapp_profesional/inicio',
   });
@@ -59,7 +73,7 @@ async function openProfessionalBrowser(request, response) {
 }
 
 async function openEmptyBrowser(request, response) {
-  await launcherService.openEmptyBrowser();
+  await openBrowserService(null);
   response.json({ ok: true });
 }
 

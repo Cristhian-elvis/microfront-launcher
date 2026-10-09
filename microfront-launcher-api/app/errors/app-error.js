@@ -36,3 +36,16 @@ export class ConflictError extends AppError {
     this.name = 'ConflictError';
   }
 }
+
+export class ServiceUnavailableError extends AppError {
+  constructor({ message = 'Servicio no disponible', details, cause } = {}) {
+    super({
+      code: 'SERVICE_UNAVAILABLE',
+      message,
+      statusCode: 503,
+      details,
+      cause,
+    });
+    this.name = 'ServiceUnavailableError';
+  }
+}

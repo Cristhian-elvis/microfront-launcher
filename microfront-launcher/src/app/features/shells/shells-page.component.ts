@@ -6,6 +6,7 @@ import { finalize } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import type { Project } from '../../core/launcher.models';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
+import { getHttpErrorMessage } from '../../core/http-error.util';
 import { MovaService } from '../../core/services/mova.service';
 import { ProjectService } from '../../core/services/project.service';
 import { FormsModule } from '@angular/forms';
@@ -118,7 +119,7 @@ export class ShellsPageComponent {
     this.messages.add({
       severity: 'error',
       summary: 'Error',
-      detail: error instanceof Error ? error.message : 'No se pudo completar la operación.',
+      detail: getHttpErrorMessage(error),
     });
   }
 }

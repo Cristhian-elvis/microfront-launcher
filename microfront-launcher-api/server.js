@@ -1,15 +1,7 @@
-import {
-  browserRouter,
-  cancelAndStopAll,
-  componentsRouter,
-  environmentRouter,
-  microfrontendsRouter,
-  movaRouter,
-  projectsRouter,
-  stateRouter,
-} from './index.js';
-import { ensureRuntimeDirectories, getProjects } from './lib/core.js';
+import { createApiRouters } from './app/create-api-routers.js';
 import { createApp } from './app/create-app.js';
+import { EnvironmentLifecycleService } from './api/environment/lifecycle.js';
+import { ensureRuntimeDirectories, getProjects } from './lib/core.js';
 
 const host = '127.0.0.1';
 const port = Number(process.env.PORT || 3187);
@@ -28,17 +20,7 @@ if (process.argv.includes('--check')) {
 
 ensureRuntimeDirectories();
 
-const app = createApp({
-  routers: [
-    stateRouter,
-    projectsRouter,
-    environmentRouter,
-    movaRouter,
-    componentsRouter,
-    browserRouter,
-    microfrontendsRouter,
-  ],
-});
+const app = createApp({ routers: createApiRouters() });
 
 const server = app.listen(port, host, () => {
   console.log(`Microfront Launcher API disponible en http://${host}:${port}`);
@@ -52,7 +34,10 @@ server.on('error', (error) => {
 });
 
 async function cleanupAndExit() {
-  await cancelAndStopAll('Launcher cerrado');
+  await EnvironmentLifecycleService.stopEnvironmentInternals({
+    reason: 'Launcher cerrado',
+    emitFinalSession: true,
+  });
   server.close(() => process.exit(0));
 }
 

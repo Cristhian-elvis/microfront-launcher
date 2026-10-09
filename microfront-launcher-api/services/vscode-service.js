@@ -2,49 +2,122 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 
+import { getIndexedProject, getProjects } from '../lib/core.js';
+import { addLog } from '../lib/runtime.js';
+
 function findExecutable() {
   const candidates = [
-    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Microsoft VS Code', 'Code.exe'),
-    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Microsoft VS Code Insiders', 'Code - Insiders.exe'),
+    path.join(
+      process.env.LOCALAPPDATA || '',
+      'Programs',
+      'Microsoft VS Code',
+      'Code.exe',
+    ),
+    path.join(
+      process.env.LOCALAPPDATA || '',
+      'Programs',
+      'Microsoft VS Code Insiders',
+      'Code - Insiders.exe',
+    ),
     path.join(process.env.ProgramFiles || '', 'Microsoft VS Code', 'Code.exe'),
-    path.join(process.env['ProgramFiles(x86)'] || '', 'Microsoft VS Code', 'Code.exe'),
+    path.join(
+      process.env['ProgramFiles(x86)'] || '',
+      'Microsoft VS Code',
+      'Code.exe',
+    ),
   ];
-  const installed = candidates.find((candidate) => candidate && fs.existsSync(candidate));
+
+  const installed = candidates.find(
+    (candidate) => candidate && fs.existsSync(candidate),
+  );
   if (installed) return { command: installed, shell: false };
-  const lookup = spawnSync('where.exe', ['code'], { encoding: 'utf8', windowsHide: true });
-  const command = lookup.status === 0 ? lookup.stdout.split(/\r?\n/).find(Boolean)?.trim() : null;
-  return command ? { command, shell: /\.(cmd|bat)$/i.test(command) } : null;
+
+  const lookup = spawnSync('where.exe', ['code'], {
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+  const command = lookup.status === 0
+    ? lookup.stdout.split(/\r?\n/).find(Boolean)?.trim()
+    : null;
+
+  return command
+    ? { command, shell: /\.(cmd|bat)$/i.test(command) }
+    : null;
 }
 
 function launch(command, args, shell = false) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { detached: true, stdio: 'ignore', windowsHide: false, shell });
+    const child = spawn(command, args, {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: false,
+      shell,
+    });
+
     child.once('error', reject);
-    child.once('spawn', () => { child.unref(); resolve(); });
+    child.once('spawn', () => {
+      child.unref();
+      resolve();
+    });
   });
 }
 
-export function createVsCodeService({ findProject, addLog }) {
-  async function openPath(project, targetPath, message) {
-    const executable = findExecutable();
-    if (!executable) throw new Error('No se encontró VS Code. Instálalo o agrega el comando code al PATH.');
-    await launch(executable.command, ['--new-window', targetPath], executable.shell);
-    addLog(project.name, 'system', message);
+async function findProject(projectId) {
+  return getIndexedProject(projectId)
+    || (await getProjects()).find((project) => project.id === projectId);
+}
+
+async function openPath(project, targetPath, message) {
+  const executable = findExecutable();
+
+  if (!executable) {
+    throw new Error(
+      'No se encontró VS Code. Instálalo o agrega el comando code al PATH.',
+    );
   }
 
-  return {
-    async openMicrofrontend(projectId, microfrontendId) {
-      const project = await findProject(projectId);
-      const microfrontend = project?.microfrontends?.find((item) => item.id === microfrontendId);
-      if (!microfrontend) throw new Error('No se encontró el microfrontend solicitado.');
-      await openPath(project, microfrontend.path, `VS Code abierto para ${microfrontend.name}.`);
-    },
-    async openProjectWebapp(projectId) {
-      const project = await findProject(projectId);
-      const webappPath = project?.webappPath;
-      if (!webappPath) throw new Error('El proyecto no tiene una webapp asociada configurada.');
-      if (!fs.existsSync(webappPath)) throw new Error('No se encontró la ubicación local de la webapp asociada.');
-      await openPath(project, webappPath, `VS Code abierto para la webapp ${project.name}.`);
-    },
-  };
+  await launch(
+    executable.command,
+    ['--new-window', targetPath],
+    executable.shell,
+  );
+  addLog(project.name, 'system', message);
+}
+
+export async function openMicrofrontendInVsCode(projectId, microfrontendId) {
+  const project = await findProject(projectId);
+  const microfrontend = project?.microfrontends?.find(
+    (item) => item.id === microfrontendId,
+  );
+
+  if (!microfrontend) {
+    throw new Error('No se encontró el microfrontend solicitado.');
+  }
+
+  await openPath(
+    project,
+    microfrontend.path,
+    `VS Code abierto para ${microfrontend.name}.`,
+  );
+}
+
+export async function openProjectWebappInVsCode(projectId) {
+  const project = await findProject(projectId);
+  const webappPath = project?.webappPath;
+
+  if (!webappPath) {
+    throw new Error('El proyecto no tiene una webapp asociada configurada.');
+  }
+
+  if (!fs.existsSync(webappPath)) {
+    throw new Error(
+      'No se encontró la ubicación local de la webapp asociada.',
+    );
+  }
+
+  await openPath(
+    project,
+    webappPath,
+    `VS Code abierto para la webapp ${project.name}.`,
+  );
 }
