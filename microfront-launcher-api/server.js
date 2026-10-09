@@ -1,16 +1,15 @@
-import express from 'express';
 import {
   browserRouter,
   cancelAndStopAll,
   componentsRouter,
   environmentRouter,
-  handleRequest,
   microfrontendsRouter,
   movaRouter,
   projectsRouter,
   stateRouter,
 } from './index.js';
 import { ensureRuntimeDirectories, getProjects } from './lib/core.js';
+import { createApp } from './app/create-app.js';
 
 const host = '127.0.0.1';
 const port = Number(process.env.PORT || 3187);
@@ -29,19 +28,16 @@ if (process.argv.includes('--check')) {
 
 ensureRuntimeDirectories();
 
-const app = express();
-app.disable('x-powered-by');
-app.use('/api', stateRouter);
-app.use('/api', projectsRouter);
-app.use('/api', environmentRouter);
-app.use('/api', movaRouter);
-app.use('/api', componentsRouter);
-app.use('/api', browserRouter);
-app.use('/api', microfrontendsRouter);
-app.use((request, response) => handleRequest(request, response));
-app.use((error, request, response, next) => {
-  console.error(error);
-  response.status(500).json({ error: error.message || 'Error interno' });
+const app = createApp({
+  routers: [
+    stateRouter,
+    projectsRouter,
+    environmentRouter,
+    movaRouter,
+    componentsRouter,
+    browserRouter,
+    microfrontendsRouter,
+  ],
 });
 
 const server = app.listen(port, host, () => {

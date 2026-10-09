@@ -7,6 +7,10 @@ import {
 } from "./../lib/runtime.js";
 
 export class RuntimeStateService {
+  static getState() {
+    return state;
+  }
+
   static getRuntime() {
     return { ...state, preferences: readPreferences() };
   }
@@ -19,6 +23,23 @@ export class RuntimeStateService {
     emit('preferences', readPreferences());
   }
 
+  // ---- Components state ----
+  static setComponentsState(patch) {
+    state.components = { ...state.components, ...patch };
+    RuntimeStateService.emitState();
+  }
+
+  static resetComponentsState() {
+    RuntimeStateService.setComponentsState({
+      status: 'stopped',
+      url: null,
+      version: null,
+      tag: null,
+      external: false,
+    });
+  }
+
+  // ---- Microfrontend branch/build/operations ----
   static updateMicrofrontendBranch(patch) {
     state.microfrontendBranch = { ...state.microfrontendBranch, ...patch };
     RuntimeStateService.emitState();
