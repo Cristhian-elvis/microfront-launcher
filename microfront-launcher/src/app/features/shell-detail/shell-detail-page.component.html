@@ -23,19 +23,11 @@
     </div>
     <div class="flex flex-wrap gap-2 lg:justify-end">
       <p-button
-        [label]="pending() ? 'Actualizando Git…' : 'Actualizar Git'"
-        icon="pi pi-refresh"
-        styleClass="p-button-outlined"
-        [loading]="pending()"
-        [disabled]="operating()"
-        (onClick)="refresh()"
-      />
-      <p-button
-        [label]="operating() ? 'Reconstruyendo…' : 'Reconstruir todo'"
-        icon="pi pi-refresh"
+        [label]="operating() ? 'Preparando…' : 'Preparar servidor'"
+        icon="pi pi-server"
         styleClass="p-button-outlined"
         [disabled]="operating() || active()"
-        (onClick)="rebuild()"
+        (onClick)="prepareServer()"
       />
     </div>
   </header>
@@ -103,50 +95,22 @@
           <strong class="text-sm text-teal-100">
             {{ selectedMicrofronts().length }} seleccionados
           </strong>
-          <p-select
-            [options]="bulkActionOptions"
-            optionLabel="label"
-            optionValue="value"
-            [ngModel]="bulkAction()"
-            (ngModelChange)="chooseBulkAction($event)"
-            class="detail-select"
-            [disabled]="operating()"
-            aria-label="Acción masiva"
-            (change)="chooseBulkAction($any($event.target).value)"
-          >
-            <option value="">Acciones masivas…</option>
-            <option value="build">Compilar seleccionados</option>
-            <option value="branch">Cambiar a rama…</option>
-          </p-select>
-          @if (bulkAction() === 'branch') {
-            <p-select
-              [options]="commonBranches()"
-              [ngModel]="targetBranch()"
-              (ngModelChange)="targetBranch.set($event)"
-              class="detail-select"
-              [disabled]="operating() || !commonBranches().length"
-              aria-label="Rama destino"
-              (change)="targetBranch.set($any($event.target).value)"
-            >
-              <option value="">
-                {{ commonBranches().length ? 'Seleccionar rama…' : 'Sin ramas comunes' }}
-              </option>
-              @for (branch of commonBranches(); track branch) {
-                <option [value]="branch">{{ branch }}</option>
-              }
-            </p-select>
-          }
-          @if (bulkAction()) {
-            <p-button
-              label="Aplicar"
-              [disabled]="
-                operating() ||
-                (bulkAction() === 'branch' && !targetBranch()) ||
-                (bulkAction() === 'build' && !hasBuildableSelection())
-              "
-              (onClick)="applyBulkAction()"
-            />
-          }
+          <p-button
+            label="Preparar"
+            icon="pi pi-play"
+            size="small"
+            styleClass="p-button-outlined"
+            [disabled]="operating() || !hasBuildableSelection()"
+            (onClick)="openBuildOptions()"
+          />
+          <p-button
+            label="Cambiar rama"
+            icon="pi pi-code-branch"
+            size="small"
+            styleClass="p-button-outlined"
+            [disabled]="operating() || !commonBranches().length"
+            (onClick)="openBranchSelect()"
+          />
         </div>
       } @else {
         <label
@@ -251,16 +215,6 @@
               [disabled]="operating()"
               (onClick)="openMicrofrontInVsCode(microfront)"
             />
-            @if (microfront.buildAvailable || microfront.localBuildAvailable) {
-              <p-button
-                icon="pi pi-play"
-                styleClass="p-button-rounded p-button-text"
-                ariaLabel="Compilar microfront"
-                [loading]="buildRunning(microfront)"
-                [disabled]="operating() || buildRunning(microfront)"
-                (onClick)="buildMicrofront(microfront)"
-              />
-            }
           </td>
         </tr>
       </ng-template>
@@ -274,3 +228,7 @@
     </p-table>
   </section>
 </section>
+
+<app-build-options-dialog (confirmed)="onBuildOptionsConfirmed($event)" />
+<app-branch-select-dialog [branches]="commonBranches()" (confirmed)="onBranchConfirmed($event)" />
+<app-shell-prepare-options-dialog (confirmed)="onShellPrepareOptionsConfirmed($event)" />

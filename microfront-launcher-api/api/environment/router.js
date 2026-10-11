@@ -6,7 +6,7 @@ export function createEnvironmentRouter() {
   const router = Router();
 
   router.post('/environment/start', environmentController.startEnvironment);
-  router.post('/shell/rebuild', environmentController.rebuildShell);
+  router.post('/shell/prepare', environmentController.prepareShell);
   router.post('/environment/cancel', environmentController.cancelEnvironment);
   router.post('/environment/stop', environmentController.stopEnvironment);
 

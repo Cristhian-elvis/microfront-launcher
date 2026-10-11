@@ -342,7 +342,8 @@ async function shellProfile(
       scaffolding: Boolean(pkg.scripts?.scaffolding),
       prepareServer: Boolean(pkg.scripts?.['prepare-server']),
       buildLocal: Boolean(pkg.scripts?.['build:local']),
-      localServer: Boolean(pkg.scripts?.['local-server'])
+      localServer: Boolean(pkg.scripts?.['local-server']),
+      checkProject: Boolean(pkg.scripts?.['check-project'])
     },
     microfrontends
   };
@@ -428,40 +429,6 @@ export function getIndexedProject(projectId) {
 export async function refreshProjects() {
   invalidateScanCache();
   return getProjects();
-}
-
-export async function syncProject(projectId) {
-  const currentProject = getIndexedProject(projectId);
-  if (!currentProject)
-    throw new Error('El proyecto no está cargado. Actualiza el catálogo de proyectos.');
-
-  const config = readConfig();
-  const packagePath = path.join(currentProject.path, 'package.json');
-  if (!fs.existsSync(packagePath))
-    throw new Error('No se encontró package.json para la shell solicitada.');
-
-  const profile = await shellProfile(
-    currentProject.path,
-    readJson(packagePath, {}),
-    config.shellDefaults,
-    { syncGit: true, includeGit: true },
-  );
-  const updatedProject = {
-    ...currentProject,
-    ...profile,
-    id: currentProject.id,
-    name: currentProject.name,
-    path: currentProject.path,
-  };
-
-  scanCache = {
-    ...scanCache,
-    projects: scanCache.projects?.map((project) =>
-      project.id === projectId ? updatedProject : project,
-    ) ?? null,
-  };
-  projectIndex.set(projectId, updatedProject);
-  return updatedProject;
 }
 
 export function updateMicrofrontendGitCache(

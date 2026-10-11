@@ -1,6 +1,6 @@
 import { EnvironmentLifecycleService } from './lifecycle.js';
 import {
-  rebuildShellInBackground,
+  prepareShellServerInBackground,
   startInBackground,
 } from './service.js';
 
@@ -11,12 +11,18 @@ function startEnvironment(request, response) {
   response.status(202).json({ ok: true });
 }
 
-function rebuildShell(request, response) {
-  rebuildShellInBackground(request.body.projectId);
+function prepareShell(request, response) {
+  const {
+    projectId, libs, remotes, link, syncGit, forceBuild, skipBuild, skipCheck, localMode, buildLocal,
+  } = request.body;
+
+  prepareShellServerInBackground(projectId, {
+    libs, remotes, link, syncGit, forceBuild, skipBuild, skipCheck, localMode, buildLocal,
+  });
 
   response.status(202).json({
     ok: true,
-    message: 'Reconstrucción del servidor iniciada.',
+    message: 'Preparación del servidor iniciada.',
   });
 }
 
@@ -38,7 +44,7 @@ async function stopEnvironment(request, response) {
 
 export const environmentController = {
   cancelEnvironment,
-  rebuildShell,
+  prepareShell,
   startEnvironment,
   stopEnvironment,
 };

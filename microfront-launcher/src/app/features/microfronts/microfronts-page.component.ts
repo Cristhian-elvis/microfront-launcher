@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
@@ -14,7 +14,8 @@ import { finalize } from 'rxjs';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { MovaService } from '../../core/services/mova.service';
 import { ProjectService } from '../../core/services/project.service';
-import type { Project } from '../../core/launcher.models';
+import type { MicrofrontendBuildOptions, Project } from '../../core/launcher.models';
+import { BuildOptionsDialogComponent } from '../../shared/components/build-options-dialog/build-options-dialog.component';
 
 type DirectoryItem = NonNullable<Project['microfrontends']>[number] & { project: Project };
 
@@ -33,6 +34,7 @@ type DirectoryItem = NonNullable<Project['microfrontends']>[number] & { project:
     TableModule,
     PrimeTemplate,
     Tag,
+    BuildOptionsDialogComponent,
   ],
 })
 export class MicrofrontsPageComponent {
@@ -76,6 +78,9 @@ export class MicrofrontsPageComponent {
   readonly hasFilter = computed(() => !!this.selectedId() || !!this.projectId());
   readonly breadCrumbItems: MenuItem[] = [{ label: 'Microfronts' }];
 
+  readonly buildOptionsDialog = viewChild(BuildOptionsDialogComponent);
+  private buildTarget: DirectoryItem | null = null;
+
   key(item: DirectoryItem): string {
     return `${item.project.id}:${item.id}`;
   }
@@ -116,10 +121,17 @@ export class MicrofrontsPageComponent {
       .subscribe();
   }
 
-  build(item: DirectoryItem): void {
+  openBuildOptions(item: DirectoryItem): void {
+    this.buildTarget = item;
+    this.buildOptionsDialog()?.open();
+  }
+
+  onBuildOptionsConfirmed(options: MicrofrontendBuildOptions): void {
+    const item = this.buildTarget;
+    if (!item) return;
     this.pending.set(true);
     this.projectsApi
-      .buildMicrofront(item.project.id, item.id)
+      .buildMicrofront(item.project.id, item.id, options)
       .pipe(finalize(() => this.pending.set(false)))
       .subscribe();
   }

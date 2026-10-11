@@ -219,7 +219,55 @@ export async function runEnvironment(projectId, options = {}) {
     }
   }
 
-export async function rebuildShellServer(projectId) {
+/**
+ * Construye los argumentos de `npm run prepare-server` a partir de las
+ * opciones elegidas por el usuario.
+ *
+ * El `package.json` de la shell fija el script como
+ * `node scripts/prepare-server.mjs --remotes --link` (sin `--libs`, no
+ * procesa librerías mova3 por defecto). Las opciones de acción (`libs`,
+ * `remotes`, `link`) representan qué categorías procesar, con `remotes` y
+ * `link` activos por defecto para replicar ese comportamiento fijo.
+ *
+ * Además, `prepare-server` delega en las mismas clases `ProjectChecker`/
+ * `MicrofrontendProjectChecker` de `@mova3/lib-schematics` que usa
+ * `check-project` para cada librería/remote incluido, por lo que acepta los
+ * mismos flags de pasos (`--skip=update,check,install,build` y
+ * `--forceBuild`), aplicados globalmente a todas las categorías activas.
+ * @param {{ libs?: boolean, remotes?: boolean, link?: boolean, syncGit?: boolean, forceBuild?: boolean, skipBuild?: boolean, skipCheck?: boolean, localMode?: boolean }} [options]
+ */
+function buildPrepareServerArgs(options = {}) {
+  const {
+    libs = false,
+    remotes = true,
+    link = true,
+    syncGit = true,
+    forceBuild = false,
+    skipBuild = false,
+    skipCheck = false,
+    localMode = false,
+  } = options;
+  const args = ["run", "prepare-server", "--"];
+  if (libs) args.push("--libs");
+  if (remotes) args.push("--remotes");
+  if (link) args.push("--link");
+  // Los pasos de ejecución (sync Git/check/install/build) y el comportamiento
+  // (forceBuild/localMode) solo tienen efecto sobre los remotes procesados;
+  // si `remotes` está desactivado no hay nada sobre lo que aplicarlos.
+  if (remotes) {
+    const skip = [];
+    if (!syncGit) skip.push("update");
+    if (skipCheck) skip.push("check", "install");
+    if (skipBuild) skip.push("build");
+    if (skip.length) args.push(`--skip=${skip.join(",")}`);
+    if (forceBuild) args.push("--forceBuild");
+    if (localMode) args.push("--local");
+  }
+  return args;
+}
+
+export async function prepareShellServer(projectId, options) {
+    const { buildLocal = false } = options ?? {};
     const project = getIndexedProject(projectId);
     if (!project)
       throw new Error(
@@ -227,21 +275,21 @@ export async function rebuildShellServer(projectId) {
       );
     if (state.shell.status !== "stopped" && state.shell.projectId === projectId)
       throw new Error("Detén la shell antes de reconstruir su servidor.");
-    if (!project.workflow?.prepareServer || !project.workflow?.buildLocal)
-      throw new Error(
-        "Esta shell no define npm run prepare-server y npm run build:local.",
-      );
+    if (!project.workflow?.prepareServer)
+      throw new Error("Esta shell no define npm run prepare-server.");
+    if (buildLocal && !project.workflow?.buildLocal)
+      throw new Error("Esta shell no define npm run build:local.");
 
     const current = EnvironmentOperationService.start({
       projectId,
-      mode: "rebuild-server",
+      mode: "prepare-server",
     });
     const signal = current.controller.signal;
     EnvironmentSessionStateService.updateSession({
       status: "building",
       stage: "prepare",
-      plan: ["prepare", "buildShell"],
-      message: "Reconstruyendo servidor local",
+      plan: buildLocal ? ["prepare", "buildShell"] : ["prepare"],
+      message: "Preparando servidor local",
       projectId,
       projectName: project.name,
       startedAt: new Date().toISOString(),
@@ -255,29 +303,31 @@ export async function rebuildShellServer(projectId) {
             key: `prepare:${project.id}`,
             label: `${project.name} · prepare-server`,
             file: process.platform === "win32" ? "npm.cmd" : "npm",
-            args: ["run", "prepare-server"],
+            args: buildPrepareServerArgs(options),
             cwd: project.path,
             signal,
           }),
       });
-      await EnvironmentSessionStateService.runTrackedStage({
-        stage: "buildShell",
-        message: "Construir servidor local",
-        task: () =>
-          runProcessStep({
-            key: `build-shell:${project.id}`,
-            label: `${project.name} · build:local`,
-            file: process.platform === "win32" ? "npm.cmd" : "npm",
-            args: ["run", "build:local"],
-            cwd: project.path,
-            signal,
-          }),
-      });
+      if (buildLocal) {
+        await EnvironmentSessionStateService.runTrackedStage({
+          stage: "buildShell",
+          message: "Construir servidor local",
+          task: () =>
+            runProcessStep({
+              key: `build-shell:${project.id}`,
+              label: `${project.name} · build:local`,
+              file: process.platform === "win32" ? "npm.cmd" : "npm",
+              args: ["run", "build:local"],
+              cwd: project.path,
+              signal,
+            }),
+        });
+      }
       EnvironmentSessionStateService.updateSession({
         status: "idle",
         stage: "idle",
         plan: null,
-        message: `Servidor de ${project.name} reconstruido`,
+        message: `Servidor de ${project.name} preparado`,
         projectId: null,
         projectName: null,
         startedAt: null,
@@ -285,16 +335,16 @@ export async function rebuildShellServer(projectId) {
     } catch (error) {
       const cancelled = signal.aborted;
       addLog(
-        "Reconstruir servidor",
+        "Preparar servidor",
         cancelled ? "system" : "error",
-        cancelled ? "Reconstrucción cancelada." : error.message,
+        cancelled ? "Preparación cancelada." : error.message,
       );
       EnvironmentSessionStateService.updateSession({
         status: "idle",
         stage: "idle",
         plan: null,
         message: cancelled
-          ? "Reconstrucción cancelada"
+          ? "Preparación cancelada"
           : `Error: ${error.message}`,
         projectId: null,
         projectName: null,
@@ -316,10 +366,10 @@ export function startInBackground(projectId, options = {}) {
     });
   }
 
-export function rebuildShellInBackground(projectId) {
-    void rebuildShellServer(projectId).catch((error) => {
+export function prepareShellServerInBackground(projectId, options) {
+    void prepareShellServer(projectId, options).catch((error) => {
       addLog(
-        'Reconstruir servidor',
+        'Preparar servidor',
         'error',
         error instanceof Error ? error.message : String(error),
       );

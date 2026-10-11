@@ -46,10 +46,10 @@ async function openMicrofrontendFolder(request, response) {
 }
 
 async function buildMicrofrontend(request, response) {
-  const { projectId, microfrontendId } = request.body ?? {};
+  const { projectId, microfrontendId, syncGit, forceBuild, skipBuild, skipCheck, localMode } = request.body ?? {};
   const { project, microfrontend } = findMicrofrontend(projectId, microfrontendId);
 
-  buildMicrofrontendOperation(project, microfrontend);
+  buildMicrofrontendOperation(project, microfrontend, { syncGit, forceBuild, skipBuild, skipCheck, localMode });
 
   response.status(202).json({
     ok: true,
@@ -58,9 +58,9 @@ async function buildMicrofrontend(request, response) {
 }
 
 function buildMicrofrontendBatch(request, response) {
-  const { projectId, microfrontendIds } = request.body ?? {};
+  const { projectId, microfrontendIds, syncGit, forceBuild, skipBuild, skipCheck, localMode } = request.body ?? {};
 
-  startBuildBatch(projectId, microfrontendIds);
+  startBuildBatch(projectId, microfrontendIds, { syncGit, forceBuild, skipBuild, skipCheck, localMode });
 
   response.status(202).json({ ok: true, message: 'Compilación por lote iniciada.' });
 }

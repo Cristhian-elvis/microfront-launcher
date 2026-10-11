@@ -1,5 +1,3 @@
-import { execFile } from 'node:child_process';
-
 import {
   completeInitialSetup,
   configPath,
@@ -7,30 +5,12 @@ import {
   invalidateScanCache,
   readConfig,
   refreshProjects,
-  syncProject,
   writeJson,
 } from '../../lib/core.js';
 import { selectLocalDirectory } from '../../services/local-directory-picker-service.js';
 import { getProjectGitInfo as getProjectGitInfoOperation } from '../../services/project-git-service.js';
 import { openScaffolding as openScaffoldingOperation } from '../../services/project-scaffolding-service.js';
 import { openProjectWebappInVsCode } from '../../services/vscode-service.js';
-
-function runGit(args, cwd) {
-  return new Promise((resolve, reject) => {
-    execFile(
-      'git',
-      ['-C', cwd, ...args],
-      { encoding: 'utf8', windowsHide: true },
-      (error, stdout, stderr) => {
-        if (error) {
-          reject(new Error(String(stderr || error.message).trim()));
-          return;
-        }
-        resolve(String(stdout || '').trim());
-      },
-    );
-  });
-}
 
 function saveConfig(body, response, { removeLegacyFields = false } = {}) {
   const current = readConfig();
@@ -90,27 +70,6 @@ async function getProjectGitInfo(request, response) {
   );
 }
 
-async function refreshProject(request, response) {
-  const project = await syncProject(request.params.projectId);
-
-  await Promise.all(
-    (project.microfrontends || []).map(async (microfront) => {
-      try {
-        const localCommit = await runGit(['rev-parse', 'HEAD'], microfront.path);
-        const remoteCommit = await runGit(
-          ['rev-parse', `origin/${microfront.branch}`],
-          microfront.path,
-        );
-        microfront.outOfSync = localCommit !== remoteCommit;
-      } catch {
-        microfront.outOfSync = false;
-      }
-    }),
-  );
-
-  response.json(project);
-}
-
 async function getProject(request, response) {
   const projects = await getProjects({ force: false });
   const project = projects.find((item) => item.id === request.params.projectId);
@@ -152,7 +111,6 @@ export const projectsController = {
   listProjects,
   openProjectWebapp,
   openScaffolding,
-  refreshProject,
   refreshProjectList,
   selectDirectory,
   setup,

@@ -76,9 +76,8 @@
             <p-button
               icon="pi pi-play"
               styleClass="p-button-rounded p-button-text"
-              [loading]="pending()"
               [disabled]="pending()"
-              (onClick)="build(item)"
+              (onClick)="openBuildOptions(item)"
             />
           }
         </td>
@@ -93,3 +92,5 @@
     </ng-template>
   </p-table>
 </section>
+
+<app-build-options-dialog (confirmed)="onBuildOptionsConfirmed($event)" />

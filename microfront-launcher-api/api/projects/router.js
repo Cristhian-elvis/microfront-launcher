@@ -14,7 +14,6 @@ export function createProjectsRouter() {
     '/projects/:projectId/git-info',
     projectsController.getProjectGitInfo,
   );
-  router.get('/projects/:projectId/refresh', projectsController.refreshProject);
   router.get('/projects/:projectId', projectsController.getProject);
   router.post(
     '/projects/scaffolding',

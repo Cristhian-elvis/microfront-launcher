@@ -88,6 +88,37 @@ export interface SetupBootstrapPayload {
 
 export type BootstrapResponse = BootstrapPayload | SetupBootstrapPayload;
 
+export interface MicrofrontendBuildOptions {
+  /** Si es `false`, se omite el paso `update` (git fetch/pull) de check-project. */
+  syncGit?: boolean;
+  /** Si es `true`, fuerza la recompilación aunque exista build local previo. */
+  forceBuild?: boolean;
+  /** Si es `true`, se omite el paso `build` (solo sincroniza Git, sin compilar). */
+  skipBuild?: boolean;
+  /** Si es `true`, se omiten los pasos `check` e `install` (revisión e instalación de dependencias). */
+  skipCheck?: boolean;
+  /** Si es `true`, enlaza las librerías mova3 localmente vía symlink (`--local`) en vez de usar la versión publicada. */
+  localMode?: boolean;
+}
+
+/**
+ * Opciones de `prepare-server`. Combina:
+ * - Las acciones del script (`--libs`, `--remotes`, `--link`): qué categorías procesar.
+ * - Los mismos pasos de `check-project` (`MicrofrontendBuildOptions`), ya que
+ *   `prepare-server` delega en `ProjectChecker`/`MicrofrontendProjectChecker` para
+ *   cada librería/remote incluido en `libs`/`remotes`.
+ */
+export interface ShellPrepareOptions extends MicrofrontendBuildOptions {
+  /** Procesa las librerías mova3 (`mova3_lib_*`). Default `false` (no incluido en el script fijo de la shell). */
+  libs?: boolean;
+  /** Procesa los remotes (microfrontends) configurados en `app-config.json`. Default `true`. */
+  remotes?: boolean;
+  /** Enlaza la configuración/shell en el servidor local. Default `true`. */
+  link?: boolean;
+  /** Si es `true`, ejecuta `npm run build:local` tras `prepare-server` para compilar la shell. Default `false`. */
+  buildLocal?: boolean;
+}
+
 export interface MicrofrontendOperation {
   status: 'idle' | 'running' | 'success' | 'error';
   projectId?: string | null;

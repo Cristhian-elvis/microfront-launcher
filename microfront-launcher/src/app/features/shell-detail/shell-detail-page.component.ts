@@ -6,6 +6,7 @@ import {
   inject,
   input,
   signal,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
@@ -15,20 +16,22 @@ import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
-import { Select } from 'primeng/select';
-import { FormsModule } from '@angular/forms';
 import { finalize, Observable } from 'rxjs';
 import type {
   ApiMessage,
+  MicrofrontendBuildOptions,
   MicrofrontendOperation,
   Project,
+  ShellPrepareOptions,
 } from '../../core/launcher.models';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { MovaService } from '../../core/services/mova.service';
 import { ProjectService } from '../../core/services/project.service';
+import { BuildOptionsDialogComponent } from '../../shared/components/build-options-dialog/build-options-dialog.component';
+import { BranchSelectDialogComponent } from '../../shared/components/branch-select-dialog/branch-select-dialog.component';
+import { ShellPrepareOptionsDialogComponent } from '../../shared/components/shell-prepare-options-dialog/shell-prepare-options-dialog.component';
 
 type Microfront = NonNullable<Project['microfrontends']>[number];
-type BulkAction = '' | 'build' | 'branch';
 
 @Component({
   selector: 'app-shell-detail-page',
@@ -41,8 +44,9 @@ type BulkAction = '' | 'build' | 'branch';
     TableModule,
     PrimeTemplate,
     Tag,
-    Select,
-    FormsModule
+    BuildOptionsDialogComponent,
+    BranchSelectDialogComponent,
+    ShellPrepareOptionsDialogComponent,
   ],
 })
 export class ShellDetailPageComponent {
@@ -54,20 +58,22 @@ export class ShellDetailPageComponent {
   private readonly messages = inject(MessageService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly bootstrap = inject(AppBootstrapService);
-  
+
+  readonly buildOptionsDialog = viewChild(BuildOptionsDialogComponent);
+  readonly branchSelectDialog = viewChild(BranchSelectDialogComponent);
+  readonly shellPrepareOptionsDialog = viewChild(ShellPrepareOptionsDialogComponent);
+
   readonly loading = signal(false);
   readonly pending = signal(false);
   readonly favoriteSaving = signal(false);
   readonly search = signal('');
   readonly selectedIds = signal<string[]>([]);
-  readonly bulkAction = signal<BulkAction>('');
-  readonly targetBranch = signal('');
 
   readonly state = this.bootstrap.state;
   readonly preferences = this.bootstrap.preferences;
   readonly infoBranches = this.projectsApi.getInfoBranchesByShellId(this.shellId);
   protected readonly projects = this.bootstrap.projects;
-  
+
   readonly microfronts = computed(() => {
     const gitByMicrofrontId = new Map(
       this.infoBranches.value()?.microfrontends?.map((item) => [item.id, item]) ?? [],
@@ -89,7 +95,7 @@ export class ShellDetailPageComponent {
       )
       : this.microfronts();
   });
-  
+
   readonly project = computed(() => {
     return this.projects().find((item) => item.id === this.shellId());
   });
@@ -136,40 +142,19 @@ export class ShellDetailPageComponent {
     { label: 'Shells', routerLink: '/shells' },
     { label: 'Detalle de shell' },
   ];
-  readonly bulkActionOptions = [
-    { label: 'Compilar seleccionados', value: 'build' },
-    { label: 'Cambiar a rama…', value: 'branch' },
-  ];
 
-  refresh(): void {
-    this.pending.set(true);
-    this.projectsApi
-      .refresh(this.shellId())
-      .pipe(
-        finalize(() => this.pending.set(false)),
-        takeUntilDestroyed(this.destroyRef),
-      )
-      .subscribe({
-        next: (project) => {
-          this.infoBranches.reload();
-          this.messages.add({
-            severity: 'success',
-            summary: 'Git actualizado',
-            detail: `Se actualizaron los repositorios de ${project.name}.`,
-          });
-        },
-        error: (error: unknown) => this.fail(error),
-      });
-  }
-  
   openWebapp(): void {
     const project = this.project();
     if (project) this.run(this.projectsApi.openWebapp(project.id), false);
   }
 
-  rebuild(): void {
+  prepareServer(): void {
+    this.shellPrepareOptionsDialog()?.open();
+  }
+
+  onShellPrepareOptionsConfirmed(options: ShellPrepareOptions): void {
     const project = this.project();
-    if (project) this.run(this.projectsApi.rebuildShell(project.id));
+    if (project) this.run(this.projectsApi.prepareShellServer(project.id, options));
   }
 
   toggleFavorite(): void {
@@ -211,26 +196,39 @@ export class ShellDetailPageComponent {
     );
   }
 
-  chooseBulkAction(value: string): void {
-    this.bulkAction.set(value === 'build' || value === 'branch' ? value : '');
-    this.targetBranch.set('');
+  openBuildOptions(): void {
+    this.buildOptionsDialog()?.open();
   }
 
-  applyBulkAction(): void {
+  onBuildOptionsConfirmed(options: MicrofrontendBuildOptions): void {
+    this.buildSelected(options);
+  }
+
+  openBranchSelect(): void {
+    this.branchSelectDialog()?.open();
+  }
+
+  onBranchConfirmed(branch: string): void {
     const project = this.project();
     const selected = this.selectedMicrofronts();
     if (!project || !selected.length) return;
-    if (this.bulkAction() === 'build') {
-      const ids = selected.filter((item) => item.localBuildAvailable).map((item) => item.id);
-      if (ids.length)
-        this.run(this.projectsApi.buildMicrofronts(project.id, ids));
-    }
-    if (this.bulkAction() === 'branch' && this.targetBranch())
-      this.run(this.projectsApi.changeMicrofrontBranches(
-        project.id,
-        selected.map((item) => item.id),
-        this.targetBranch(),
-      ));
+    this.run(this.projectsApi.changeMicrofrontBranches(
+      project.id,
+      selected.map((item) => item.id),
+      branch,
+    ));
+  }
+
+  private buildableSelectedIds(): string[] {
+    return this.selectedMicrofronts()
+      .filter((item) => item.localBuildAvailable)
+      .map((item) => item.id);
+  }
+
+  private buildSelected(options?: MicrofrontendBuildOptions): void {
+    const project = this.project();
+    const ids = this.buildableSelectedIds();
+    if (project && ids.length) this.run(this.projectsApi.buildMicrofronts(project.id, ids, options));
   }
 
   operationFor(microfront: Microfront): MicrofrontendOperation | undefined {
@@ -289,11 +287,6 @@ export class ShellDetailPageComponent {
   openMicrofrontInVsCode(microfront: Microfront): void {
     const project = this.project();
     if (project) this.run(this.projectsApi.openMicrofrontInVsCode(project.id, microfront.id), false);
-  }
-
-  buildMicrofront(microfront: Microfront): void {
-    const project = this.project();
-    if (project) this.run(this.projectsApi.buildMicrofront(project.id, microfront.id));
   }
 
   back(): void {
