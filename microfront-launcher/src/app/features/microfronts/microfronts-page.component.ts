@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
@@ -78,7 +78,7 @@ export class MicrofrontsPageComponent {
   readonly hasFilter = computed(() => !!this.selectedId() || !!this.projectId());
   readonly breadCrumbItems: MenuItem[] = [{ label: 'Microfronts' }];
 
-  readonly buildOptionsDialog = viewChild(BuildOptionsDialogComponent);
+  readonly buildOptionsVisible = signal(false);
   private buildTarget: DirectoryItem | null = null;
 
   key(item: DirectoryItem): string {
@@ -123,11 +123,17 @@ export class MicrofrontsPageComponent {
 
   openBuildOptions(item: DirectoryItem): void {
     this.buildTarget = item;
-    this.buildOptionsDialog()?.open();
+    this.buildOptionsVisible.set(true);
+  }
+
+  closeBuildOptions(): void {
+    this.buildOptionsVisible.set(false);
+    this.buildTarget = null;
   }
 
   onBuildOptionsConfirmed(options: MicrofrontendBuildOptions): void {
     const item = this.buildTarget;
+    this.closeBuildOptions();
     if (!item) return;
     this.pending.set(true);
     this.projectsApi

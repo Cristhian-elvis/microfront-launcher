@@ -1,20 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Dialog } from 'primeng/dialog';
-import { Checkbox } from 'primeng/checkbox';
 import { Button } from 'primeng/button';
+import { Checkbox } from 'primeng/checkbox';
+import { Dialog } from 'primeng/dialog';
 import type { MicrofrontendBuildOptions } from '../../../core/launcher.models';
 
-/**
- * Modal reutilizable para elegir cómo se invoca `check-project` al preparar
- * uno o varios microfronts.
- *
- * Se divide en dos bloques:
- * - "Pasos de ejecución": qué fases de `check-project` correr (al menos una
- *   debe quedar marcada).
- * - "Comportamiento": características que modifican cómo corren esos pasos
- *   (forzar recompilación, enlazar librerías mova3 localmente).
- */
+/** Configura la ejecución de `check-project` para uno o varios microfronts. */
 @Component({
   selector: 'app-build-options-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,10 +14,10 @@ import type { MicrofrontendBuildOptions } from '../../../core/launcher.models';
     <p-dialog
       [header]="title()"
       [modal]="true"
-      [visible]="visible()"
+      [visible]="true"
       [draggable]="false"
       [style]="{ width: 'min(420px, calc(100vw - 2rem))' }"
-      (visibleChange)="onVisibleChange($event)"
+      (visibleChange)="close()"
     >
       <div class="grid gap-4">
         <section class="grid gap-2">
@@ -66,7 +57,7 @@ import type { MicrofrontendBuildOptions } from '../../../core/launcher.models';
         </section>
       </div>
       <div class="mt-4 flex justify-end gap-2">
-        <p-button label="Cancelar" styleClass="p-button-outlined" (onClick)="cancel()" />
+        <p-button label="Cancelar" styleClass="p-button-outlined" (onClick)="close()" />
         <p-button label="Confirmar" [disabled]="!hasAnyStepSelected()" (onClick)="confirm()" />
       </div>
     </p-dialog>
@@ -75,46 +66,31 @@ import type { MicrofrontendBuildOptions } from '../../../core/launcher.models';
 export class BuildOptionsDialogComponent {
   readonly title = input('Preparar microfront');
 
-  readonly visible = signal(false);
+  readonly closed = output<void>();
+  readonly confirmed = output<MicrofrontendBuildOptions>();
+
   readonly syncGit = signal(true);
   readonly checkDependencies = signal(true);
   readonly build = signal(true);
   readonly forceBuild = signal(false);
   readonly localMode = signal(false);
 
-  readonly confirmed = output<MicrofrontendBuildOptions>();
-
   hasAnyStepSelected(): boolean {
     return this.syncGit() || this.checkDependencies() || this.build();
   }
 
-  open(): void {
-    this.syncGit.set(true);
-    this.checkDependencies.set(true);
-    this.build.set(true);
-    this.forceBuild.set(false);
-    this.localMode.set(false);
-    this.visible.set(true);
-  }
-
-  cancel(): void {
-    this.visible.set(false);
-  }
-
-  onVisibleChange(value: boolean): void {
-    this.visible.set(value);
+  close(): void {
+    this.closed.emit();
   }
 
   confirm(): void {
     if (!this.hasAnyStepSelected()) return;
-    const options: MicrofrontendBuildOptions = {
+    this.confirmed.emit({
       syncGit: this.syncGit(),
       skipCheck: !this.checkDependencies(),
       skipBuild: !this.build(),
       forceBuild: this.build() ? this.forceBuild() : false,
       localMode: this.localMode(),
-    };
-    this.visible.set(false);
-    this.confirmed.emit(options);
+    });
   }
 }

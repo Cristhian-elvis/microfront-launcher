@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
 import { Button, ButtonDirective } from 'primeng/button';
@@ -95,6 +95,10 @@ export class MainLayoutComponent {
         if (event.type === 'log' && this.isLog(event.payload)) this.bootstrap.appendLog(event.payload);
       },
       error: () => undefined,
+    });
+
+    effect(() => {
+      console.log('consoleVisible:', this.consoleVisible())
     });
   }
 

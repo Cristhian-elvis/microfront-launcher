@@ -19,6 +19,10 @@ export class ProcessConsoleComponent {
   readonly clearedAt = input(0);
   readonly clearRequested = output<void>();
 
+  constructor() {
+    console.log("init console")
+  }
+
   protected readonly visibleLogs = computed(() => {
     const clearedAt = this.clearedAt();
     return this.logs().filter((log) => Date.parse(log.at) > clearedAt);

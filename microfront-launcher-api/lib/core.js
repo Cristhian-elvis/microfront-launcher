@@ -200,6 +200,24 @@ export async function gitBranchInfo(projectPath) {
   }
 }
 
+/**
+ * Obtiene únicamente la rama actual del repositorio, sin listar las ramas
+ * locales/remotas disponibles. Útil cuando solo interesa el `HEAD` actual
+ * (p. ej. tras un `checkout`).
+ */
+export async function currentGitBranch(projectPath) {
+  try {
+    const { stdout } = await execFileAsync(
+      'git',
+      ['-C', projectPath, 'branch', '--show-current'],
+      { encoding: 'utf8', windowsHide: true },
+    );
+    return stdout.trim() || 'HEAD';
+  } catch {
+    return 'No disponible';
+  }
+}
+
 export async function exactGitTag(repositoryPath) {
   try {
     const { stdout } = await execFileAsync(
@@ -431,21 +449,14 @@ export async function refreshProjects() {
   return getProjects();
 }
 
-export function updateMicrofrontendGitCache(
-  projectId,
-  microfrontendId,
-  gitBranchData,
-) {
+/** Actualiza en caché los campos indicados de un microfrontend. */
+function patchMicrofrontendCache(projectId, microfrontendId, patch) {
   const updateProject = (project) => {
     if (project.id !== projectId) return project;
 
     const microfrontends = project.microfrontends?.map((microfrontend) =>
       microfrontend.id === microfrontendId
-        ? {
-            ...microfrontend,
-            branch: gitBranchData.branch,
-            branches: gitBranchData.branches,
-          }
+        ? { ...microfrontend, ...patch }
         : microfrontend,
     );
 
@@ -460,6 +471,12 @@ export function updateMicrofrontendGitCache(
   const indexedProject = projectIndex.get(projectId);
   if (indexedProject) projectIndex.set(projectId, updateProject(indexedProject));
 }
+
+/** Actualiza en caché la rama activa de un microfrontend. */
+export function updateMicrofrontendBranchCache(projectId, microfrontendId, branch) {
+  patchMicrofrontendCache(projectId, microfrontendId, { branch });
+}
+
 export function invalidateScanCache() {
   scanCache = { rootPath: '', projects: null };
   projectIndex = new Map();

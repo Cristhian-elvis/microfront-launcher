@@ -1,25 +1,11 @@
 import { ChangeDetectionStrategy, Component, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Dialog } from 'primeng/dialog';
-import { Checkbox } from 'primeng/checkbox';
 import { Button } from 'primeng/button';
+import { Checkbox } from 'primeng/checkbox';
+import { Dialog } from 'primeng/dialog';
 import type { ShellPrepareOptions } from '../../../core/launcher.models';
 
-/**
- * Modal para elegir las acciones y los pasos de `npm run prepare-server` al
- * preparar el servidor local de la shell.
- *
- * Se divide en dos secciones:
- * - "Acciones a ejecutar" (configuración): qué categorías procesa el script
- *   (`--libs`, `--remotes`, `--link`). El script está fijado en el
- *   `package.json` de la shell como
- *   `node scripts/prepare-server.mjs --remotes --link` (sin `--libs`), por lo
- *   que replicamos ese default: "Remotes" y "Enlazar en el servidor" vienen
- *   marcados, "Librerías mova3" viene desmarcado.
- * - "Opciones de ejecución para microfront": los mismos pasos y
- *   comportamiento de `check-project`, ya que `prepare-server` delega en las
- *   mismas clases `ProjectChecker` para cada librería/remote incluido.
- */
+/** Configura la ejecución de `npm run prepare-server` para la shell. */
 @Component({
   selector: 'app-shell-prepare-options-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,10 +14,10 @@ import type { ShellPrepareOptions } from '../../../core/launcher.models';
     <p-dialog
       header="Preparar servidor de la shell"
       [modal]="true"
-      [visible]="visible()"
+      [visible]="true"
       [draggable]="false"
       [style]="{ width: 'min(440px, calc(100vw - 2rem))' }"
-      (visibleChange)="onVisibleChange($event)"
+      (visibleChange)="close()"
     >
       <div class="grid gap-4">
         <section class="grid gap-2">
@@ -98,14 +84,16 @@ import type { ShellPrepareOptions } from '../../../core/launcher.models';
         }
       </div>
       <div class="mt-4 flex justify-end gap-2">
-        <p-button label="Cancelar" styleClass="p-button-outlined" (onClick)="cancel()" />
+        <p-button label="Cancelar" styleClass="p-button-outlined" (onClick)="close()" />
         <p-button label="Confirmar" [disabled]="!hasAnyActionSelected()" (onClick)="confirm()" />
       </div>
     </p-dialog>
   `,
 })
 export class ShellPrepareOptionsDialogComponent {
-  readonly visible = signal(false);
+  readonly closed = output<void>();
+  readonly confirmed = output<ShellPrepareOptions>();
+
   readonly libs = signal(false);
   readonly remotes = signal(true);
   readonly link = signal(true);
@@ -116,36 +104,17 @@ export class ShellPrepareOptionsDialogComponent {
   readonly forceBuild = signal(false);
   readonly localMode = signal(false);
 
-  readonly confirmed = output<ShellPrepareOptions>();
-
   hasAnyActionSelected(): boolean {
     return this.libs() || this.remotes() || this.link();
   }
 
-  open(): void {
-    this.libs.set(false);
-    this.remotes.set(true);
-    this.link.set(true);
-    this.buildLocal.set(false);
-    this.syncGit.set(true);
-    this.checkDependencies.set(true);
-    this.build.set(true);
-    this.forceBuild.set(false);
-    this.localMode.set(false);
-    this.visible.set(true);
-  }
-
-  cancel(): void {
-    this.visible.set(false);
-  }
-
-  onVisibleChange(value: boolean): void {
-    this.visible.set(value);
+  close(): void {
+    this.closed.emit();
   }
 
   confirm(): void {
     if (!this.hasAnyActionSelected()) return;
-    const options: ShellPrepareOptions = {
+    this.confirmed.emit({
       libs: this.libs(),
       remotes: this.remotes(),
       link: this.link(),
@@ -155,8 +124,6 @@ export class ShellPrepareOptionsDialogComponent {
       skipBuild: !this.build(),
       forceBuild: this.build() ? this.forceBuild() : false,
       localMode: this.localMode(),
-    };
-    this.visible.set(false);
-    this.confirmed.emit(options);
+    });
   }
 }

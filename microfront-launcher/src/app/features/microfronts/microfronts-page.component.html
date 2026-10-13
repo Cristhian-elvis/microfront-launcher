@@ -93,4 +93,9 @@
   </p-table>
 </section>
 
-<app-build-options-dialog (confirmed)="onBuildOptionsConfirmed($event)" />
+@if (buildOptionsVisible()) {
+  <app-build-options-dialog
+    (closed)="closeBuildOptions()"
+    (confirmed)="onBuildOptionsConfirmed($event)"
+  />
+}

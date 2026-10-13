@@ -6,7 +6,6 @@ import {
   inject,
   input,
   signal,
-  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
@@ -28,8 +27,8 @@ import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { MovaService } from '../../core/services/mova.service';
 import { ProjectService } from '../../core/services/project.service';
 import { BuildOptionsDialogComponent } from '../../shared/components/build-options-dialog/build-options-dialog.component';
-import { BranchSelectDialogComponent } from '../../shared/components/branch-select-dialog/branch-select-dialog.component';
-import { ShellPrepareOptionsDialogComponent } from '../../shared/components/shell-prepare-options-dialog/shell-prepare-options-dialog.component';
+import { BranchSelectDialogComponent } from './components/branch-select-dialog.component';
+import { ShellPrepareOptionsDialogComponent } from './components/shell-prepare-options-dialog.component';
 
 type Microfront = NonNullable<Project['microfrontends']>[number];
 
@@ -59,9 +58,9 @@ export class ShellDetailPageComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly bootstrap = inject(AppBootstrapService);
 
-  readonly buildOptionsDialog = viewChild(BuildOptionsDialogComponent);
-  readonly branchSelectDialog = viewChild(BranchSelectDialogComponent);
-  readonly shellPrepareOptionsDialog = viewChild(ShellPrepareOptionsDialogComponent);
+  readonly buildOptionsVisible = signal(false);
+  readonly branchSelectVisible = signal(false);
+  readonly shellPrepareOptionsVisible = signal(false);
 
   readonly loading = signal(false);
   readonly pending = signal(false);
@@ -149,10 +148,15 @@ export class ShellDetailPageComponent {
   }
 
   prepareServer(): void {
-    this.shellPrepareOptionsDialog()?.open();
+    this.shellPrepareOptionsVisible.set(true);
+  }
+
+  closeShellPrepareOptions(): void {
+    this.shellPrepareOptionsVisible.set(false);
   }
 
   onShellPrepareOptionsConfirmed(options: ShellPrepareOptions): void {
+    this.closeShellPrepareOptions();
     const project = this.project();
     if (project) this.run(this.projectsApi.prepareShellServer(project.id, options));
   }
@@ -197,18 +201,28 @@ export class ShellDetailPageComponent {
   }
 
   openBuildOptions(): void {
-    this.buildOptionsDialog()?.open();
+    this.buildOptionsVisible.set(true);
+  }
+
+  closeBuildOptions(): void {
+    this.buildOptionsVisible.set(false);
   }
 
   onBuildOptionsConfirmed(options: MicrofrontendBuildOptions): void {
+    this.closeBuildOptions();
     this.buildSelected(options);
   }
 
   openBranchSelect(): void {
-    this.branchSelectDialog()?.open();
+    this.branchSelectVisible.set(true);
+  }
+
+  closeBranchSelect(): void {
+    this.branchSelectVisible.set(false);
   }
 
   onBranchConfirmed(branch: string): void {
+    this.closeBranchSelect();
     const project = this.project();
     const selected = this.selectedMicrofronts();
     if (!project || !selected.length) return;

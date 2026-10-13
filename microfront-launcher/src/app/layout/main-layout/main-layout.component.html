@@ -37,19 +37,21 @@
     <section class="p-7 max-md:p-4"><router-outlet /></section>
   </main>
 </div>
-<p-dialog
-  header="Consola de proceso"
-  [modal]="true"
-  [visible]="consoleVisible()"
-  [draggable]="false"
-  (visibleChange)="consoleVisible.set($event)"
->
-  <app-process-console
-    [logs]="bootstrap.logs()"
-    [clearedAt]="bootstrap.logsClearedAt()"
-    (clearRequested)="bootstrap.clearLogsView()"
-  />
-</p-dialog>
+@if (consoleVisible()) {
+  <p-dialog
+    header="Consola de proceso"
+    [modal]="true"
+    [visible]="true"
+    [draggable]="false"
+    (visibleChange)="consoleVisible.set($event)"
+  >
+    <app-process-console
+      [logs]="bootstrap.logs()"
+      [clearedAt]="bootstrap.logsClearedAt()"
+      (clearRequested)="bootstrap.clearLogsView()"
+    />
+  </p-dialog>
+}
 <p-dialog
   header="Configuración"
   [modal]="true"

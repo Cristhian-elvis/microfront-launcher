@@ -229,6 +229,22 @@
   </section>
 </section>
 
-<app-build-options-dialog (confirmed)="onBuildOptionsConfirmed($event)" />
-<app-branch-select-dialog [branches]="commonBranches()" (confirmed)="onBranchConfirmed($event)" />
-<app-shell-prepare-options-dialog (confirmed)="onShellPrepareOptionsConfirmed($event)" />
+@if (buildOptionsVisible()) {
+  <app-build-options-dialog
+    (closed)="closeBuildOptions()"
+    (confirmed)="onBuildOptionsConfirmed($event)"
+  />
+}
+@if (branchSelectVisible()) {
+  <app-branch-select-dialog
+    [branches]="commonBranches()"
+    (closed)="closeBranchSelect()"
+    (confirmed)="onBranchConfirmed($event)"
+  />
+}
+@if (shellPrepareOptionsVisible()) {
+  <app-shell-prepare-options-dialog
+    (closed)="closeShellPrepareOptions()"
+    (confirmed)="onShellPrepareOptionsConfirmed($event)"
+  />
+}
