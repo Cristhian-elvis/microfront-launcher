@@ -17,14 +17,9 @@ export function createMicrofrontendsRouter() {
     microfrontendsController.openMicrofrontendFolder,
   );
   router.post(
-    '/microfrontends/build',
+    '/microfrontends/check-project',
     parseJson,
-    microfrontendsController.buildMicrofrontend,
-  );
-  router.post(
-    '/microfrontends/build-batch',
-    parseJson,
-    microfrontendsController.buildMicrofrontendBatch,
+    microfrontendsController.checkMicrofrontends,
   );
   router.post(
     '/microfrontends/branch',

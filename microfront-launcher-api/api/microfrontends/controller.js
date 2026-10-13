@@ -8,8 +8,7 @@ import {
   stopMicrofrontendWatch as stopMicrofrontendWatchOperation,
 } from '../../operations/microfrontend-ops.js';
 import {
-  buildMicrofrontend as buildMicrofrontendOperation,
-  startBatch as startBuildBatch,
+  checkMicrofrontends as checkMicrofrontendsOperation,
 } from '../../services/microfrontend-build-service.js';
 import { MicrofrontendRuntimeService } from '../../services/microfrontend-runtime-service.js';
 import { openMicrofrontendInVsCode } from '../../services/vscode-service.js';
@@ -45,24 +44,19 @@ async function openMicrofrontendFolder(request, response) {
   response.json({ ok: true, message: 'Carpeta del microfrontend abierta.' });
 }
 
-async function buildMicrofrontend(request, response) {
-  const { projectId, microfrontendId, syncGit, forceBuild, skipBuild, skipCheck, localMode } = request.body ?? {};
-  const { project, microfrontend } = findMicrofrontend(projectId, microfrontendId);
+function checkMicrofrontends(request, response) {
+  const { projectId, microfrontendIds, syncGit, forceBuild, skipBuild, skipCheck, localMode } =
+    request.body ?? {};
 
-  buildMicrofrontendOperation(project, microfrontend, { syncGit, forceBuild, skipBuild, skipCheck, localMode });
-
-  response.status(202).json({
-    ok: true,
-    message: `Compilación iniciada para ${microfrontend.name}.`,
+  checkMicrofrontendsOperation(projectId, microfrontendIds, {
+    syncGit,
+    forceBuild,
+    skipBuild,
+    skipCheck,
+    localMode,
   });
-}
 
-function buildMicrofrontendBatch(request, response) {
-  const { projectId, microfrontendIds, syncGit, forceBuild, skipBuild, skipCheck, localMode } = request.body ?? {};
-
-  startBuildBatch(projectId, microfrontendIds, { syncGit, forceBuild, skipBuild, skipCheck, localMode });
-
-  response.status(202).json({ ok: true, message: 'Compilación por lote iniciada.' });
+  response.status(202).json({ ok: true, message: 'Chequeo de microfronts iniciado.' });
 }
 
 function switchMicrofrontendBranch(request, response) {
@@ -118,8 +112,7 @@ function stopMicrofrontendWatch(request, response) {
 }
 
 export const microfrontendsController = {
-  buildMicrofrontend,
-  buildMicrofrontendBatch,
+  checkMicrofrontends,
   openMicrofrontend,
   openMicrofrontendFolder,
   startMicrofrontendWatch,

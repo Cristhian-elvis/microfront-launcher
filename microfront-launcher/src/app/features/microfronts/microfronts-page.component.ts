@@ -137,7 +137,7 @@ export class MicrofrontsPageComponent {
     if (!item) return;
     this.pending.set(true);
     this.projectsApi
-      .buildMicrofront(item.project.id, item.id, options)
+      .checkMicrofrontends(item.project.id, [item.id], options)
       .pipe(finalize(() => this.pending.set(false)))
       .subscribe();
   }

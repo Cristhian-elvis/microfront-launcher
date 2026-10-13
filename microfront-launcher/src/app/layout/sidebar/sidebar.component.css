@@ -34,6 +34,9 @@ nav {
 .nav-link {
   @apply justify-start gap-3 border-0 bg-transparent px-3 py-2.5 text-left text-surface-600 shadow-none hover:!bg-surface-100 hover:!text-surface-950 dark:text-surface-300 dark:hover:!bg-surface-800 dark:hover:!text-surface-0;
 }
+.nav-label {
+  @apply min-w-0 flex-1;
+}
 .nav-link-active {
   @apply bg-primary text-primary-contrast hover:bg-primary;
 }

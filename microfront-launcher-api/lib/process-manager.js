@@ -70,11 +70,15 @@ export function spawnManaged({
   });
   child.on('exit', (code, signal) => {
     record.exitCode = code;
-    addLog(
-      label,
-      code === 0 ? 'system' : 'error',
-      `Proceso finalizado (código: ${code ?? '-'}, señal: ${signal ?? '-'})`,
-    );
+    const details = `código: ${code ?? '-'} · señal: ${signal ?? '-'}`;
+    const completed = code === 0 && !signal;
+    const message = completed
+      ? `══════════ ✓ EJECUCIÓN COMPLETADA · ${details} ══════════`
+      : signal
+        ? `══════════ ■ EJECUCIÓN INTERRUMPIDA · ${details} ══════════`
+        : `══════════ ✕ EJECUCIÓN FINALIZADA CON ERROR · ${details} ══════════`;
+
+    addLog(label, completed ? 'success' : 'error', message);
     finish({ code, signal });
   });
 

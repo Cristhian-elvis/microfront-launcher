@@ -36,7 +36,7 @@
     >
       <i class="pi pi-desktop"></i>
       @if (!collapsed()) {
-        <span>Shells</span>
+        <span class="nav-label">Shells</span>
         <p-badge [value]="projects().length" severity="secondary" />
       }
     </a>
@@ -49,7 +49,7 @@
     >
       <i class="pi pi-box"></i>
       @if (!collapsed()) {
-        <span>Microfrontends</span>
+        <span class="nav-label">Microfrontends</span>
         <p-badge [value]="microfrontCount()" severity="secondary" />
       }
     </a>
@@ -78,7 +78,7 @@
       </header>
       @if (favoriteShells().length) {
         @for (project of favoriteShells(); track project.id) {
-          <a class="favorite-link" [routerLink]="['/shells', project.id]">{{ project.name }}</a>
+          <a class="favorite-link" [routerLink]="['/shells', project.id]">{{ displayProjectName(project.name) }}</a>
         }
       } @else {
         <p>Aún no hay favoritas.</p>

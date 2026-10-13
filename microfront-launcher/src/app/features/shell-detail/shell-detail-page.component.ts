@@ -242,7 +242,7 @@ export class ShellDetailPageComponent {
   private buildSelected(options?: MicrofrontendBuildOptions): void {
     const project = this.project();
     const ids = this.buildableSelectedIds();
-    if (project && ids.length) this.run(this.projectsApi.buildMicrofronts(project.id, ids, options));
+    if (project && ids.length) this.run(this.projectsApi.checkMicrofrontends(project.id, ids, options));
   }
 
   operationFor(microfront: Microfront): MicrofrontendOperation | undefined {

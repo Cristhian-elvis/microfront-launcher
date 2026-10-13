@@ -56,51 +56,7 @@ function spawnCheckProjectBuild(project, microfrontend, options) {
   });
 }
 
-export function buildMicrofrontend(project, microfrontend, options) {
-    if (isBranchOperationRunning() || state.microfrontendBuild.status === 'running') {
-      throw new Error('Ya hay una operación de microfrontend en curso.');
-    }
-    if (!microfrontend?.buildAvailable) {
-      throw new Error(
-        `El microfrontend ${microfrontend?.name || ''} no define npm run build.`,
-      );
-    }
-    if (!project?.workflow?.checkProject) {
-      throw new Error(
-        `La shell ${project?.name || ''} no define npm run check-project.`,
-      );
-    }
-
-    const record = spawnCheckProjectBuild(project, microfrontend, options);
-    RuntimeStateService.updateMicrofrontendBuild({
-      status: 'running',
-      projectId: project.id,
-      microfrontendId: microfrontend.id,
-      phase: 'build',
-      message: 'Compilando.',
-      error: null,
-      startedAt: new Date().toISOString(),
-    });
-    record.done.then(({ code }) => {
-      if (state.microfrontendBuild.microfrontendId !== microfrontend.id) return;
-      if (code === 0) {
-        RuntimeStateService.updateMicrofrontendBuild({
-          status: 'success',
-          message: `${microfrontend.name} compilado correctamente.`,
-          error: null,
-        });
-        return;
-      }
-      RuntimeStateService.updateMicrofrontendBuild({
-        status: 'error',
-        message: 'La compilación no se completó.',
-        error: `${microfrontend.name} terminó con código ${code ?? '-'}.`,
-      });
-    });
-    return record;
-  }
-
-export async function startBatch(projectId, microfrontendIds, options) {
+export async function checkMicrofrontends(projectId, microfrontendIds, options) {
     if (isBranchOperationRunning() || state.microfrontendBuild.status === 'running') {
       throw new Error('Ya hay una operación de microfrontend en curso.');
     }

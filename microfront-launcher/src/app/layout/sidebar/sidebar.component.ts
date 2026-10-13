@@ -11,6 +11,7 @@ import { Badge } from 'primeng/badge';
 import { Button, ButtonDirective } from 'primeng/button';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import type { Project } from '../../core/launcher.models';
+import { projectDisplayName } from '../../shared/utils/project-display-name.util';
 
 @Component({
   selector: 'app-sidebar',
@@ -41,6 +42,10 @@ export class SidebarComponent {
   readonly microfrontCount = computed(() =>
     this.projects().reduce((total, project) => total + (project.microfrontends?.length ?? 0), 0),
   );
+  displayProjectName(name: string | null | undefined): string {
+    return projectDisplayName(name);
+  }
+
   toggle(): void {
     this.collapsed.update((value) => !value);
   }

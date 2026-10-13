@@ -1,6 +1,6 @@
 <section class="console-panel">
-  <header>
-    <div>
+  <header class="console-header">
+    <div class="console-title">
       <app-icon name="console" [size]="18" />
       <strong>Consola de proceso</strong>
       <span>{{ visibleLogs().length }} eventos</span>
@@ -12,18 +12,26 @@
       (onClick)="clearView()"
     />
   </header>
+
   <div class="console-body">
-    @for (item of renderedLogs(); track item.log.id) {
-      <div class="log-line" [class]="'log-line level-' + item.log.level">
-        <time>{{ item.log.at | date: 'HH:mm:ss' }}</time>
-        <b>{{ item.log.source }}</b>
-        <span class="log-message">
-          @for (segment of item.segments; track $index) {
-            <span [class]="segment.colorClass">{{ segment.text }}</span>
+    @for (group of logGroups(); track group.id) {
+      <section class="log-group">
+        <header class="log-group-header">
+          <span>Proceso</span>
+          <strong [title]="group.source">{{ group.source }}</strong>
+        </header>
+
+        <div class="log-stream">
+          @for (item of group.logs; track item.log.id) {
+            <div class="log-line" [class]="'log-line level-' + item.log.level">
+              <time>{{ item.log.at | date: 'HH:mm:ss' }}</time>
+              <pre class="log-message">@for (segment of item.segments; track $index) {<span [class]="segment.colorClass">{{ segment.text }}</span>}</pre>
+            </div>
           }
-        </span>
-      </div>
+        </div>
+      </section>
     }
+
     @if (!visibleLogs().length) {
       <p class="empty">Aquí se mostrarán las acciones y resultados del entorno.</p>
     }

@@ -33,12 +33,12 @@ export class ProjectService {
     return this.http.post<ApiMessage>('/api/shell/prepare', { projectId, ...options });
   }
 
-  buildMicrofronts(
+  checkMicrofrontends(
     projectId: string,
     microfrontendIds: string[],
     options?: MicrofrontendBuildOptions,
   ): Observable<ApiMessage> {
-    return this.http.post<ApiMessage>('/api/microfrontends/build-batch', {
+    return this.http.post<ApiMessage>('/api/microfrontends/check-project', {
       projectId,
       microfrontendIds,
       ...options,
@@ -57,15 +57,4 @@ export class ProjectService {
     return this.http.post<ApiMessage>('/api/microfrontends/open', { projectId, microfrontendId });
   }
 
-  buildMicrofront(
-    projectId: string,
-    microfrontendId: string,
-    options?: MicrofrontendBuildOptions,
-  ): Observable<ApiMessage> {
-    return this.http.post<ApiMessage>('/api/microfrontends/build', {
-      projectId,
-      microfrontendId,
-      ...options,
-    });
-  }
 }

@@ -8,70 +8,102 @@
   @apply overflow-hidden rounded-xl border border-surface-200 bg-surface-0 shadow-sm dark:border-surface-700 dark:bg-surface-900;
 }
 
-.console-panel header,
-.console-panel header div {
+.console-header,
+.console-title {
   display: flex;
   align-items: center;
 }
 
-.console-panel header {
+.console-header {
   @apply justify-between border-b border-surface-200 px-4 py-3 dark:border-surface-700;
 }
 
-.console-panel header div {
+.console-title {
   gap: 10px;
 }
 
-.log-line b {
-  @apply text-primary;
+.console-title strong {
+  @apply text-sm;
 }
 
-.console-panel header span {
+.console-title span {
   @apply text-xs text-surface-500;
 }
 
 .console-body {
-  @apply max-h-[330px] overflow-auto bg-surface-50 px-4 py-1.5 dark:bg-surface-950;
+  @apply max-h-[min(62vh,680px)] overflow-auto bg-surface-950 py-2 text-surface-100;
   font-family: Consolas, 'Cascadia Code', ui-monospace, SFMono-Regular, monospace;
 }
 
-.log-line {
-  @apply grid grid-cols-[78px_120px_minmax(0,1fr)] gap-2.5 border-b border-surface-200 py-1.5 text-xs text-surface-800 dark:border-surface-800 dark:text-surface-100;
-  line-height: 1.45;
+.log-group + .log-group {
+  @apply mt-3;
 }
 
-.level-error { @apply text-red-600 dark:text-red-300; }
-
-.level-success { @apply text-emerald-700 dark:text-emerald-300; }
-.level-stage, .level-system { @apply text-surface-600 dark:text-surface-300; }
-
-.log-line time {
-  @apply text-surface-500;
+.log-group-header {
+  @apply sticky top-0 z-10 flex min-w-0 items-center gap-2 bg-surface-900/95 px-3 py-1.5 shadow-sm backdrop-blur;
   font-family: Inter, sans-serif;
 }
 
-.log-message { min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.log-group-header span {
+  @apply shrink-0 text-[10px] font-medium uppercase tracking-wider text-surface-500;
+}
 
-.ansi-black { @apply text-surface-700 dark:text-surface-400; }
-.ansi-red, .ansi-bright-red { @apply text-red-600 dark:text-red-300; }
-.ansi-green, .ansi-bright-green { @apply text-green-700 dark:text-green-400; }
-.ansi-yellow, .ansi-bright-yellow { @apply text-yellow-700 dark:text-yellow-300; }
-.ansi-blue, .ansi-bright-blue { @apply text-blue-700 dark:text-blue-400; }
-.ansi-magenta, .ansi-bright-magenta { @apply text-fuchsia-700 dark:text-fuchsia-300; }
-.ansi-cyan, .ansi-bright-cyan { @apply text-cyan-700 dark:text-cyan-300; }
-.ansi-white, .ansi-bright-white { @apply text-surface-900 dark:text-surface-0; }
+.log-group-header strong {
+  @apply min-w-0 truncate text-xs font-semibold text-surface-200;
+}
+
+.log-stream {
+  @apply py-1;
+}
+
+.log-line {
+  @apply grid grid-cols-[68px_minmax(0,1fr)] gap-3 px-3 py-0.5 text-xs leading-relaxed;
+}
+
+.log-line time {
+  @apply pt-0.5 text-right text-surface-600;
+  font-family: Inter, sans-serif;
+}
+
+.log-message {
+  @apply m-0 min-w-0 overflow-x-auto text-surface-200;
+  font-family: inherit;
+  overflow-wrap: normal;
+  tab-size: 2;
+  white-space: pre-wrap;
+}
+
+.level-error .log-message { @apply text-red-300; }
+.level-success .log-message { @apply text-emerald-300; }
+.level-stage .log-message,
+.level-system .log-message { @apply text-surface-300; }
+
+.ansi-black { @apply text-surface-400; }
+.ansi-red, .ansi-bright-red { @apply text-red-400; }
+.ansi-green, .ansi-bright-green { @apply text-green-400; }
+.ansi-yellow, .ansi-bright-yellow { @apply text-yellow-300; }
+.ansi-blue, .ansi-bright-blue { @apply text-blue-400; }
+.ansi-magenta, .ansi-bright-magenta { @apply text-fuchsia-400; }
+.ansi-cyan, .ansi-bright-cyan { @apply text-cyan-400; }
+.ansi-white, .ansi-bright-white { @apply text-surface-100; }
 .ansi-gray { @apply text-surface-500; }
 
 .empty {
-  @apply text-center text-surface-500;
+  @apply my-8 text-center text-sm text-surface-500;
 }
 
 @media (max-width: 640px) {
-  .log-line {
-    grid-template-columns: 70px minmax(0, 1fr);
+  .console-header {
+    @apply px-3;
   }
 
-  .log-line span {
-    grid-column: 2;
+  .log-group-header,
+  .log-line {
+    @apply px-2.5;
+  }
+
+  .log-line {
+    grid-template-columns: 60px minmax(0, 1fr);
+    gap: 2;
   }
 }

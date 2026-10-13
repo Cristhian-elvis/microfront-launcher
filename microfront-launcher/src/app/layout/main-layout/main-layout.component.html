@@ -43,6 +43,7 @@
     [modal]="true"
     [visible]="true"
     [draggable]="false"
+    [style]="{ width: 'min(1100px, calc(100vw - 2rem))' }"
     (visibleChange)="consoleVisible.set($event)"
   >
     <app-process-console
