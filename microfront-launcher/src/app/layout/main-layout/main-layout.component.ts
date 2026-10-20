@@ -96,10 +96,10 @@ export class MainLayoutComponent {
   private readonly environment = inject(EnvironmentService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly browserActions: MenuItem[] = [
-    { label: 'Chrome', icon: 'pi pi-chrome', command: () => this.openBrowser('chrome') },
-    { label: 'Chrome sin seguridad', icon: 'pi pi-chrome', command: () => this.openBrowser('chrome-insecure') },
-    { label: 'Edge', icon: 'pi pi-desktop', command: () => this.openBrowser('edge') },
-    { label: 'Edge sin seguridad', icon: 'pi pi-desktop', command: () => this.openBrowser('edge-insecure') },
+    { label: 'Chrome', icon: '', command: () => this.openBrowser('chrome') },
+    { label: 'Chrome sin seguridad', icon: '', command: () => this.openBrowser('chrome-insecure') },
+    { label: 'Edge', icon: '', command: () => this.openBrowser('edge') },
+    { label: 'Edge sin seguridad', icon: '', command: () => this.openBrowser('edge-insecure') },
   ];
   constructor() {
     this.events.events().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
