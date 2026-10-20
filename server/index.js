@@ -30,6 +30,7 @@ import {
   getIndexedProject,
   gitBranchInfo,
   updateMicrofrontendGitCache,
+  checkLauncherUpdates,
 } from "./lib/core.js";
 import {
   childProcesses,
@@ -55,6 +56,7 @@ import { createMovaHandler } from "./handlers/mova-handler.js";
 import { createComponentsHandler } from "./handlers/components-handler.js";
 import { createEnvironmentHandler } from "./handlers/environment-handler.js";
 import { createVersionsAuditHandler } from "./handlers/versions-audit-handler.js";
+import { createLauncherHandler } from "./handlers/launcher-handler.js";
 import { createApiRouter } from "./routes/api-router.js";
 import { createVsCodeService } from "./services/vscode-service.js";
 import { json, readBody } from "./lib/http.js";
@@ -1893,6 +1895,10 @@ const handleVersionsAuditRequest = createVersionsAuditHandler({
   json,
   readBody,
 });
+const handleLauncherRequest = createLauncherHandler({
+  checkLauncherUpdates,
+  json,
+});
 const routeApi = createApiRouter([
   handleStateRequest,
   handleProjectsRequest,
@@ -1902,6 +1908,7 @@ const routeApi = createApiRouter([
   handleMicrofrontendRequest,
   handleEnvironmentRequest,
   handleVersionsAuditRequest,
+  handleLauncherRequest,
 ]);
 
 async function handleApi(request, response, url) {

@@ -523,3 +523,19 @@ export function assertInside(parent, candidate) {
   const relative = path.relative(path.resolve(parent), path.resolve(candidate));
   if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Ruta de almacenamiento no válida.');
 }
+
+export async function checkLauncherUpdates() {
+  const gitOptions = { encoding: 'utf8', windowsHide: true };
+  try {
+    await execFileAsync('git', ['-C', appRoot, 'fetch', '--prune'], gitOptions);
+    const { stdout: countOut } = await execFileAsync(
+      'git',
+      ['-C', appRoot, 'rev-list', '--count', 'HEAD..origin/master'],
+      gitOptions,
+    );
+    const behind = Number(countOut.trim()) || 0;
+    return { behind, hasUpdates: behind > 0 };
+  } catch (error) {
+    throw new Error(`No se pudo verificar actualizaciones del launcher: ${String(error.stderr || error.message).trim()}`);
+  }
+}
