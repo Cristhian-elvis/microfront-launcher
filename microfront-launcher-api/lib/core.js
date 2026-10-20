@@ -62,7 +62,6 @@ export const defaultConfig = {
 export const defaultPreferences = {
   favoriteShellIds: [],
   favoriteMicrofrontIds: [],
-  avatarLetters: "ML"
 };
 
 export function needsInitialSetup() {
@@ -148,12 +147,9 @@ export function readPreferences() {
   delete saved.preferredTag;
   delete saved.componentsVersion;
   const preferences = { ...defaultPreferences, ...saved };
+  delete preferences.avatarLetters;
   return {
     ...preferences,
-    avatarLetters: String(preferences.avatarLetters || "ML")
-      .replace(/[^a-zA-Z]/g, "")
-      .slice(0, 2)
-      .toUpperCase(),
     favoriteShellIds: Array.isArray(preferences.favoriteShellIds)
       ? preferences.favoriteShellIds
       : [],
@@ -171,6 +167,7 @@ export function writePreferences(next) {
   };
   delete value.preferredTag;
   delete value.componentsVersion;
+  delete value.avatarLetters;
   writeJson(preferencesPath, value);
   return value;
 }

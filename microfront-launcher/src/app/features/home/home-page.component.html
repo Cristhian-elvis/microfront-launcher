@@ -34,7 +34,7 @@
       <strong>MOVA Components</strong>
       <span>Librería de componentes para la shell.</span>
     </div>
-    <div class="operation-actions">
+    <div class="operation-actions mova-actions">
       <p-tag
         class="active-version-tag"
         [value]="activeVersion()"
@@ -133,6 +133,37 @@
     </div>
   </article>
 </section>
+
+<p-dialog
+  header="Abrir navegador"
+  [modal]="true"
+  [visible]="browserChoiceVisible()"
+  [draggable]="false"
+  [closable]="false"
+  [style]="{ width: 'min(440px, calc(100vw - 2rem))' }"
+>
+  <p class="m-0 text-surface-600 dark:text-surface-300">
+    La shell se abrirá al finalizar el arranque. ¿Cómo deseas abrirla?
+  </p>
+  <div class="mt-5 flex justify-end gap-2">
+    <p-button
+      label="Cancelar"
+      styleClass="p-button-outlined"
+      (onClick)="cancelBrowserChoice()"
+    />
+    <p-button
+      label="Nueva pestaña"
+      icon="pi pi-clone"
+      styleClass="p-button-outlined"
+      (onClick)="confirmBrowserChoice('tab')"
+    />
+    <p-button
+      label="Nueva ventana"
+      icon="pi pi-window-maximize"
+      (onClick)="confirmBrowserChoice('window')"
+    />
+  </div>
+</p-dialog>
 
 <app-process-console
   [logs]="logs()"

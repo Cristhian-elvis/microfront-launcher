@@ -14,7 +14,6 @@ import type {
 const defaultPreferences: LauncherPreferences = {
   favoriteShellIds: [],
   favoriteMicrofrontIds: [],
-  avatarLetters: 'ML',
 };
 
 /** Hydrates shared stores from one bootstrap response and keeps them independently updated. */

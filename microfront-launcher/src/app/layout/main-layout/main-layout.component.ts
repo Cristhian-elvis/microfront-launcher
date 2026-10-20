@@ -4,10 +4,12 @@ import { RouterOutlet } from '@angular/router';
 import { Button, ButtonDirective } from 'primeng/button';
 import type { MenuItem } from 'primeng/api';
 import { Dialog } from 'primeng/dialog';
+import { FormsModule } from '@angular/forms';
 import { InputText } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
 import { Tooltip } from 'primeng/tooltip';
 import { SplitButton } from 'primeng/splitbutton';
-import { concatMap, finalize, of } from 'rxjs';
+import { finalize } from 'rxjs';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
 import { AppIconComponent } from '../../shared/components/app-icon/app-icon.component';
@@ -15,7 +17,6 @@ import { ThemeService } from '../../shared/services/theme.service';
 import { LauncherEventsService } from '../../core/services/launcher-events.service';
 import type { LauncherConfig, LauncherLog, LauncherPreferences, LauncherState, Project } from '../../core/launcher.models';
 import { EnvironmentService } from '../../core/services/environment.service';
-import { MovaService } from '../../core/services/mova.service';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import type { BrowserMode } from './types/browser.type';
 
@@ -30,6 +31,8 @@ import type { BrowserMode } from './types/browser.type';
     SplitButton,
     Dialog,
     InputText,
+    Select,
+    FormsModule,
     Tooltip,
     AppIconComponent,
     ProcessConsoleComponent,
@@ -74,10 +77,23 @@ export class MainLayoutComponent {
   protected readonly microfrontCount = computed(() => this.projects().reduce(
     (total, project) => total + (project.microfrontends?.length ?? 0), 0,
   ));
-  protected readonly avatarLetters = computed(() => (this.preferences().avatarLetters ?? 'ML').slice(0, 2).toUpperCase());
+  protected readonly browserModeOptions = [
+    { label: 'Chrome', value: 'chrome' },
+    { label: 'Chrome sin seguridad', value: 'chrome-insecure' },
+    { label: 'Edge', value: 'edge' },
+    { label: 'Edge sin seguridad', value: 'edge-insecure' },
+  ];
+  protected readonly browserOpenModeOptions = [
+    { label: 'Preguntar cada vez', value: null },
+    { label: 'Abrir como nueva pestaña', value: 'tab' },
+    { label: 'Abrir como nueva ventana', value: 'window' },
+  ];
+  protected readonly browserHostOptions = [
+    { label: 'localhost (predeterminado)', value: 'localhost' },
+    { label: '127.0.0.1', value: '127.0.0.1' },
+  ];
   private readonly events = inject(LauncherEventsService);
   private readonly environment = inject(EnvironmentService);
-  private readonly mova = inject(MovaService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly browserActions: MenuItem[] = [
     { label: 'Chrome', icon: 'pi pi-chrome', command: () => this.openBrowser('chrome') },
@@ -85,8 +101,6 @@ export class MainLayoutComponent {
     { label: 'Edge', icon: 'pi pi-desktop', command: () => this.openBrowser('edge') },
     { label: 'Edge sin seguridad', icon: 'pi pi-desktop', command: () => this.openBrowser('edge-insecure') },
   ];
-  private initialAvatarLetters = 'ML';
-
   constructor() {
     this.events.events().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (event) => {
@@ -109,12 +123,7 @@ export class MainLayoutComponent {
   protected openSettings(): void {
     this.environment.getConfig().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (config) => {
-        const avatarLetters = this.preferences().avatarLetters ?? 'ML';
-        this.initialAvatarLetters = avatarLetters;
-        this.settings.set({
-          ...config,
-          preferences: { ...config.preferences, ...this.preferences(), avatarLetters },
-        });
+        this.settings.set(config);
         this.settingsError.set(null);
         this.settingsVisible.set(true);
       },
@@ -122,23 +131,14 @@ export class MainLayoutComponent {
     });
   }
 
-  protected updateSetting(section: 'rootPath' | 'mova' | 'shellDefaults' | 'browser' | 'preferences', key: string, value: string): void {
+  protected updateSetting(section: 'rootPath' | 'mova' | 'shellDefaults' | 'browser', key: string, value: string | null): void {
     this.settings.update((config) => section === 'rootPath'
-      ? { ...config, rootPath: value }
+      ? { ...config, rootPath: value ?? '' }
       : { ...config, [section]: { ...config[section], [key]: value } });
-  }
-
-  protected updateAvatarLetters(value: string): void {
-    this.updateSetting(
-      'preferences',
-      'avatarLetters',
-      value.replace(/[^a-zA-Z]/g, '').slice(0, 2).toUpperCase(),
-    );
   }
 
   protected saveSettings(): void {
     const settings = this.settings();
-    const avatarLetters = settings.preferences?.avatarLetters ?? 'ML';
     this.settingsError.set(null);
     if (!this.publishedComponentsConfigured()) {
       this.settingsError.set('El CDN y la carpeta Stencil de MOVA Components son obligatorios.');
@@ -147,15 +147,11 @@ export class MainLayoutComponent {
     this.settingsSaving.set(true);
 
     this.environment.saveConfig(settings).pipe(
-      concatMap(() => avatarLetters !== this.initialAvatarLetters
-        ? this.mova.savePreferences({ avatarLetters })
-        : of(null)),
       finalize(() => this.settingsSaving.set(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: () => {
         this.settingsVisible.set(false);
-        this.bootstrap.reload();
       },
       error: (error: { message?: string }) => this.settingsError.set(error.message ?? 'No se pudieron guardar los cambios.'),
     });

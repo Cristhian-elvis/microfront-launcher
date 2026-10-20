@@ -6,6 +6,7 @@ function updatePreferences(request, response) {
 
   delete preferences.componentsVersion;
   delete preferences.preferredTag;
+  delete preferences.avatarLetters;
 
   writePreferences(preferences);
   RuntimeStateService.emitPreferences();

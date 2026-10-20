@@ -46,7 +46,7 @@
         label="Abrir en VS Code"
         icon="pi pi-code"
         styleClass="p-button-outlined mt-2"
-        [disabled]="operating() || !project()?.webappPath"
+        [disabled]="!project()?.webappPath"
         (onClick)="openWebapp()"
       />
     </article>
@@ -205,14 +205,12 @@
               icon="pi pi-folder-open"
               styleClass="p-button-rounded p-button-text"
               ariaLabel="Abrir en explorador"
-              [disabled]="operating()"
               (onClick)="openMicrofrontFolder(microfront)"
             />
             <p-button
               icon="pi pi-code"
               styleClass="p-button-rounded p-button-text"
               ariaLabel="Abrir en VS Code"
-              [disabled]="operating()"
               (onClick)="openMicrofrontInVsCode(microfront)"
             />
           </td>

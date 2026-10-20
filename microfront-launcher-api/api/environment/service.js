@@ -184,8 +184,10 @@ export async function runEnvironment(projectId, options = {}) {
         message: "Abriendo navegador autorizado.",
         task: async () => {
           assertNotCancelled(signal);
+          const configuredOpenMode = readConfig().browser.openMode;
+          const browserOpenMode = options.browserOpenMode ?? configuredOpenMode ?? 'tab';
           await openBrowser(project, {
-            newWindow: readConfig().browser.openMode === 'window',
+            newWindow: browserOpenMode === 'window',
           });
           assertNotCancelled(signal);
         },

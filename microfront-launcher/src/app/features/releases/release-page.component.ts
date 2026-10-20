@@ -4,6 +4,7 @@ import { MessageService, PrimeTemplate } from 'primeng/api';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
 import { Checkbox } from 'primeng/checkbox';
+import { Dialog } from 'primeng/dialog';
 import { Popover } from 'primeng/popover';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -31,6 +32,7 @@ interface ReleaseOptions {
     BreadcrumbModule,
     Button,
     Checkbox,
+    Dialog,
     Popover,
     PrimeTemplate,
     Select,
@@ -52,7 +54,7 @@ export class ReleasePageComponent {
     updateWebapp: true,
     push: false,
   });
-  protected readonly planVisible = signal(false);
+  protected readonly qualityWarningVisible = signal(false);
   protected readonly breadCrumbItems = [{ label: 'Versiones' }];
   protected readonly releaseTypeOptions = [
     { label: 'Patch — corrección', value: 'patch' },
@@ -74,14 +76,10 @@ export class ReleasePageComponent {
   protected readonly microfronts = computed<Microfront[]>(() =>
     this.selectedProject()?.microfrontends ?? [],
   );
-  protected readonly selectedMicrofronts = computed(() => {
-    const ids = new Set(this.selectedMicrofrontIds());
-    return this.microfronts().filter((microfront) => ids.has(microfront.id));
-  });
   protected readonly allSelected = computed(() =>
     this.microfronts().length > 0 && this.selectedMicrofrontIds().length === this.microfronts().length,
   );
-  protected readonly canGeneratePlan = computed(() =>
+  protected readonly canGenerateRelease = computed(() =>
     Boolean(this.selectedProject() && this.selectedMicrofrontIds().length),
   );
 
@@ -89,43 +87,55 @@ export class ReleasePageComponent {
     this.selectedProjectId.set(projectId);
     this.selectedMicrofrontIds.set([]);
     this.microfrontReleaseTypes.set({});
-    this.planVisible.set(false);
   }
 
   protected toggleMicrofront(id: string, selected: boolean): void {
     this.selectedMicrofrontIds.update((ids) =>
       selected ? [...new Set([...ids, id])] : ids.filter((value) => value !== id),
     );
-    this.planVisible.set(false);
   }
 
   protected toggleAll(selected: boolean): void {
     this.selectedMicrofrontIds.set(selected ? this.microfronts().map((microfront) => microfront.id) : []);
-    this.planVisible.set(false);
   }
 
   protected updateOption(action: ReleaseAction, value: boolean): void {
     this.options.update((options) => ({ ...options, [action]: value }));
-    this.planVisible.set(false);
   }
 
   protected selectMicrofrontReleaseType(id: string, type: ReleaseType): void {
     this.microfrontReleaseTypes.update((types) => ({ ...types, [id]: type }));
-    this.planVisible.set(false);
   }
 
   protected selectWebappReleaseType(type: ReleaseType): void {
     this.webappReleaseType.set(type);
-    this.planVisible.set(false);
   }
 
-  protected generatePlan(): void {
-    if (!this.canGeneratePlan()) return;
-    this.planVisible.set(true);
+  protected requestReleaseGeneration(): void {
+    if (!this.canGenerateRelease()) return;
+
+    if (this.hasOption('createTags')) {
+      this.qualityWarningVisible.set(true);
+      return;
+    }
+
+    this.generateRelease();
+  }
+
+  protected cancelReleaseGeneration(): void {
+    this.qualityWarningVisible.set(false);
+  }
+
+  protected confirmReleaseGeneration(): void {
+    this.qualityWarningVisible.set(false);
+    this.generateRelease();
+  }
+
+  private generateRelease(): void {
     this.messages.add({
       severity: 'info',
-      summary: 'Plan generado',
-      detail: 'La publicación aún no se ejecuta: falta conectar el endpoint de releases.',
+      summary: 'Generación pendiente',
+      detail: 'La generación de versiones y tags se ejecutará al conectar el endpoint de releases.',
     });
   }
 

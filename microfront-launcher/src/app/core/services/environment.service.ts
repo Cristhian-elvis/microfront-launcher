@@ -19,8 +19,11 @@ export class EnvironmentService {
     return this.http.post<ApiMessage>('/api/setup', config);
   }
 
-  start(projectId: string): Observable<ApiMessage> {
-    return this.http.post<ApiMessage>('/api/environment/start', { projectId });
+  start(projectId: string, browserOpenMode?: 'tab' | 'window'): Observable<ApiMessage> {
+    return this.http.post<ApiMessage>('/api/environment/start', {
+      projectId,
+      ...(browserOpenMode ? { browserOpenMode } : {}),
+    });
   }
 
   stop(): Observable<ApiMessage> {

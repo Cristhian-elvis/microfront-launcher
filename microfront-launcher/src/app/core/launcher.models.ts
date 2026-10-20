@@ -61,7 +61,6 @@ export interface LauncherState {
 export interface LauncherPreferences {
   favoriteShellIds?: string[];
   favoriteMicrofrontIds?: string[];
-  avatarLetters?: string;
 }
 
 export interface BootstrapErrors {
@@ -162,5 +161,4 @@ export interface LauncherConfig {
     chrome?: { path?: string; userDataDir?: string };
     edge?: { path?: string; userDataDir?: string };
   };
-  preferences?: { avatarLetters?: string };
 }

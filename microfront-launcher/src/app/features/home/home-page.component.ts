@@ -11,12 +11,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
 import { FloatLabel } from 'primeng/floatlabel';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
-import type { ApiMessage } from '../../core/launcher.models';
+import type { ApiMessage, Project } from '../../core/launcher.models';
 import { AppBootstrapService } from '../../core/app-bootstrap.service';
 import { getHttpErrorMessage } from '../../core/http-error.util';
 import { EnvironmentService } from '../../core/services/environment.service';
@@ -29,7 +30,7 @@ import type { Option } from '../../shared/types/global.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.css',
-  imports: [FloatLabel, Select, FormsModule, Button, Tag, ProcessConsoleComponent],
+  imports: [Dialog, FloatLabel, Select, FormsModule, Button, Tag, ProcessConsoleComponent],
 })
 export class HomePageComponent {
   private readonly bootstrap = inject(AppBootstrapService);
@@ -48,6 +49,8 @@ export class HomePageComponent {
     localStorage.getItem('microfront-last-shell-id') ?? '',
   );
   protected readonly actionPending = signal(false);
+  protected readonly browserChoiceVisible = signal(false);
+  private readonly pendingStartProject = signal<Project | null>(null);
 
   protected clearLogsView(): void {
     this.bootstrap.clearLogsView();
@@ -116,8 +119,36 @@ export class HomePageComponent {
   protected startShell(): void {
     const project = this.selectedProject();
     if (!project) return;
-    localStorage.setItem('microfront-last-shell-id', project.id);
-    this.run(this.environment.start(project.id), 'La shell se está iniciando.');
+
+    this.environment.getConfig()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (config) => {
+          const browserOpenMode = config.browser?.openMode;
+          if (browserOpenMode === 'tab' || browserOpenMode === 'window') {
+            this.launchShell(project, browserOpenMode);
+            return;
+          }
+
+          this.pendingStartProject.set(project);
+          this.browserChoiceVisible.set(true);
+        },
+        error: (error: unknown) => this.notifyError(error),
+      });
+  }
+
+  protected confirmBrowserChoice(browserOpenMode: 'tab' | 'window'): void {
+    const project = this.pendingStartProject();
+    if (!project) return;
+
+    this.browserChoiceVisible.set(false);
+    this.pendingStartProject.set(null);
+    this.launchShell(project, browserOpenMode);
+  }
+
+  protected cancelBrowserChoice(): void {
+    this.browserChoiceVisible.set(false);
+    this.pendingStartProject.set(null);
   }
 
   protected stopEnvironment(): void {
@@ -126,6 +157,14 @@ export class HomePageComponent {
 
   protected openBrowser(mode: 'tab' | 'window'): void {
     this.run(this.environment.openBrowser(mode), 'Navegador abierto.');
+  }
+
+  private launchShell(project: Project, browserOpenMode: 'tab' | 'window'): void {
+    localStorage.setItem('microfront-last-shell-id', project.id);
+    this.run(
+      this.environment.start(project.id, browserOpenMode),
+      'La shell se está iniciando.',
+    );
   }
 
   private run(request: Observable<ApiMessage>, success: string): void {

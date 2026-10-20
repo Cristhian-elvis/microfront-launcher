@@ -5,9 +5,14 @@ import {
 } from './service.js';
 
 function startEnvironment(request, response) {
-  const { projectId, microfrontendId, rebuildShell } = request.body;
+  const { projectId, microfrontendId, rebuildShell, browserOpenMode } = request.body;
 
-  startInBackground(projectId, { microfrontendId, rebuildShell });
+  if (browserOpenMode !== undefined && !['tab', 'window'].includes(browserOpenMode)) {
+    response.status(400).json({ error: 'El modo de apertura del navegador no es válido.' });
+    return;
+  }
+
+  startInBackground(projectId, { microfrontendId, rebuildShell, browserOpenMode });
   response.status(202).json({ ok: true });
 }
 

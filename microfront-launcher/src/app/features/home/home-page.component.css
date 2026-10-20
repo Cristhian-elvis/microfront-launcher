@@ -164,6 +164,7 @@ h1 em {
 }
 
 .operation-card > .active-version-tag {
+  grid-column: 3;
   justify-self: start;
 }
 
@@ -172,6 +173,14 @@ h1 em {
   min-width: max-content;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* MOVA Components: ocupa las columnas finales sin alterar la fila Shell. */
+.mova-actions {
+  grid-column: 3 / -1;
+  width: 100%;
+  min-width: 0;
+  gap: 14px;
 }
 
 .operation-actions p-button {
