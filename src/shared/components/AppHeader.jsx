@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { Icon } from "./Icon.jsx";
+import { useFlash } from "../hooks/useFlash.js";
+import { api } from "../../lib/api.js";
 
 export function AppHeader({
   theme,
@@ -10,6 +12,28 @@ export function AppHeader({
   onOpenConsole,
   onOpenSettings,
 }) {
+  const { flash } = useFlash();
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
+
+  const checkLauncherUpdates = useCallback(async () => {
+    setCheckingUpdates(true);
+    try {
+      const result = await api("/api/launcher/check-updates", { method: "POST" });
+      if (result.hasUpdates) {
+        flash(
+          `Hay ${result.behind} cambio${result.behind === 1 ? "" : "s"} pendiente${result.behind === 1 ? "" : "s"} de master. Ejecuta "git pull" para bajarlos.`,
+          "error",
+        );
+      } else {
+        flash("El launcher está actualizado con master.", "success");
+      }
+    } catch (error) {
+      flash(error.message, "error");
+    } finally {
+      setCheckingUpdates(false);
+    }
+  }, [flash]);
+
   return (
     <header className="topbar">
       <div className="brand">
@@ -20,6 +44,15 @@ export function AppHeader({
           <strong>Microfront</strong>
           <span>Launcher V2</span>
         </div>
+        <button
+          className="button ghost"
+          onClick={checkLauncherUpdates}
+          disabled={checkingUpdates}
+          title="Buscar cambios pendientes de master"
+        >
+          <Icon name="refresh" />
+          {checkingUpdates ? "Buscando..." : "Buscar actualizaciones"}
+        </button>
       </div>
       <div className="top-actions">
         <button
