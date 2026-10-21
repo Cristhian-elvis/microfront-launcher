@@ -21,7 +21,6 @@
         placeholder="Selecciona una shell"
         [ngModel]="selectedProjectId()"
         (ngModelChange)="selectProject($event)"
-        styleClass="w-full"
       />
 
       <h3 class="mb-0 mt-2 text-sm font-semibold">Acciones incluidas</h3>
@@ -65,7 +64,6 @@
               optionValue="value"
               [ngModel]="webappReleaseType()"
               (ngModelChange)="selectWebappReleaseType($event)"
-              styleClass="w-full"
             />
             <p-button
               icon="pi pi-question-circle"
@@ -162,7 +160,6 @@
                 [ngModel]="releaseTypeFor(microfront)"
                 (ngModelChange)="selectMicrofrontReleaseType(microfront.id, $event)"
                 [disabled]="!isSelected(microfront)"
-                styleClass="release-type-select"
               />
             </td>
             <td>
@@ -196,15 +193,16 @@
     />
   </div>
 
-  <p-dialog
-    header="Validación de calidad requerida"
-    [visible]="qualityWarningVisible()"
-    [modal]="true"
-    [closable]="true"
-    [draggable]="false"
-    [style]="{ width: 'min(32rem, calc(100vw - 2rem))' }"
-    (visibleChange)="cancelReleaseGeneration()"
-  >
+  @if (qualityWarningVisible()) {
+    <p-dialog
+      header="Validación de calidad requerida"
+      [visible]="true"
+      [modal]="true"
+      [closable]="true"
+      [draggable]="false"
+      [style]="{ width: 'min(32rem, calc(100vw - 2rem))' }"
+      (visibleChange)="cancelReleaseGeneration()"
+    >
     <p class="m-0 text-surface-600 dark:text-surface-300">
       Antes de continuar, valida lo siguiente:
     </p>
@@ -238,5 +236,6 @@
         <p-button label="Continuar y generar tags" (onClick)="confirmReleaseGeneration()" />
       </div>
     </ng-template>
-  </p-dialog>
+    </p-dialog>
+  }
 </section>

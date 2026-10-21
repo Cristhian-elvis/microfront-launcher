@@ -17,6 +17,20 @@ export const routes: Routes = [
       import('./features/releases/release-page.component').then((m) => m.ReleasePageComponent),
   },
   {
+    path: 'tokens/profiles',
+    loadComponent: () =>
+      import('./features/auth-profiles/auth-profiles-page.component').then(
+        (m) => m.AuthProfilesPageComponent,
+      ),
+  },
+  {
+    path: 'tokens',
+    loadComponent: () =>
+      import('./features/auth-tokens/auth-tokens-page.component').then(
+        (m) => m.AuthTokensPageComponent,
+      ),
+  },
+  {
     path: 'shells/:shellId',
     loadComponent: () =>
       import('./features/shell-detail/shell-detail-page.component').then(

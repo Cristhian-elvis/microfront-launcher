@@ -1,0 +1,107 @@
+<section class="app-page auth-tokens-page">
+  <p-breadcrumb [home]="{ icon: 'pi pi-home', routerLink: '/home' }" [model]="breadCrumbItems" />
+
+  <header class="app-page-header">
+    <div>
+      <h1 class="text-xl font-semibold tracking-tight">Tokens de acceso</h1>
+      <p>
+        {{ activeTokens() }} token{{ activeTokens() === 1 ? '' : 's' }} vigente{{
+          activeTokens() === 1 ? '' : 's'
+        }}
+        en este equipo. Generar uno nuevo para un proyecto invalida el anterior.
+      </p>
+    </div>
+  </header>
+
+  <p-table [value]="projects()" [rowHover]="true" styleClass="auth-tokens-table">
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Proyecto</th>
+        <th>Perfil</th>
+        <th>Token de acceso</th>
+        <th>Expira</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="body" let-project>
+      @let token = tokenForProject(project);
+      <tr>
+        <td>
+          <strong>{{ displayProjectName(project) }}</strong>
+        </td>
+        <td>{{ token?.profileDescription ?? '—' }}</td>
+        <td>
+          @if (token) {
+            <div class="flex items-center gap-1">
+              <span class="token-preview">{{ token.accessToken.slice(0, 20) }}…</span>
+              <p-button
+                [icon]="copiedTokenId() === token.id ? 'pi pi-check' : 'pi pi-copy'"
+                styleClass="p-button-rounded p-button-text"
+                [attr.aria-label]="
+                  'Copiar token de acceso del proyecto ' + displayProjectName(project)
+                "
+                (onClick)="copyToken(token)"
+              />
+            </div>
+          } @else {
+            —
+          }
+        </td>
+        <td>
+          @if (token && expirationDate(token); as expiration) {
+            {{ expiration | date: 'dd/MM/yyyy HH:mm:ss' }}
+          } @else {
+            —
+          }
+        </td>
+        <td>
+          @if (token) {
+            <p-tag [value]="statusLabel(token)" [severity]="statusSeverity(token)" />
+          } @else {
+            —
+          }
+        </td>
+        <td>
+          <div class="flex gap-1">
+            <p-button
+              icon="pi pi-users"
+              styleClass="p-button-rounded p-button-text"
+              [disabled]="!project.configFolder"
+              [routerLink]="['/tokens/profiles']"
+              [queryParams]="{ projectId: project.id }"
+              [attr.aria-label]="'Gestionar perfiles del proyecto ' + displayProjectName(project)"
+              pTooltip="Gestionar perfiles"
+              tooltipPosition="top"
+            />
+            <p-button
+              icon="pi pi-key"
+              styleClass="p-button-rounded p-button-text"
+              [disabled]="loading() || !project.configFolder"
+              [attr.aria-label]="'Generar token para el proyecto ' + displayProjectName(project)"
+              pTooltip="Generar token"
+              tooltipPosition="top"
+              (onClick)="openTokenGeneration(project)"
+            />
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="6" class="empty">No hay proyectos disponibles.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>
+
+@if (tokenProject(); as project) {
+  <app-auth-token-dialog
+    [projectId]="project.id"
+    [webapp]="project.configFolder!"
+    [initialUserProfileId]="tokenProfileId()"
+    (closed)="closeTokenDialog()"
+  />
+}

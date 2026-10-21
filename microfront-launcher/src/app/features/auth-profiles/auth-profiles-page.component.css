@@ -1,0 +1,24 @@
+:host {
+  display: block;
+}
+
+.auth-profiles-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.project-selector {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 28rem;
+}
+
+.auth-profiles-table :is(th, td) {
+  white-space: nowrap;
+}
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--p-text-muted-color);
+}

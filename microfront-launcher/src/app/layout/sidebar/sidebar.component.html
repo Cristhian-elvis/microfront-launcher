@@ -65,6 +65,18 @@
         <span>Versiones</span>
       }
     </a>
+    <a
+      pButton
+      class="nav-link"
+      routerLink="/tokens"
+      routerLinkActive="nav-link-active"
+      [attr.aria-label]="collapsed() ? 'Tokens' : null"
+    >
+      <i class="pi pi-key"></i>
+      @if (!collapsed()) {
+        <span>Tokens</span>
+      }
+    </a>
   </nav>
 
   @if (!collapsed()) {

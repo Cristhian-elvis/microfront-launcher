@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 import { createApiRouters } from './app/create-api-routers.js';
 import { createApp } from './app/create-app.js';
 import { EnvironmentLifecycleService } from './api/environment/lifecycle.js';

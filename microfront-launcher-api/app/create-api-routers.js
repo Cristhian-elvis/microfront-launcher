@@ -1,3 +1,4 @@
+import { createAuthRouter } from '../api/auth/router.js';
 import { createBrowserRouter } from '../api/browser/router.js';
 import { createComponentsRouter } from '../api/components/router.js';
 import { createEnvironmentRouter } from '../api/environment/router.js';
@@ -8,6 +9,7 @@ import { createStateRouter } from '../api/state/router.js';
 
 export function createApiRouters() {
   return [
+    createAuthRouter(),
     createStateRouter(),
     createProjectsRouter(),
     createEnvironmentRouter(),

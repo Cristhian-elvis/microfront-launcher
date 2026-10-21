@@ -53,14 +53,15 @@
     />
   </p-dialog>
 }
-<p-dialog
-  header="Configuración"
-  [modal]="true"
-  [visible]="settingsVisible()"
-  [style]="{ width: 'min(740px, calc(100vw - 2rem))' }"
-  [draggable]="false"
-  (visibleChange)="settingsVisible.set($event)"
->
+@if (settingsVisible()) {
+  <p-dialog
+    header="Configuración"
+    [modal]="true"
+    [visible]="true"
+    [style]="{ width: 'min(740px, calc(100vw - 2rem))' }"
+    [draggable]="false"
+    (visibleChange)="settingsVisible.set($event)"
+  >
   <div class="grid gap-5">
     <p class="m-0 text-sm text-surface-500">Preferencias globales del launcher.</p>
     @if (settingsReadOnly()) {
@@ -198,4 +199,5 @@
       />
     </div>
   </div>
-</p-dialog>
+  </p-dialog>
+}

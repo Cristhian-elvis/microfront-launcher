@@ -134,14 +134,15 @@
   </article>
 </section>
 
-<p-dialog
-  header="Abrir navegador"
-  [modal]="true"
-  [visible]="browserChoiceVisible()"
-  [draggable]="false"
-  [closable]="false"
-  [style]="{ width: 'min(440px, calc(100vw - 2rem))' }"
->
+@if (browserChoiceVisible()) {
+  <p-dialog
+    header="Abrir navegador"
+    [modal]="true"
+    [visible]="true"
+    [draggable]="false"
+    [closable]="false"
+    [style]="{ width: 'min(440px, calc(100vw - 2rem))' }"
+  >
   <p class="m-0 text-surface-600 dark:text-surface-300">
     La shell se abrirá al finalizar el arranque. ¿Cómo deseas abrirla?
   </p>
@@ -163,7 +164,8 @@
       (onClick)="confirmBrowserChoice('window')"
     />
   </div>
-</p-dialog>
+  </p-dialog>
+}
 
 <app-process-console
   [logs]="logs()"

@@ -1,0 +1,30 @@
+:host {
+  display: block;
+}
+
+.auth-tokens-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.auth-tokens-table :is(th, td) {
+  white-space: nowrap;
+}
+
+.auth-tokens-table td:nth-child(2) {
+  white-space: normal;
+  min-width: 12rem;
+}
+
+.token-preview {
+  max-width: 13rem;
+  overflow: hidden;
+  font-family: var(--font-family-monospace, monospace);
+  text-overflow: ellipsis;
+}
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--p-text-muted-color);
+}

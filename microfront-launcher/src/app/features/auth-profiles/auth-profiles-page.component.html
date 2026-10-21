@@ -1,0 +1,131 @@
+<section class="app-page auth-profiles-page">
+  <p-breadcrumb [home]="{ icon: 'pi pi-home', routerLink: '/home' }" [model]="breadCrumbItems" />
+
+  <header class="app-page-header">
+    <div>
+      <h1 class="text-xl font-semibold tracking-tight">Gestionar perfiles</h1>
+      <p>Crea, actualiza o elimina los perfiles disponibles para generar tokens.</p>
+    </div>
+    <p-button
+      label="Nuevo perfil"
+      icon="pi pi-plus"
+      [disabled]="!selectedProject()?.configFolder || loading()"
+      (onClick)="openCreateForm()"
+    />
+  </header>
+
+  <div class="project-selector">
+    <span>Proyecto</span>
+    <strong>{{ displaySelectedProjectName() }}</strong>
+  </div>
+
+  @if (selectedProject()) {
+    <p-table [value]="profiles()" [rowHover]="true" styleClass="auth-profiles-table">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Descripción</th>
+          <th>Código de usuario</th>
+          <th>Perfiles</th>
+          <th>Acciones</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-profile>
+        <tr>
+          <td>
+            <strong>{{ profile.descripcion }}</strong>
+          </td>
+          <td>{{ profile.cdUsuario }}</td>
+          <td>{{ profile.profiles.join(', ') }}</td>
+          <td>
+            <div class="flex gap-1">
+              <p-button
+                icon="pi pi-pencil"
+                styleClass="p-button-rounded p-button-text"
+                [disabled]="loading()"
+                [attr.aria-label]="'Editar perfil ' + profile.descripcion"
+                (onClick)="openEditForm(profile)"
+              />
+              <p-button
+                icon="pi pi-trash"
+                severity="danger"
+                styleClass="p-button-rounded p-button-text"
+                [disabled]="loading()"
+                [attr.aria-label]="'Eliminar perfil ' + profile.descripcion"
+                (onClick)="removeProfile(profile)"
+              />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="4" class="empty">No hay perfiles para el proyecto seleccionado.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  } @else {
+    <p class="empty">Selecciona un proyecto para consultar sus perfiles.</p>
+  }
+</section>
+
+@if (formVisible()) {
+  <p-dialog
+    [header]="editingProfile() ? 'Editar perfil' : 'Nuevo perfil'"
+    [modal]="true"
+    [visible]="true"
+    [draggable]="false"
+    [style]="{ width: 'min(560px, calc(100vw - 2rem))' }"
+    (visibleChange)="formVisible.set(false)"
+  >
+  <div class="grid gap-4">
+    <div class="grid gap-2">
+      <label for="profile-description">Descripción</label>
+      <input
+        id="profile-description"
+        pInputText
+        [ngModel]="form().descripcion"
+        (ngModelChange)="updateForm('descripcion', $event)"
+      />
+    </div>
+    <div class="grid gap-2">
+      <label for="profile-user-code">Código de usuario / NIF</label>
+      <input
+        id="profile-user-code"
+        pInputText
+        [ngModel]="form().cdUsuario"
+        (ngModelChange)="updateForm('cdUsuario', $event)"
+      />
+    </div>
+    <div class="grid gap-2">
+      <label for="profile-list">Perfiles</label>
+      <textarea
+        id="profile-list"
+        pTextarea
+        rows="3"
+        placeholder="HSTA_63, HSTA_34"
+        [ngModel]="form().profileText"
+        (ngModelChange)="updateForm('profileText', $event)"
+      ></textarea>
+      <small>Separa los perfiles con coma.</small>
+    </div>
+  </div>
+
+  <div class="mt-5 flex justify-end gap-2">
+    <p-button
+      label="Cancelar"
+      styleClass="p-button-outlined"
+      [disabled]="loading()"
+      (onClick)="formVisible.set(false)"
+    />
+    <p-button
+      [label]="editingProfile() ? 'Guardar cambios' : 'Crear perfil'"
+      icon="pi pi-save"
+      [loading]="loading()"
+      [disabled]="loading()"
+      (onClick)="saveProfile()"
+    />
+  </div>
+  </p-dialog>
+}
