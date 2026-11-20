@@ -1,0 +1,204 @@
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
+import { MessageService } from 'primeng/api';
+import { Button } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
+import { FloatLabel } from 'primeng/floatlabel';
+import { Select } from 'primeng/select';
+import { Tag } from 'primeng/tag';
+import { Observable } from 'rxjs';
+import { finalize } from 'rxjs/operators';
+import type { ApiMessage, Project } from '../../core/launcher.models';
+import { AppBootstrapService } from '../../core/app-bootstrap.service';
+import { getHttpErrorMessage } from '../../core/http-error.util';
+import { EnvironmentService } from '../../core/services/environment.service';
+import { MovaService } from '../../core/services/mova.service';
+import { ProcessConsoleComponent } from '../../shared/components/process-console/process-console.component';
+import type { Option } from '../../shared/types/global.types';
+
+@Component({
+  selector: 'app-home-page',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './home-page.component.html',
+  styleUrl: './home-page.component.css',
+  imports: [Dialog, FloatLabel, Select, FormsModule, Button, Tag, ProcessConsoleComponent],
+})
+export class HomePageComponent {
+  private readonly bootstrap = inject(AppBootstrapService);
+  private readonly environment = inject(EnvironmentService);
+  private readonly mova = inject(MovaService);
+  private readonly messages = inject(MessageService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  protected readonly state = this.bootstrap.state;
+  protected readonly preferences = this.bootstrap.preferences;
+  protected readonly projects = this.bootstrap.projects;
+  protected readonly logs = this.bootstrap.logs;
+  protected readonly logsClearedAt = this.bootstrap.logsClearedAt;
+  protected readonly latestVersion = this.bootstrap.latestVersion;
+  protected readonly localMovaIncluded = computed(() =>
+    this.bootstrap.config().mova?.include === true,
+  );
+  protected readonly selectedProjectId = signal(
+    localStorage.getItem('microfront-last-shell-id') ?? '',
+  );
+  protected readonly actionPending = signal(false);
+  protected readonly browserChoiceVisible = signal(false);
+  private readonly pendingStartProject = signal<Project | null>(null);
+
+  protected clearLogsView(): void {
+    this.bootstrap.clearLogsView();
+  }
+
+  protected readonly selectedProject = computed(() =>
+    this.projects().find((project) => project.id === this.selectedProjectId()),
+  );
+  protected readonly componentsActive = computed(
+    () => this.state()?.components.status === 'running',
+  );
+  protected readonly shellReady = computed(() =>
+    this.state()?.shell.status === 'running',
+  );
+  protected readonly shellStarting = computed(() => {
+    const status = this.state()?.shell.status;
+    return status === 'preparing' || status === 'starting';
+  });
+  protected readonly shellRunning = computed(() => {
+    const currentState = this.state();
+    return currentState !== null && currentState.shell.status !== 'stopped';
+  });
+  protected readonly sessionBusy = computed(() =>
+    ['starting', 'building', 'stopping'].includes(this.state()?.session.status ?? ''),
+  );
+  protected readonly activeVersion = computed(() => this.latestVersion()?.tag ?? 'No disponible');
+  protected readonly versionReady = computed(() => Boolean(this.latestVersion()));
+  protected readonly projectOptions = computed<Option[]>(() =>
+    this.projects().map((project) => ({
+      label: this.projectDisplayName(project.name),
+      value: project.id,
+    })),
+  );
+  protected readonly environmentLabel = computed(() => {
+    const currentState = this.state();
+    if (currentState?.session.status === 'error') return 'Error';
+    if (currentState?.session.status === 'ready') return 'Listo';
+    if (currentState?.session.status === 'stopping') return 'Deteniendo';
+    if (currentState?.session.status === 'starting') return 'Iniciando';
+    return 'Detenido';
+  });
+  protected readonly activeShellName = computed(() =>
+    this.projectDisplayName(this.state()?.shell.name),
+  );
+
+  constructor() {
+    effect(() => {
+      const state = this.state();
+      if (!state) return;
+
+      if (state.shell.projectId) this.selectedProjectId.set(state.shell.projectId);
+      else if (!this.selectedProjectId() && this.projects().length)
+        this.selectedProjectId.set(this.projects()[0].id);
+    });
+  }
+
+  protected startComponents(): void {
+    this.run(this.mova.startComponents(), 'MOVA Components se está iniciando.');
+  }
+
+  protected stopComponents(): void {
+    this.run(this.mova.stopComponents(), 'Components detenido.');
+  }
+
+  protected startShell(): void {
+    const project = this.selectedProject();
+    if (!project) return;
+
+    this.environment.getConfig()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (config) => {
+          const browserOpenMode = config.environment?.openMode;
+          if (browserOpenMode === 'tab' || browserOpenMode === 'window') {
+            this.launchShell(project, browserOpenMode);
+            return;
+          }
+
+          this.pendingStartProject.set(project);
+          this.browserChoiceVisible.set(true);
+        },
+        error: (error: unknown) => this.notifyError(error),
+      });
+  }
+
+  protected confirmBrowserChoice(browserOpenMode: 'tab' | 'window'): void {
+    const project = this.pendingStartProject();
+    if (!project) return;
+
+    this.browserChoiceVisible.set(false);
+    this.pendingStartProject.set(null);
+    this.launchShell(project, browserOpenMode);
+  }
+
+  protected cancelBrowserChoice(): void {
+    this.browserChoiceVisible.set(false);
+    this.pendingStartProject.set(null);
+  }
+
+  protected stopEnvironment(): void {
+    this.run(this.environment.stop(), 'El entorno se está deteniendo.');
+  }
+
+  protected openBrowser(mode: 'tab' | 'window'): void {
+    this.run(this.environment.openBrowser(mode), 'Navegador abierto.');
+  }
+
+  private launchShell(project: Project, browserOpenMode: 'tab' | 'window'): void {
+    localStorage.setItem('microfront-last-shell-id', project.id);
+    this.run(
+      this.environment.start(project.id, browserOpenMode),
+      'La shell se está iniciando.',
+    );
+  }
+
+  private run(request: Observable<ApiMessage>, success: string): void {
+    this.actionPending.set(true);
+    request
+      .pipe(
+        finalize(() => this.actionPending.set(false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (result) => {
+          this.messages.add({
+            severity: 'success',
+            summary: 'Operación enviada',
+            detail: result.message ?? success,
+          });
+        },
+        error: (error: unknown) => this.notifyError(error),
+      });
+  }
+
+  private notifyError(error: unknown): void {
+    this.messages.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: getHttpErrorMessage(error),
+    });
+  }
+
+  private projectDisplayName(name: string | null | undefined): string {
+    const value = String(name ?? '');
+    if (!value) return 'Ninguna';
+    return (/^[a-z0-9]{4}/i.exec(value)?.[0] ?? value.slice(0, 4)).toLowerCase();
+  }
+}

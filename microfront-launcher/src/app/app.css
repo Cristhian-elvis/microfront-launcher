@@ -1,0 +1,9 @@
+@reference "../styles.css";
+
+:host {
+  display: block;
+}
+
+.app-loading {
+  @apply grid min-h-dvh place-content-center justify-items-center gap-4 bg-surface-100 text-surface-600 dark:bg-surface-950 dark:text-surface-300;
+}

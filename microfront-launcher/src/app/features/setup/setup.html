@@ -1,0 +1,76 @@
+<section class="setup-page">
+  <main class="setup-panel">
+    <div class="setup-intro">
+      <div class="brand">
+        <i class="pi pi-box"></i>
+        Microfront Launcher
+      </div>
+      <p class="eyebrow">CONFIGURACIÓN INICIAL</p>
+      <h1>Prepara tu entorno local.</h1>
+      <p>Indica dónde están las shells y, si lo necesitas, configura MOVA Components local.</p>
+    </div>
+    <p-card styleClass="setup-card">
+      <form class="setup-form" (submit)="$event.preventDefault(); save()">
+        <div>
+          <h2>Entorno</h2>
+          <p>El directorio de shells es obligatorio.</p>
+        </div>
+        <label class="field">
+          Directorio de shells
+          <input
+            pInputText
+            required
+            [value]="config().environment?.rootPath || ''"
+            (input)="updateRoot($any($event.target).value)"
+          />
+        </label>
+        <section class="grid gap-3 py-3">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <strong>Gestionar MOVA Components localmente</strong>
+              <p class="m-0 mt-1 text-sm text-surface-500">Prepara y enlaza la librería desde este equipo.</p>
+            </div>
+            <p-toggleswitch
+              inputId="setup-include-local-mova"
+              name="includeLocalMova"
+              [ngModel]="config().mova?.include === true"
+              (ngModelChange)="updateMovaInclude($event)"
+            />
+          </div>
+          @if (config().mova?.include === true) {
+            <div class="grid gap-3 border-t border-surface-200 pt-3 dark:border-surface-700">
+              <label class="field">
+                Repositorio MOVA UI Components
+                <input
+                  pInputText
+                  required
+                  [value]="config().mova?.config?.sourcePath || ''"
+                  (input)="updateMovaConfig('sourcePath', $any($event.target).value)"
+                />
+              </label>
+              <label class="field">
+                Stencil
+                <input
+                  pInputText
+                  required
+                  [value]="config().mova?.config?.stencil || ''"
+                  (input)="updateMovaConfig('stencil', $any($event.target).value)"
+                />
+              </label>
+            </div>
+          }
+        </section>
+        @if (error(); as message) {
+          <p-message severity="error" [text]="message" />
+        }
+        <p-button
+          type="submit"
+          label="Guardar y continuar"
+          icon="pi pi-arrow-right"
+          [disabled]="!valid()"
+          [loading]="saving()"
+        />
+      </form>
+    </p-card>
+  </main>
+</section>

@@ -1,71 +1,60 @@
-# Microfront Launcher V2
+# Microfront Launcher
 
-Aplicación local React + Node para iniciar de forma secuencial MOVA UI
-Components, Storybook, una shell y el Chrome de desarrollo autorizado.
+Herramienta local para iniciar y administrar el entorno de desarrollo de MOVA.
 
-## Uso diario
+## Estructura
 
-Haz doble clic en `iniciar.cmd` o ejecuta:
+- `microfront-launcher/`: frontend Angular.
+- `microfront-launcher-api/`: API local en Node.js.
+- `data/` y `storage/`: configuración y estado local; no se versionan.
 
-```powershell
-npm run start
-```
+## Primer uso
 
-La interfaz se abre en `http://127.0.0.1:3187`. No requiere `npm install` para
-el uso diario y no utiliza Electron ni servicios de Windows.
-
-En el primer inicio, el launcher abre la ruta `/init` para solicitar la raíz
-local de las shells, la ruta del repositorio MOVA UI Components y el puerto.
-La configuración se guarda en `data\config.json`, que es local y no se
-versiona.
-
-## Flujo de inicio
-
-1. Reutiliza o compila la versión MOVA seleccionada y la asocia a la carpeta
-   `server` de la shell mediante una junction de Windows.
-2. Inicia una única shell en el puerto configurado en **Puerto Components**
-   (por defecto, `8080`), con la librería incluida.
-3. También puede iniciar únicamente Components en ese mismo puerto.
-4. Abre Chrome cuando todos los pasos anteriores están disponibles.
-
-Cancelar el inicio detiene los procesos gestionados, anula las esperas y evita
-que Chrome se abra posteriormente.
-
-## Versiones de MOVA UI Components
-
-Los tags se leen desde una copia local del repositorio MOVA UI Components. La
-ruta se define individualmente en `/init` durante el primer inicio:
-
-```text
-<ruta-local>\mova3_lib_ui_components
-```
-
-El repositorio fuente nunca cambia de rama o tag. Para compilar una versión se
-crea una copia aislada, se ejecutan `npm ci` y `npm run build`, y se guardan los
-resultados en:
-
-```text
-storage\mova-components\versions\<tag>\
-├── manifest.json
-├── dist\
-└── www\
-```
-
-Los builds, el catálogo de tags y las preferencias se almacenan localmente en
-`storage\`; esa carpeta se regenera en cada equipo y no se versiona.
-
-## Seguridad de puertos
-
-- Puerto configurable (por defecto `8080`): shell con Components o Components
-  por separado. Solo uno de los dos puede usarlo a la vez.
-
-## Desarrollo del launcher
+Desde la raíz, instala el coordinador de procesos:
 
 ```powershell
-npm install --cache .npm-cache
-npm run build
+npm install
 ```
 
-## Pendiente
+Instala las dependencias del frontend:
 
-- Mostrar los microfrontends asociados a cada shell.
+```powershell
+npm --prefix microfront-launcher install
+```
+
+## Desarrollo
+
+Para iniciar API y frontend juntos:
+
+```powershell
+npm start
+```
+
+La API queda disponible en `http://127.0.0.1:3187` y el frontend en
+`http://localhost:4200`.
+
+También pueden ejecutarse por separado con `npm run start:api` y
+`npm run start:web`.
+
+## Versionado de microfronts
+
+El comando siguiente incrementa la versión del microfront con `npm version`,
+crea su tag `vX.Y.Z` y actualiza el remote correspondiente en todos los
+`config/*/app-config.json` de las webapps encontradas:
+
+```powershell
+npm run release:microfront -- hcen_mf_centros patch
+```
+
+Los tipos de versión permitidos son `patch`, `minor` y `major`. La raíz de
+proyectos se obtiene de `data/config.json`; si se necesita limitar la búsqueda
+se puede indicar `--root C:\\gitlab\\hcen` y, opcionalmente,
+`--webapp hcen_webapp_centros`. Antes de efectuar cambios consulta `origin`,
+valida que el microfront y las webapps estén limpios, en la rama `main` o
+`master` y exactamente sincronizados con `origin/main` u `origin/master`.
+
+Para revisar el alcance sin modificar nada:
+
+```powershell
+npm run release:microfront -- hcen_mf_centros patch --dry-run
+```

@@ -1,0 +1,236 @@
+<div class="flex min-h-screen">
+  <app-sidebar (settingsRequested)="openSettings()" />
+  <main class="min-w-0 flex-1">
+    <header
+      class="flex items-center justify-between gap-4 border-b border-surface-200 bg-surface-0 px-7 py-4 text-sm text-surface-500 dark:border-surface-700 dark:bg-surface-900 max-md:px-4"
+    >
+      <div class="flex items-center gap-2">
+        <a
+          href="https://github.com/Cristhian-elvis/microfront-launcher"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center gap-2 text-surface-600 no-underline transition-colors hover:text-surface-950 dark:text-surface-300 dark:hover:text-surface-0"
+          aria-label="Abrir repositorio de Microfront Launcher en GitHub"
+        >
+          <i class="pi pi-github text-lg" aria-hidden="true"></i>
+          <span class="max-sm:hidden">GitHub</span>
+        </a>
+        <button
+          pButton
+          type="button"
+          size="small"
+          [text]="true"
+          [loading]="checkingUpdates()"
+          icon="pi pi-refresh"
+          label="Buscar actualizaciones"
+          (click)="checkLauncherUpdates(true)"
+        ></button>
+        @if (pendingUpdates(); as updates) {
+          @if (updates > 0) {
+            <span class="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700 dark:bg-orange-900 dark:text-orange-100">
+              {{ updates }} pendiente{{ updates === 1 ? '' : 's' }}
+            </span>
+          }
+        }
+      </div>
+      <div class="flex items-center gap-2">
+        <p-splitbutton
+          label="Abrir navegador"
+          icon="pi pi-external-link"
+          size="small"
+          [outlined]="true"
+          [model]="browserActions"
+          (onClick)="openBrowser()"
+        />
+        <button
+          pButton
+          type="button"
+          size="small"
+          [outlined]="true"
+          (click)="consoleVisible.set(true)"
+        >
+          <app-icon name="console" />
+          <span class="p-button-label">Visualizar consola</span>
+        </button>
+      </div>
+    </header>
+    <section class="p-7 max-md:p-4"><router-outlet /></section>
+  </main>
+</div>
+@if (consoleVisible()) {
+  <p-dialog
+    header="Consola de proceso"
+    [modal]="true"
+    [visible]="true"
+    [draggable]="false"
+    [style]="{ width: 'min(1100px, calc(100vw - 2rem))' }"
+    (visibleChange)="consoleVisible.set($event)"
+  >
+    <app-process-console
+      [logs]="bootstrap.logs()"
+      [clearedAt]="bootstrap.logsClearedAt()"
+      (clearRequested)="bootstrap.clearLogsView()"
+    />
+  </p-dialog>
+}
+<p-dialog
+  header="Configuración"
+  [modal]="true"
+  [visible]="settingsVisible()"
+  [style]="{ width: 'min(740px, calc(100vw - 2rem))' }"
+  [draggable]="false"
+  (visibleChange)="settingsVisible.set($event)"
+>
+  <div class="grid gap-5">
+    <p class="m-0 text-sm text-surface-500">Preferencias globales del launcher.</p>
+    @if (settingsReadOnly()) {
+      <p
+        class="m-0 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+      >
+        La configuración se muestra en modo solo lectura mientras hay un entorno en ejecución.
+      </p>
+    }
+    <p-accordion [value]="['environment', 'mova', 'browser']" [multiple]="true">
+      <p-accordion-panel value="environment">
+        <p-accordion-header>Entorno</p-accordion-header>
+        <p-accordion-content>
+          <section class="grid gap-3 py-3">
+            <label class="grid gap-1">
+              Directorio de shells
+              <input
+                pInputText
+                [disabled]="settingsReadOnly()"
+                [value]="settings().environment?.rootPath || ''"
+                (input)="updateSetting('environment', 'rootPath', $any($event.target).value)"
+              />
+            </label>
+            <label class="grid gap-1">
+              Puerto del servidor local
+              <input
+                pInputText
+                type="number"
+                [disabled]="settingsReadOnly()"
+                [value]="settings().environment?.serverPort || ''"
+                (input)="updateSetting('environment', 'serverPort', $any($event.target).value)"
+              />
+            </label>
+            <label class="grid gap-1">
+              Dirección para abrir
+              <p-select
+                [options]="browserHostOptions"
+                optionLabel="label"
+                optionValue="value"
+                [disabled]="settingsReadOnly()"
+                [ngModel]="settings().environment?.openHost || 'localhost'"
+                (ngModelChange)="updateSetting('environment', 'openHost', $event)"
+              />
+            </label>
+            <label class="grid gap-1">
+              Si ya hay una ventana abierta
+              <p-select
+                [options]="browserOpenModeOptions"
+                optionLabel="label"
+                optionValue="value"
+                [disabled]="settingsReadOnly()"
+                [ngModel]="settings().environment?.openMode || 'ask'"
+                (ngModelChange)="updateSetting('environment', 'openMode', $event)"
+              />
+            </label>
+          </section>
+        </p-accordion-content>
+      </p-accordion-panel>
+      <p-accordion-panel value="mova">
+        <p-accordion-header>MOVA Components</p-accordion-header>
+        <p-accordion-content>
+          <section class="grid gap-3 py-3">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <strong>Gestionar MOVA localmente</strong>
+                <p class="m-0 mt-1 text-sm text-surface-500">Prepara y enlaza la librería desde este equipo.</p>
+              </div>
+              <p-toggleswitch
+                inputId="include-local-mova"
+                [disabled]="settingsReadOnly()"
+                [ngModel]="settings().mova?.include === true"
+                (ngModelChange)="updateSetting('mova', 'include', $event)"
+              />
+            </div>
+            @if (settings().mova?.include === true) {
+              <div class="grid gap-3 border-t border-surface-200 pt-3 dark:border-surface-700">
+                <div class="flex items-center justify-between gap-4">
+                  <label for="automatic-mova-update">Actualizar automáticamente</label>
+                  <p-toggleswitch
+                    inputId="automatic-mova-update"
+                    [disabled]="settingsReadOnly()"
+                    [ngModel]="settings().mova?.config?.automaticUpdate !== false"
+                    (ngModelChange)="updateMovaConfig('automaticUpdate', $event)"
+                  />
+                </div>
+                <label class="grid gap-1">
+                  Repositorio MOVA UI Components
+                  <input
+                    pInputText
+                    required
+                    [disabled]="settingsReadOnly()"
+                    [value]="settings().mova?.config?.sourcePath || ''"
+                    (input)="updateMovaConfig('sourcePath', $any($event.target).value)"
+                  />
+                </label>
+                <label class="grid gap-1">
+                  Stencil
+                  <input
+                    pInputText
+                    required
+                    [disabled]="settingsReadOnly()"
+                    [value]="settings().mova?.config?.stencil || ''"
+                    (input)="updateMovaConfig('stencil', $any($event.target).value)"
+                  />
+                </label>
+              </div>
+            }
+          </section>
+        </p-accordion-content>
+      </p-accordion-panel>
+      <p-accordion-panel value="browser">
+        <p-accordion-header>Navegador</p-accordion-header>
+        <p-accordion-content>
+          <section class="grid gap-3 py-3">
+            <label class="grid gap-1">
+              Modo de navegador
+              <p-select
+                [options]="browserModeOptions"
+                optionLabel="label"
+                optionValue="value"
+                [disabled]="settingsReadOnly()"
+                [ngModel]="settings().browser?.selected || 'chrome-insecure'"
+                (ngModelChange)="updateSetting('browser', 'selected', $event)"
+              />
+            </label>
+          </section>
+        </p-accordion-content>
+      </p-accordion-panel>
+    </p-accordion>
+    @if (settingsError(); as error) {
+      <p
+        class="m-0 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+      >
+        {{ error }}
+      </p>
+    }
+    <div class="flex justify-end gap-2">
+      <p-button
+        label="Cancelar"
+        styleClass="p-button-outlined"
+        [disabled]="settingsSaving()"
+        (onClick)="settingsVisible.set(false)"
+      />
+      <p-button
+        label="Guardar cambios"
+        icon="pi pi-check"
+        [disabled]="settingsReadOnly() || !publishedComponentsConfigured()"
+        [loading]="settingsSaving()"
+        (onClick)="saveSettings()"
+      />
+    </div>
+  </div>
+</p-dialog>

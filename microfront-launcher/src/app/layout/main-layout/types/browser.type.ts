@@ -1,0 +1,1 @@
+export type BrowserMode = 'chrome' | 'chrome-insecure' | 'edge' | 'edge-insecure';

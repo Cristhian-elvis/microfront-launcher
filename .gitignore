@@ -3,6 +3,7 @@ node_modules/
 data/
 storage/
 dist/
+dist-angular/
 
 # Variables de entorno y credenciales locales
 .env
@@ -17,5 +18,5 @@ dist/
 .DS_Store
 Thumbs.db
 
-# graphify-axet
+# Herramientas locales
 .graphify/

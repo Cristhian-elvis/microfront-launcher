@@ -1,32 +1,27 @@
 import { provideHttpClient } from '@angular/common/http';
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { provideBrowserGlobalErrorListeners } from '@angular/core';
+import type { ApplicationConfig } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideRouter } from '@angular/router';
-import Aura from '@primeuix/themes/aura';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 
 import { routes } from './app.routes';
+import Noir from './core/themes/noir.theme';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideAnimationsAsync(),
     provideHttpClient(),
-    provideRouter(routes),
+    provideRouter(
+      routes,
+      withComponentInputBinding()
+    ),
     MessageService,
     providePrimeNG({
-      ripple: true,
-      theme: { 
-        preset: Aura, 
-        options: { 
-          darkModeSelector: '.app-dark',
-          cssLayer: {
-            name: 'primeng',
-            order: 'theme, base, primeng'
-          }
-        } 
-      }
+      theme: Noir,
+      ripple: true
     })
   ]
 };

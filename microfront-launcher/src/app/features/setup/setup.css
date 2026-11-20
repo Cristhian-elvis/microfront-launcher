@@ -1,0 +1,78 @@
+@reference "./../../../styles.css";
+
+:host {
+  display: block;
+  min-height: 100dvh;
+}
+
+.setup-page {
+  @apply grid min-h-dvh place-items-center bg-surface-100 p-6 dark:bg-surface-950;
+}
+
+.setup-panel {
+  @apply grid w-full max-w-5xl items-center gap-10 lg:grid-cols-[minmax(18rem,0.8fr)_minmax(32rem,1.2fr)];
+}
+
+.setup-intro {
+  @apply grid gap-4;
+}
+
+.brand {
+  @apply flex items-center gap-2 text-primary;
+  font-weight: 700;
+}
+
+.eyebrow {
+  @apply m-0 mt-4 text-xs font-bold tracking-[0.08em] text-primary;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  @apply text-4xl leading-tight text-surface-950 dark:text-surface-0;
+}
+
+.setup-intro > p:last-child,
+.setup-form > div > p {
+  @apply text-surface-600 dark:text-surface-300;
+  line-height: 1.6;
+}
+
+:host ::ng-deep .setup-card .p-card-body,
+:host ::ng-deep .setup-card .p-card-content {
+  padding: 0;
+}
+
+.setup-form {
+  @apply grid gap-6 rounded-xl bg-surface-0 p-8 shadow-sm dark:bg-surface-900;
+}
+
+.field {
+  @apply grid gap-2 text-sm font-bold text-surface-950 dark:text-surface-0;
+}
+
+.field input {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .setup-page {
+    @apply p-4;
+  }
+
+  .setup-panel {
+    @apply gap-6;
+  }
+
+  .setup-form {
+    @apply p-6;
+  }
+
+  h1 {
+    @apply text-3xl;
+  }
+}

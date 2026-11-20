@@ -1,0 +1,237 @@
+@reference "./../../../styles.css";
+
+:host {
+  display: block;
+  /* Ajusta solo el ancho horizontal de los dropdowns de Inicio; no modifica su altura nativa. */
+  --home-dropdown-width: 200px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(290px, 420px);
+  gap: 28px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  @apply text-primary;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+h1 {
+  margin: 8px 0 12px;
+  @apply text-surface-950 dark:text-surface-0;
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.05;
+}
+
+h1 em {
+  @apply text-primary;
+  font-style: normal;
+}
+
+.hero p:not(.eyebrow) {
+  max-width: 560px;
+  @apply text-surface-600 dark:text-surface-300;
+  line-height: 1.6;
+}
+
+.status-summary {
+  @apply grid grid-cols-2 rounded-xl border border-surface-200 bg-surface-0 shadow-sm dark:border-surface-700 dark:bg-surface-900;
+}
+
+.status-summary > div {
+  min-width: 0;
+  @apply px-3.5 py-5;
+  text-align: center;
+}
+
+.status-summary > div + div {
+  @apply border-l border-surface-200 dark:border-surface-700;
+}
+
+.status-summary strong,
+.status-summary span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-summary strong {
+  @apply text-surface-950 dark:text-surface-0;
+  font-size: 20px;
+}
+
+.status-summary strong.ready {
+  @apply text-emerald-600 dark:text-emerald-400;
+}
+
+.status-summary strong.error {
+  @apply text-red-600 dark:text-red-300;
+}
+
+.status-summary span {
+  margin-top: 6px;
+  @apply text-surface-500;
+  font-size: 11px;
+}
+
+.operation-cards {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.operation-card {
+  @apply grid grid-cols-[48px_minmax(190px,1fr)_var(--home-dropdown-width)_auto] items-center gap-3.5 rounded-xl border border-surface-200 bg-surface-0 p-4 shadow-sm dark:border-surface-700 dark:bg-surface-900;
+}
+
+.operation-card.running {
+  @apply border-primary;
+}
+
+.operation-card.without-control {
+  grid-template-columns: 48px minmax(190px, 1fr) auto;
+}
+
+.operation-card.without-control .operation-actions {
+  grid-column: 3;
+}
+
+.operation-icon {
+  @apply grid size-12 place-items-center rounded-xl bg-primary-100 text-xl text-primary dark:bg-primary-900;
+}
+
+.operation-icon.shell {
+  @apply bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-200;
+}
+
+.operation-copy {
+  min-width: 0;
+}
+
+.operation-copy small,
+.operation-copy strong,
+.operation-copy span {
+  display: block;
+}
+
+.operation-copy small {
+  @apply text-surface-500;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.operation-copy strong {
+  margin-top: 4px;
+  @apply text-surface-950 dark:text-surface-0;
+}
+
+.operation-copy span {
+  margin-top: 5px;
+  overflow: hidden;
+  @apply text-surface-600 dark:text-surface-300;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operation-card p-floatlabel {
+  display: block;
+  min-width: 0;
+  width: var(--home-dropdown-width);
+}
+
+.operation-card .version-status {
+  grid-column: 3;
+  display: block;
+  width: var(--home-dropdown-width);
+  margin-top: -8px;
+  overflow: hidden;
+  @apply text-surface-600 dark:text-surface-300;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operation-card .version-status.error {
+  @apply text-red-600 dark:text-red-300;
+}
+
+.operation-card > .active-version-tag {
+  grid-column: 3;
+  justify-self: start;
+}
+
+.operation-actions {
+  display: flex;
+  min-width: max-content;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* MOVA Components: ocupa las columnas finales sin alterar la fila Shell. */
+.mova-actions {
+  grid-column: 3 / -1;
+  width: 100%;
+  min-width: 0;
+  gap: 14px;
+}
+
+.operation-actions p-button {
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .operation-card {
+    grid-template-columns: 48px 1fr auto;
+  }
+
+  .operation-card p-floatlabel {
+    grid-column: 2;
+  }
+
+  .operation-card .version-status {
+    grid-column: 2;
+  }
+
+  .operation-actions {
+    grid-row: 1 / span 2;
+    grid-column: 3;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .operation-card {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .operation-card p-floatlabel,
+  .operation-card .version-status,
+  .operation-actions {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .operation-card p-floatlabel {
+    justify-self: end;
+    width: min(100%, var(--home-dropdown-width));
+  }
+
+  .operation-actions {
+    flex-direction: row;
+    justify-content: stretch;
+    flex-wrap: wrap;
+  }
+
+}

@@ -1,0 +1,360 @@
+<section class="grid min-w-0 gap-6">
+  <p-breadcrumb [home]="{ icon: 'pi pi-home', routerLink: '/home' }" [model]="breadCrumbItems" />
+
+  @if (isDetailPending()) {
+    <section class="detail-loading" aria-busy="true" aria-live="polite">
+      <header>
+        <h1 class="m-0 text-xl font-semibold tracking-tight text-slate-100">
+          Proyecto: {{ displayName() }}
+        </h1>
+        <p class="mb-0 mt-1 text-sm text-slate-400">
+          Actualizando configuración, estado Git y microfronts locales…
+        </p>
+      </header>
+      <div class="detail-loading__cards" aria-hidden="true">
+        <span class="detail-loading__line detail-loading__line--wide"></span>
+        <span class="detail-loading__line"></span>
+        <span class="detail-loading__line"></span>
+      </div>
+      <div class="detail-loading__progress">
+        <i class="pi pi-spin pi-spinner-dotted" aria-hidden="true"></i>
+        <span>Recuperando el detalle actual</span>
+      </div>
+    </section>
+    } @else {
+    <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <h1 class="m-0 text-xl font-semibold tracking-tight text-slate-100">
+            Proyecto: {{ displayName() }}
+          </h1>
+          <p-button
+            [icon]="favorite() ? 'pi pi-star-fill' : 'pi pi-star'"
+            [styleClass]="
+              favorite()
+                ? 'p-button-rounded p-button-text detail-favorite is-selected'
+                : 'p-button-rounded p-button-text detail-favorite'
+            "
+            [disabled]="favoriteSaving()"
+            [ariaLabel]="favorite() ? 'Quitar de favoritos' : 'Agregar a favoritos'"
+            (onClick)="toggleFavorite()"
+          />
+        </div>
+        <p class="mb-0 mt-1 text-sm text-slate-400">
+          Configuración y vínculos locales del proyecto.
+        </p>
+      </div>
+      @if (isShellAvailable()) {
+        <div class="flex flex-wrap gap-2 lg:justify-end">
+          <button
+            pButton
+            type="button"
+            class="p-button-rounded p-button-text detail-terminal-action flex items-center justify-center"
+            aria-label="Abrir terminal de la shell"
+            pTooltip="Abrir terminal"
+            tooltipPosition="top"
+            [disabled]="!project()?.path"
+            (click)="openShellTerminal()"
+          >
+            <app-icon name="terminal" [size]="16" />
+          </button>
+          <p-button
+            [label]="operating() ? 'Preparando…' : 'Preparar servidor'"
+            icon="pi pi-server"
+            styleClass="p-button-outlined"
+            [disabled]="operating() || active()"
+            (onClick)="prepareServer()"
+          />
+        </div>
+      }
+    </header>
+
+    @if (isShellDetailPending()) {
+      <section class="detail-summary" aria-label="Cargando resumen de la shell" aria-busy="true">
+        <app-shell-summary-skeleton />
+        <app-shell-summary-skeleton />
+      </section>
+    } @else {
+      <section class="detail-summary" aria-label="Resumen de la shell">
+        <article class="detail-card detail-summary__section relative">
+          <div class="absolute right-4 top-4 flex items-center gap-1">
+            <p-button
+              icon="pi pi-code"
+              styleClass="p-button-rounded p-button-text"
+              ariaLabel="Abrir shell en VS Code"
+              pTooltip="Abrir en VS Code"
+              tooltipPosition="top"
+              [disabled]="!project()?.path"
+              (onClick)="openShell()"
+            />
+            <button
+              pButton
+              type="button"
+              class="p-button-rounded p-button-text detail-terminal-action flex items-center justify-center"
+              aria-label="Abrir terminal de la shell"
+              pTooltip="Abrir terminal"
+              tooltipPosition="top"
+              [disabled]="!project()?.path"
+              (click)="openShellTerminal()"
+            >
+              <app-icon name="terminal" [size]="16" />
+            </button>
+          </div>
+          <span class="detail-label">Shell asociada</span>
+          <strong class="mt-2 block truncate text-slate-100">mova3_shell</strong>
+          <span class="detail-label mt-4">Referencia Git</span>
+          <div class="mt-1 flex min-w-0 items-center gap-2 text-slate-100">
+            @if (detailProject()?.git?.shell?.type === 'tag') {
+              <i class="pi pi-tag text-sm text-amber-300" aria-hidden="true"></i>
+            }
+            <strong class="truncate">
+              {{ detailProject()?.git?.shell?.name || 'No disponible' }}
+            </strong>
+          </div>
+          <span class="detail-label mt-4">Directorio</span>
+          <p-button
+            [label]="project()?.path || 'No disponible'"
+            icon="pi pi-external-link"
+            iconPos="right"
+            size="small"
+            [link]="true"
+            class="mt-1 max-w-full"
+            [disabled]="!project()?.path"
+            (onClick)="openShellFolder()"
+          />
+        </article>
+
+        <article class="detail-card detail-summary__section relative">
+          <div class="absolute right-4 top-4 flex items-center gap-1">
+            <p-button
+              icon="pi pi-code"
+              styleClass="p-button-rounded p-button-text"
+              ariaLabel="Abrir webapp en VS Code"
+              pTooltip="Abrir en VS Code"
+              tooltipPosition="top"
+              [disabled]="!project()?.webappPath"
+              (onClick)="openWebapp()"
+            />
+            <button
+              pButton
+              type="button"
+              class="p-button-rounded p-button-text detail-terminal-action flex items-center justify-center"
+              aria-label="Abrir terminal de la webapp"
+              pTooltip="Abrir terminal"
+              tooltipPosition="top"
+              [disabled]="!project()?.webappPath"
+              (click)="openWebappTerminal()"
+            >
+              <app-icon name="terminal" [size]="16" />
+            </button>
+          </div>
+          <span class="detail-label">Webapp asociada</span>
+          <strong class="mt-2 block truncate text-slate-100">
+            {{ project()?.appName || project()?.name || 'Sin configurar' }}
+          </strong>
+          <span class="detail-label mt-4">Referencia Git</span>
+          <div class="mt-1 flex min-w-0 items-center gap-2 text-slate-100">
+            @if (detailProject()?.git?.webapp?.type === 'tag') {
+              <i class="pi pi-tag text-md text-amber-300" aria-hidden="true"></i>
+            }
+            <strong class="truncate">
+              {{ detailProject()?.git?.webapp?.name || 'No disponible' }}
+            </strong>
+          </div>
+          <span class="detail-label mt-4">Directorio</span>
+          <p-button
+            [label]="project()?.webappPath || 'No disponible'"
+            icon="pi pi-external-link"
+            iconPos="right"
+            size="small"
+            [link]="true"
+            class="mt-1 max-w-full"
+            [disabled]="!project()?.webappPath"
+            (onClick)="openWebappFolder()"
+          />
+        </article>
+      </section>
+    }
+
+    @if (isMicrofrontsPending()) {
+      <app-microfront-table-skeleton />
+    } @else {
+    <section class="rounded-xl border border-slate-700 p-4" aria-labelledby="microfronts-title">
+      <header class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 id="microfronts-title" class="m-0 text-base font-semibold text-slate-100">
+            Microfronts locales
+          </h2>
+          @if (!isMicrofrontsPending()) {
+            <p class="mb-0 mt-1 text-sm text-slate-400" aria-live="polite">
+              {{ microfronts().length }} detectados para esta shell.
+            </p>
+          }
+        </div>
+        @if (selectedMicrofronts().length) {
+          <div
+            class="flex flex-wrap items-center gap-2 rounded-lg border border-teal-700/60 bg-teal-950/30 p-2"
+          >
+            <strong class="text-sm text-teal-100">
+              {{ selectedMicrofronts().length }} seleccionados
+            </strong>
+            <p-button
+              label="Preparar"
+              icon="pi pi-play"
+              size="small"
+              styleClass="p-button-outlined"
+              [disabled]="!hasBuildableSelection()"
+              (onClick)="openBuildOptions()"
+            />
+          </div>
+        } @else if (!isMicrofrontsPending()) {
+          <label
+            class="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-slate-400"
+          >
+            <i class="pi pi-search text-sm"></i>
+            <input
+              class="min-w-48 border-0 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
+              [value]="search()"
+              placeholder="Buscar microfront…"
+              aria-label="Buscar microfront"
+              (input)="search.set($any($event.target).value)"
+            />
+          </label>
+        }
+      </header>
+      <p-table
+          [value]="visibleMicrofronts()"
+          [selection]="selectedMicrofronts()"
+          (selectionChange)="setSelectedMicrofronts($event)"
+          [rowHover]="true"
+          dataKey="id"
+        >
+          <ng-template pTemplate="header">
+            <tr>
+              <th>
+                <p-tableHeaderCheckbox />
+              </th>
+              <th>Microfront</th>
+              <th>Rama actual</th>
+              <th>Build local</th>
+              <th>Chequeo de proceso</th>
+              <th>Acciones</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-microfront>
+            <tr [class.detail-row-selected]="selectedIds().includes(microfront.id)">
+              <td>
+                <p-tableCheckbox [value]="microfront" />
+              </td>
+              <td>
+                <strong class="block text-sm text-slate-100">{{ microfront.name }}</strong>
+                <p-button
+                  [label]="microfront.path || 'No disponible'"
+                  icon="pi pi-external-link"
+                  iconPos="right"
+                  size="small"
+                  [link]="true"
+                  class="detail-microfront__directory max-w-72"
+                  styleClass="text-gray-500 hover:text-gray-400"
+                  [disabled]="!microfront.path"
+                  (onClick)="openMicrofrontFolder(microfront)"
+                />
+              </td>
+              <td>
+                <span
+                  class="flex items-center gap-2"
+                  [class.text-amber-300]="branchChanging(microfront)"
+                  [class.text-teal-300]="!branchChanging(microfront)"
+                >
+                  @if (microfront.git?.type === 'tag' && !branchChanging(microfront)) {
+                    <i class="pi pi-tag text-md text-amber-300" aria-hidden="true"></i>
+                  }
+                  <span class="flex items-center gap-2">
+                    {{
+                      branchChanging(microfront)
+                        ? 'Cambiando rama…'
+                        : microfront.git?.name || 'No disponible'
+                    }}
+                    @if (microfront.hasLocalChanges && !branchChanging(microfront)) {
+                      <i
+                        class="pi pi-cloud-upload text-md text-amber-300"
+                        aria-label="Tiene cambios locales sin confirmar"
+                        pTooltip="Tiene cambios locales sin confirmar"
+                        tooltipPosition="top"
+                      ></i>
+                    }
+                  </span>
+                </span>
+              </td>
+              <td>
+                <p-tag
+                  [value]="
+                    buildRunning(microfront)
+                      ? 'Reconstruyendo…'
+                      : microfront.localBuildAvailable
+                        ? 'Disponible'
+                        : 'No disponible'
+                  "
+                  [severity]="
+                    buildRunning(microfront)
+                      ? 'warn'
+                      : microfront.localBuildAvailable
+                        ? 'success'
+                        : 'secondary'
+                  "
+                />
+              </td>
+              <td>
+                <p-tag
+                  [value]="operationLabel(microfront)"
+                  [severity]="operationSeverity(microfront)"
+                />
+              </td>
+              <td class="flex gap-1">
+                <p-button
+                  icon="pi pi-code"
+                  styleClass="p-button-rounded p-button-text"
+                  ariaLabel="Abrir en VS Code"
+                  pTooltip="Abrir en VS Code"
+                  tooltipPosition="top"
+                  (onClick)="openMicrofrontInVsCode(microfront)"
+                />
+                <button
+                  pButton
+                  type="button"
+                  class="p-button-rounded p-button-text detail-terminal-action flex items-center justify-center"
+                  aria-label="Abrir terminal"
+                  pTooltip="Abrir terminal"
+                  tooltipPosition="top"
+                  (click)="openMicrofrontTerminal(microfront)"
+                >
+                  <app-icon name="terminal" [size]="16" />
+                </button>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="6" class="py-8 text-center text-sm text-slate-400">
+                No hay microfronts que coincidan con la búsqueda.
+              </td>
+            </tr>
+          </ng-template>
+      </p-table>
+    </section>
+    }
+  }
+</section>
+
+@if (buildOptionsVisible()) {
+  <app-build-options-dialog
+    (closed)="closeBuildOptions()"
+    (confirmed)="onBuildOptionsConfirmed($event)"
+  />
+}
+@if (shellPrepareOptionsVisible()) {
+  <app-shell-prepare-options-dialog
+    (closed)="closeShellPrepareOptions()"
+    (confirmed)="onShellPrepareOptionsConfirmed($event)"
+  />
+}

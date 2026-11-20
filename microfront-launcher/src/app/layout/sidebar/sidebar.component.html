@@ -1,0 +1,74 @@
+<aside class="sidebar" [class.sidebar-collapsed]="collapsed()">
+  <div class="sidebar-header flex">
+    <p-button
+      [icon]="collapsed() ? 'pi pi-angle-right' : 'pi pi-angle-left'"
+      styleClass="p-button-rounded p-button-text sidebar-toggle"
+      [ariaLabel]="collapsed() ? 'Expandir barra lateral' : 'Recoger barra lateral'"
+      (onClick)="toggle()"
+    />
+    @if (!collapsed()) {
+      <a class="brand">
+        <span>Microfront Launcher</span>
+      </a>
+    }
+  </div>
+
+  <div class="sidebar-scroll">
+  <nav aria-label="Navegación principal">
+    <a
+      pButton
+      class="nav-link"
+      routerLink="/home"
+      routerLinkActive="nav-link-active"
+      [attr.aria-label]="collapsed() ? 'Inicio' : null"
+    >
+      <i class="pi pi-home"></i>
+      @if (!collapsed()) {
+        <span>Inicio</span>
+      }
+    </a>
+    <a
+      pButton
+      class="nav-link"
+      routerLink="/shells"
+      routerLinkActive="nav-link-active"
+      [attr.aria-label]="collapsed() ? 'Shells' : null"
+    >
+      <i class="pi pi-desktop"></i>
+      @if (!collapsed()) {
+        <span class="nav-label">Shells</span>
+        <p-badge [value]="projects().length" severity="secondary" />
+      }
+    </a>
+  </nav>
+
+  @if (!collapsed()) {
+    <section>
+      <header>
+        <span>
+          <i class="pi pi-star-fill text-amber-400"></i>
+          Shells favoritas
+        </span>
+        <p-badge [value]="favoriteShells().length" severity="secondary" />
+      </header>
+      @if (favoriteShells().length) {
+        @for (project of favoriteShells(); track project.id) {
+          <a class="favorite-link" [routerLink]="['/shells', project.id]">{{ displayProjectName(project.name) }}</a>
+        }
+      } @else {
+        <p>Aún no hay favoritas.</p>
+      }
+    </section>
+  }
+
+  </div>
+
+  <footer>
+    <p-button
+      icon="pi pi-cog"
+      [label]="collapsed() ? undefined : 'Configuración'"
+      styleClass="p-button-text w-full justify-start"
+      (onClick)="settingsRequested.emit()"
+    />
+  </footer>
+</aside>
