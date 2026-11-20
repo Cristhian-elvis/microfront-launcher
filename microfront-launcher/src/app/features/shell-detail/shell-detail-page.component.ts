@@ -344,7 +344,15 @@ export class ShellDetailPageComponent {
 
   openMicrofrontFolder(microfront: Microfront): void {
     const project = this.project();
-    if (project) this.run(this.projectsApi.openMicrofrontFolder(project.id, microfront.id), false);
+    if (project) {
+      this.run(
+        this.projectsApi.openProjectTarget(project.id, 'folder', {
+          type: 'microfrontend',
+          id: microfront.id,
+        }),
+        false,
+      );
+    }
   }
 
   openMicrofrontInVsCode(microfront: Microfront): void {

@@ -18,7 +18,7 @@ export function createProjectsRouter() {
     projectsController.openScaffolding,
   );
   router.post(
-    '/projects/:projectId/open-in-vscode',
+    '/projects/:projectId/open-target',
     parseJson,
     projectsController.openProjectTarget,
   );

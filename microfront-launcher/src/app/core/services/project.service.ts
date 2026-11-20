@@ -44,7 +44,7 @@ export class ProjectService {
     target: { type: 'shell' | 'webapp' | 'microfrontend'; id?: string },
   ): Observable<ApiMessage> {
     return this.http.post<ApiMessage>(
-      `/api/projects/${encodeURIComponent(projectId)}/open-in-vscode`,
+      `/api/projects/${encodeURIComponent(projectId)}/open-target`,
       { action, target },
     );
   }
@@ -67,10 +67,6 @@ export class ProjectService {
 
   changeMicrofrontBranches(projectId: string, microfrontendIds: string[], branch: string): Observable<ApiMessage> {
     return this.http.post<ApiMessage>('/api/microfrontends/branch-batch', { projectId, microfrontendIds, branch });
-  }
-
-  openMicrofrontFolder(projectId: string, microfrontendId: string): Observable<ApiMessage> {
-    return this.http.post<ApiMessage>('/api/microfrontends/open-folder', { projectId, microfrontendId });
   }
 
 }
