@@ -4,7 +4,10 @@ import { state } from "../../state.js";
 import { openBrowser } from "../../services/browser-service.js";
 import { selectedVersion } from "../../services/components-version-service.js";
 import { ensureComponents } from "../../services/components-runtime-service.js";
-import { assertNotCancelled } from "../../services/process-runner-service.js";
+import {
+  assertNotCancelled,
+  runProcessStep,
+} from "../../services/process-runner-service.js";
 import { RuntimeStateService } from "../../services/runtime-state-service.js";
 import { MicrofrontendRuntimeService } from "../../services/microfrontend-runtime-service.js";
 import { startShell } from "../../services/shell-runtime-service.js";
