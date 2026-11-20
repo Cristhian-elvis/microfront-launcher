@@ -13,7 +13,8 @@ Herramienta local para iniciar y administrar el entorno de desarrollo de MOVA.
 Desde la raíz, instala el coordinador de procesos:
 
 ```powershell
-npm install
+npm install:all
+npm start
 ```
 
 Instala las dependencias del frontend:
