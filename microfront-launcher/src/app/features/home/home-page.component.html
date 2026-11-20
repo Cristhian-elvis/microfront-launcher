@@ -1,0 +1,174 @@
+@let currentState = state();
+<section class="hero">
+  <div>
+    <p class="eyebrow">CENTRO DE OPERACIONES</p>
+    <h1>
+      Tu entorno local,
+      <br />
+      <em>bajo control.</em>
+    </h1>
+    <p>Gestiona las dependencias de MOVA y la shell de trabajo desde un único lugar.</p>
+  </div>
+  <div class="status-summary">
+    <div>
+      <strong
+        [class.ready]="environmentLabel() === 'Listo'"
+        [class.error]="environmentLabel() === 'Error'"
+      >
+        {{ environmentLabel() }}
+      </strong>
+      <span>Entorno</span>
+    </div>
+    <div>
+      <strong [title]="currentState?.shell?.name ?? ''">{{ activeShellName() }}</strong>
+      <span>Shell activa</span>
+    </div>
+  </div>
+</section>
+
+<section class="operation-cards" aria-label="Operaciones">
+  @if (localMovaIncluded()) {
+    <article class="operation-card">
+      <div class="operation-icon components"><i class="pi pi-box"></i></div>
+      <div class="operation-copy">
+        <small>DEPENDENCIA COMPARTIDA</small>
+        <strong>MOVA Components</strong>
+        <span>Librería de componentes para la shell.</span>
+      </div>
+      <div class="operation-actions mova-actions">
+        <p-tag
+          class="active-version-tag"
+          [value]="activeVersion()"
+          severity="info"
+          icon="pi pi-tag"
+        />
+        @if (!shellRunning()) {
+          @if (componentsActive()) {
+            <p-button
+              [label]="currentState?.components?.external ? 'Externo' : 'Detener'"
+              icon="pi pi-stop"
+              styleClass="p-button-sm p-button-danger p-button-outlined"
+              [disabled]="currentState?.components?.external || actionPending()"
+              (onClick)="stopComponents()"
+            />
+          } @else {
+            <p-button
+              label="Iniciar"
+              icon="pi pi-play"
+              styleClass="p-button-sm"
+              [disabled]="!versionReady() || actionPending()"
+              (onClick)="startComponents()"
+            />
+          }
+        }
+      </div>
+    </article>
+  }
+
+  <article
+    class="operation-card"
+    [class.running]="shellReady()"
+    [class.without-control]="shellReady()"
+  >
+    <div class="operation-icon shell"><i class="pi pi-desktop"></i></div>
+    <div class="operation-copy">
+      <small>ENTORNO DE TRABAJO</small>
+      <strong>Shell</strong>
+      <span>
+        {{
+          shellReady()
+            ? activeShellName() + ' se encuentra en ejecución.'
+            : shellStarting()
+              ? activeShellName() + ' se está iniciando.'
+              : 'Selecciona un proyecto configurado para iniciar.'
+        }}
+      </span>
+    </div>
+
+    @if (!shellReady()) {
+      <p-floatlabel variant="on">
+        <p-select
+          inputId="shell-project"
+          [options]="projectOptions()"
+          [ngModel]="selectedProjectId()"
+          (ngModelChange)="selectedProjectId.set($event)"
+          optionLabel="label"
+          optionValue="value"
+          [style]="{ width: '100%' }"
+          [disabled]="sessionBusy() || shellStarting() || !projects().length"
+        />
+        <label for="shell-project">Proyecto</label>
+      </p-floatlabel>
+    }
+    <div class="operation-actions">
+      @if (shellReady()) {
+        <p-button
+          label="Abrir ventana"
+          icon="pi pi-external-link"
+          styleClass="p-button-sm p-button-outlined"
+          [disabled]="actionPending()"
+          (onClick)="openBrowser('window')"
+        />
+        <p-button
+          label="Abrir pestaña"
+          icon="pi pi-clone"
+          styleClass="p-button-sm p-button-outlined"
+          [disabled]="actionPending()"
+          (onClick)="openBrowser('tab')"
+        />
+        <p-button
+          label="Detener"
+          icon="pi pi-stop"
+          styleClass="p-button-sm p-button-danger p-button-outlined"
+          [disabled]="actionPending()"
+          (onClick)="stopEnvironment()"
+        />
+      } @else {
+        <p-button
+          [label]="shellStarting() ? 'Iniciando…' : 'Iniciar'"
+          icon="pi pi-play"
+          styleClass="p-button-sm"
+          [disabled]="!selectedProject() || (localMovaIncluded() && !versionReady()) || actionPending() || shellStarting()"
+          (onClick)="startShell()"
+        />
+      }
+    </div>
+  </article>
+</section>
+
+<p-dialog
+  header="Abrir navegador"
+  [modal]="true"
+  [visible]="browserChoiceVisible()"
+  [draggable]="false"
+  [closable]="false"
+  [style]="{ width: 'min(440px, calc(100vw - 2rem))' }"
+>
+  <p class="m-0 text-surface-600 dark:text-surface-300">
+    La shell se abrirá al finalizar el arranque. ¿Cómo deseas abrirla?
+  </p>
+  <div class="mt-5 flex justify-end gap-2">
+    <p-button
+      label="Cancelar"
+      styleClass="p-button-outlined"
+      (onClick)="cancelBrowserChoice()"
+    />
+    <p-button
+      label="Nueva pestaña"
+      icon="pi pi-clone"
+      styleClass="p-button-outlined"
+      (onClick)="confirmBrowserChoice('tab')"
+    />
+    <p-button
+      label="Nueva ventana"
+      icon="pi pi-window-maximize"
+      (onClick)="confirmBrowserChoice('window')"
+    />
+  </div>
+</p-dialog>
+
+<app-process-console
+  [logs]="logs()"
+  [clearedAt]="logsClearedAt()"
+  (clearRequested)="clearLogsView()"
+/>
