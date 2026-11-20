@@ -25,7 +25,7 @@ export class SetupPageComponent {
     include: true,
     config: {
       automaticUpdate: true,
-      sourcePath: 'C:\\gitlab\\mova\\mova3\\mova3_lib_ui_components',
+      sourcePath: '',
       stencil: 'https://d1ugy3v77gzx7h.cloudfront.net/uploads/mova3/cudc-lib-componentes-stencil-VAL',
     },
   } });
